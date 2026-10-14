@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>European public finance in the WAEMU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e9eef0; --panel:#f8fafa; --ink:#14232c; --muted:#56666f; --line:#cfd9dd;
+  --ocean:#c9dbe2; --land:#f4f2ec; --land-line:#b7c5cb; --eu:#dfe6ea; --waemu:#f1d9a6; --waemu-line:#a8833d;
+  --focus:#1d5fd1; --chip:#ffffff;
+  --t-dfi:#1f63b5; --t-bdb:#c0520e; --t-npb:#0b7a6e; --t-eca:#b0225c; --t-mdb:#6a3fbf;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1a20; --panel:#15232b; --ink:#e7eef1; --muted:#9db0b9; --line:#2a3b44;
+  --ocean:#18303b; --land:#22343d; --land-line:#3b5260; --eu:#2b414c; --waemu:#6b5426; --waemu-line:#d9b064;
+  --focus:#7fb0ff; --chip:#1b2c35;
+  --t-dfi:#6aa8ff; --t-bdb:#ff9a57; --t-npb:#3fd1bd; --t-eca:#ff6fa6; --t-mdb:#b493ff;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f1a20; --panel:#15232b; --ink:#e7eef1; --muted:#9db0b9; --line:#2a3b44;
+  --ocean:#18303b; --land:#22343d; --land-line:#3b5260; --eu:#2b414c; --waemu:#6b5426; --waemu-line:#d9b064;
+  --focus:#7fb0ff; --chip:#1b2c35;
+  --t-dfi:#6aa8ff; --t-bdb:#ff9a57; --t-npb:#3fd1bd; --t-eca:#ff6fa6; --t-mdb:#b493ff;
+  color-scheme:dark;}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 "Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;font-variation-settings:"wdth" 100}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;height:100%}
+.stage{position:relative;min-height:0;overflow:hidden}
+#globe{position:absolute;inset:0}
+.title{position:absolute;left:clamp(16px,3vw,36px);top:clamp(14px,3vh,30px);max-width:34ch;pointer-events:none}
+.title h1{margin:0;font-weight:800;font-size:clamp(26px,3.4vw,46px);line-height:1;letter-spacing:-.01em;font-variation-settings:"wdth" 70}
+.title p{margin:.6em 0 0;color:var(--muted);font-size:14px;max-width:46ch}
+.legend{position:absolute;left:clamp(16px,3vw,36px);bottom:clamp(14px,3vh,28px);display:flex;flex-direction:column;gap:6px;font-size:13px;background:color-mix(in srgb,var(--panel) 82%,transparent);padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:18px;height:3px;border-radius:2px;display:inline-block}
+.legend small{color:var(--muted)}
+aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.filters{padding:18px 20px 12px;border-bottom:1px solid var(--line);display:grid;gap:12px}
+.group h2{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:4px 10px 4px 8px;font:inherit;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip .sw{width:10px;height:10px;border-radius:50%}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:100%}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.summary{padding:14px 20px;border-bottom:1px solid var(--line)}
+.summary .sel{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.summary strong{font-size:30px;font-weight:700;font-variation-settings:"wdth" 75;letter-spacing:-.01em}
+.summary p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.clear{appearance:none;background:none;border:0;color:var(--focus);font:inherit;font-size:13px;cursor:pointer;padding:0;text-decoration:underline}
+.list{overflow:auto;min-height:0;flex:1;padding:4px 0 16px}
+.deal{padding:12px 20px;border-bottom:1px solid var(--line)}
+.deal h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
+.deal .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--muted)}
+.deal .amt{font-variation-settings:"wdth" 80;font-weight:600;color:var(--ink)}
+.deal .who{display:flex;align-items:center;gap:6px}
+.deal .note{font-size:12px;color:var(--muted);margin-top:4px}
+.deal a{color:var(--focus);font-size:13px}
+.flag{font-size:12px;border:1px dashed var(--line);border-radius:4px;padding:0 5px}
+.more{display:block;margin:12px auto;appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);font:inherit;font-size:14px;border-radius:8px;padding:6px 14px;cursor:pointer}
+.foot{padding:10px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.foot details summary{cursor:pointer}
+.tip{font:13px/1.4 "Archivo",system-ui,sans-serif;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:260px}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}
+  .stage{height:62vh}
+  aside{border-left:0;border-top:1px solid var(--line)}
+  .list{overflow:visible}
+  .legend{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="stage" aria-label="Interactive globe">
+    <div id="globe"></div>
+    <div class="title">
+      <h1>European public finance in the WAEMU</h1>
+      <p>Where European development banks, DFIs, promotional banks and export credit agencies invest across the eight countries of the West African Monetary Union. Click an arc, a country or a capital.</p>
+    </div>
+    <div class="legend" id="legend" aria-label="Legend"></div>
+  </section>
+  <aside>
+    <div class="filters">
+      <div class="group"><h2>Institution type</h2><div class="chips" id="f-type"></div></div>
+      <div class="row2">
+        <div class="group"><h2><label for="f-ms">Member state</label></h2><select id="f-ms"></select></div>
+        <div class="group"><h2><label for="f-inst">Institution</label></h2><select id="f-inst"></select></div>
+      </div>
+      <div class="group"><h2>Recipient country</h2><div class="chips" id="f-cc"></div></div>
+      <div class="row2">
+        <div class="group"><h2><label for="f-ins">Instrument</label></h2><select id="f-ins"></select></div>
+        <div class="group"><h2><label for="f-yr">Signed or started since</label></h2><select id="f-yr"></select></div>
+      </div>
+    </div>
+    <div class="summary" aria-live="polite">
+      <div class="sel"><strong id="s-total">–</strong><button class="clear" id="reset">Reset filters</button></div>
+      <p id="s-text"></p>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="foot">
+      <details><summary>About the data</summary>
+        <p>Data updated <span id="gen"></span>. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals.</p>
+        <p id="gaps"></p>
+      </details>
+    </div>
+  </aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+<script>
+const DATA = /*__DATA__*/null;
+const WORLD = /*__WORLD__*/null;
+</script>
+<script>
+(() => {
+const TYPES = [
+  ["DFI","DFI","--t-dfi"], ["Bilateral development bank","Development bank","--t-bdb"],
+  ["NPB","Promotional bank","--t-npb"], ["ECA","Export credit agency","--t-eca"],
+  ["Multilateral","Multilateral","--t-mdb"]];
+const MS = {FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",FI:"Finland",DK:"Denmark",SE:"Sweden",
+  AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",PL:"Poland",EU:"EU institution",INT:"International (EBRD)"};
+const SHORT = {afd:"AFD",proparco:"Proparco","kfw-db":"KfW",deg:"DEG",fmo:"FMO","invest-intl":"Invest International",
+  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD"};
+const WAEMU_NUM = {"204":"BJ","854":"BF","384":"CI","624":"GW","466":"ML","562":"NE","686":"SN","768":"TG"};
+const EU_NUM = new Set(["040","056","100","191","196","203","208","233","246","250","276","300","348","372","380","428","440","442","470","528","616","620","642","703","705","724","752"]);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const typeVar = Object.fromEntries(TYPES.map(t => [t[0], t[2]]));
+const INST = Object.fromEntries(DATA.institutions.map(i => [i.institution_id, i]));
+const INV = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i]));
+const withData = new Set(DATA.investments.map(i => i.institution_id));
+const fmt = v => v >= 1e9 ? "€" + (v/1e9).toFixed(1) + " bn" : v >= 1e6 ? "€" + (v/1e6).toFixed(v >= 1e8 ? 0 : 1) + " m" : v >= 1e3 ? "€" + Math.round(v/1e3) + " k" : "€" + Math.round(v);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const state = {types:new Set(TYPES.map(t => t[0])), ms:"", inst:"", cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40};
+
+// ---------- filter controls
+const fType = document.getElementById("f-type");
+TYPES.forEach(([k,label,v]) => {
+  const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed","true");
+  b.innerHTML = `<span class="sw" style="background:var(${v})"></span>${label}`;
+  b.onclick = () => { state.types.has(k) ? state.types.delete(k) : state.types.add(k); b.setAttribute("aria-pressed", state.types.has(k)); update(); };
+  fType.append(b);
+});
+const fCC = document.getElementById("f-cc");
+Object.entries(DATA.countries).forEach(([cc,c]) => {
+  const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.dataset.cc = cc;
+  b.setAttribute("aria-pressed","true"); b.textContent = c.name;
+  b.onclick = () => { state.cc.has(cc) ? state.cc.delete(cc) : state.cc.add(cc); b.setAttribute("aria-pressed", state.cc.has(cc)); update(); };
+  fCC.append(b);
+});
+function opts(el, list, all) { el.innerHTML = `<option value="">${all}</option>` + list.map(([v,l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(""); }
+const msList = [...new Set(DATA.institutions.filter(i => withData.has(i.institution_id)).map(i => i.member_state))];
+opts(document.getElementById("f-ms"), msList.map(m => [m, MS[m] || m]), "All");
+opts(document.getElementById("f-inst"), DATA.institutions.filter(i => withData.has(i.institution_id)).map(i => [i.institution_id, SHORT[i.institution_id] || i.name]), "All");
+opts(document.getElementById("f-ins"), [...new Set(DATA.investments.map(i => i.instrument))].sort().map(x => [x,x]), "All");
+const years = [...new Set(DATA.investments.map(i => i.year).filter(Boolean))].sort();
+opts(document.getElementById("f-yr"), [2000,2010,2015,2020,2023,2025].filter(y => y >= +years[0]).map(y => [y, String(y)]), "Any year");
+for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr","yr"]])
+  document.getElementById(id).onchange = e => { state[key] = e.target.value; state.focus = null; update(); };
+document.getElementById("reset").onclick = () => {
+  Object.assign(state, {types:new Set(TYPES.map(t => t[0])), ms:"", inst:"", cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null});
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","true"));
+  ["f-ms","f-inst","f-ins","f-yr"].forEach(id => document.getElementById(id).value = "");
+  update();
+};
+document.getElementById("gen").textContent = DATA.generated;
+const gaps = DATA.institutions.filter(i => !withData.has(i.institution_id));
+document.getElementById("gaps").textContent = "Not yet covered (no machine-readable disclosure found): " + gaps.map(i => i.name).join(", ") + ".";
+
+// ---------- legend
+document.getElementById("legend").innerHTML = TYPES.map(([,l,v]) => `<span><i style="background:var(${v})"></i>${l}</span>`).join("") +
+  `<small>Arc width grows with the amount invested</small>`;
+
+// ---------- filtering
+function passInv(inv) {
+  const ins = INST[inv.institution_id];
+  if (!state.types.has(ins.type)) return false;
+  if (state.ms && ins.member_state !== state.ms) return false;
+  if (state.inst && inv.institution_id !== state.inst) return false;
+  if (state.ins && inv.instrument !== state.ins) return false;
+  if (state.yr && !(inv.year && +inv.year >= +state.yr)) return false;
+  return true;
+}
+function filtered() {
+  const rows = [];
+  for (const a of DATA.allocations) {
+    if (!state.cc.has(a.country)) continue;
+    const inv = INV[a.investment_id];
+    if (!passInv(inv)) continue;
+    if (state.focus) {
+      if (state.focus.inst && inv.institution_id !== state.focus.inst) continue;
+      if (state.focus.cc && a.country !== state.focus.cc) continue;
+    }
+    rows.push([a, inv]);
+  }
+  return rows;
+}
+
+// ---------- globe
+const el = document.getElementById("globe");
+const globe = Globe()(el)
+  .backgroundColor("rgba(0,0,0,0)")
+  .showAtmosphere(true).atmosphereAltitude(0.12)
+  .polygonsData(topojson.feature(WORLD, WORLD.objects.countries).features)
+  .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.012 : 0.004)
+  .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css("--waemu-line") : css("--land-line"))
+  .polygonSideColor(() => "rgba(0,0,0,0)")
+  .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(f.properties.name)}</b><br>Click to see deals</div>` : "")
+  .onPolygonClick(f => { const cc = WAEMU_NUM[f.id]; if (cc) { state.focus = {cc}; update(); } })
+  .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
+  .arcAltitudeAutoScale(0.35)
+  .arcLabel(d => `<div class="tip"><b>${esc(d.label)}</b> to ${esc(DATA.countries[d.cc].name)}<br>${d.n} deal${d.n>1?"s":""}${d.sum ? ", " + fmt(d.sum) : ""}</div>`)
+  .onArcClick(d => { state.focus = {inst:d.inst, cc:d.cc}; update(); })
+  .pointLat("lat").pointLng("lng").pointAltitude(0.01).pointRadius(0.35)
+  .pointLabel(d => `<div class="tip"><b>${esc(d.name)}</b><br>${esc(d.city)}</div>`)
+  .onPointClick(d => { state.focus = {inst:d.id}; update(); })
+  .labelLat("lat").labelLng("lng").labelText("name").labelSize(0.9).labelDotRadius(0).labelAltitude(0.015)
+  .labelResolution(2);
+function paint() {
+  globe.globeMaterial().color.set(css("--ocean"));
+  globe.atmosphereColor(css("--ocean"));
+  globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css("--waemu") : EU_NUM.has(f.id) ? css("--eu") : css("--land"));
+  globe.labelColor(() => css("--ink"));
+  update(false);
+}
+globe.pointOfView({lat: 28, lng: -4, altitude: 1.75}, 0);
+const ctl = globe.controls(); ctl.autoRotate = false; ctl.enableDamping = true;
+new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight)).observe(el);
+
+function update(resetList = true) {
+  if (resetList) state.shown = 40;
+  const rows = filtered();
+  // aggregate arcs institution -> country
+  const agg = new Map();
+  for (const [a, inv] of rows) {
+    const k = inv.institution_id + "|" + a.country;
+    const g = agg.get(k) || {inst:inv.institution_id, cc:a.country, n:0, sum:0};
+    g.n++; g.sum += a.amount_attributed_eur || 0; agg.set(k, g);
+  }
+  const arcs = [...agg.values()].map(g => {
+    const ins = INST[g.inst], c = DATA.countries[g.cc];
+    return {...g, label: SHORT[g.inst] || ins.name, sLat:+ins.hq_lat, sLng:+ins.hq_lon, eLat:c.lat, eLng:c.lon,
+            color: css(typeVar[ins.type]), stroke: Math.max(0.06, Math.log10(Math.max(g.sum, 1e5)) - 4.8) * 0.13};
+  });
+  globe.arcsData(arcs).arcColor("color").arcStroke("stroke")
+    .arcDashLength(reduceMotion ? 1 : 0.5).arcDashGap(reduceMotion ? 0 : 0.15).arcDashAnimateTime(reduceMotion ? 0 : 5000);
+  const instIds = new Set(arcs.map(a => a.inst));
+  globe.pointsData(DATA.institutions.filter(i => instIds.has(i.institution_id)).map(i => ({id:i.institution_id, name:i.name, city:i.hq_city, lat:+i.hq_lat, lng:+i.hq_lon})))
+    .pointColor(d => css(typeVar[INST[d.id].type]));
+  globe.labelsData(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name:c.name, lat:c.lat, lng:c.lon})));
+  renderPanel(rows);
+}
+
+function renderPanel(rows) {
+  const counted = rows.filter(([a]) => a.amount_attributed_eur != null);
+  const total = counted.reduce((s,[a]) => s + a.amount_attributed_eur, 0);
+  const deals = new Set(rows.map(([,inv]) => inv.investment_id));
+  const instN = new Set(rows.map(([,inv]) => inv.institution_id));
+  document.getElementById("s-total").textContent = fmt(total);
+  let scope = "";
+  if (state.focus) {
+    const parts = [];
+    if (state.focus.inst) parts.push(SHORT[state.focus.inst] || INST[state.focus.inst].name);
+    if (state.focus.cc) parts.push("in " + DATA.countries[state.focus.cc].name);
+    scope = " Showing " + parts.join(" ") + ".";
+  }
+  const unk = rows.filter(([a]) => a.amount_attributed_eur == null).length;
+  document.getElementById("s-text").textContent =
+    `${deals.size.toLocaleString()} deals from ${instN.size} institution${instN.size === 1 ? "" : "s"}.` + scope +
+    (unk ? ` ${unk} allocations have no disclosed or attributable amount.` : "");
+  // list, one row per deal (country allocations merged)
+  const byDeal = new Map();
+  for (const [a, inv] of rows) {
+    const d = byDeal.get(inv.investment_id) || {inv, ccs:[], sum:0, est:false, reg:false};
+    d.ccs.push(a.country); d.sum += a.amount_attributed_eur || 0;
+    if (a.attribution_method === "equal_split_estimate") d.est = true;
+    if (a.attribution_method === "regional_unallocated") d.reg = true;
+    byDeal.set(inv.investment_id, d);
+  }
+  const list = [...byDeal.values()].sort((x,y) => (y.sum || y.inv.amount_eur || 0) - (x.sum || x.inv.amount_eur || 0));
+  const box = document.getElementById("list");
+  if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters. Widen the year range or turn an institution type back on.</p>`; return; }
+  box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg}) => {
+    const ins = INST[inv.institution_id];
+    const amount = sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
+    return `<article class="deal">
+      <h3>${esc(inv.title)}</h3>
+      <div class="meta">
+        <span class="who"><span class="sw" style="width:9px;height:9px;border-radius:50%;background:var(${typeVar[ins.type]})"></span>${esc(SHORT[ins.institution_id] || ins.name)}</span>
+        <span>${ccs.map(c => esc(DATA.countries[c].name)).join(", ")}</span>
+        ${inv.year ? `<span>${esc(inv.year)}</span>` : ""}
+        <span>${esc(inv.instrument)}</span>
+        <span class="amt">${amount}</span>
+        ${est ? `<span class="flag" title="Multi-country deal split equally across listed countries">estimated share</span>` : ""}
+        ${reg ? `<span class="flag" title="Regional deal, amount not allocated to WAEMU countries">regional</span>` : ""}
+      </div>
+      ${inv.client && inv.client !== inv.title ? `<div class="note">Client: ${esc(inv.client)}${inv.client_domicile ? ", " + esc(inv.client_domicile) : ""}</div>` : ""}
+      <a href="${esc(inv.source_url)}" target="_blank" rel="noopener">View source record</a>
+    </article>`;
+  }).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
+  const m = document.getElementById("more");
+  if (m) m.onclick = () => { state.shown += 40; renderPanel(filtered()); };
+}
+
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paint);
+paint();
+})();
+</script>
+</body>
+</html>
