@@ -590,6 +590,12 @@ def step_normalize():
                 note="Amount is the band published by Finnfund." if key == "finnfund" and amt else
                      ("Amount not disclosed." if not amt else ""))
 
+    # ---- Editable templates: created once so they can be filled in directly on GitHub
+    for _name, _header in [("manual_entries.csv", "institution_id,title,client,countries,year,instrument,sector,amount,currency,source_url,note"),
+                           ("programmes_manual.csv", "programme_id,name,kind,countries,participants,amount_eur,period,description,source_url,note")]:
+        if not (OUT / _name).exists():
+            (OUT / _name).write_text(_header + "\n", encoding="utf-8")
+
     # ---- Manual research sheet (ECAs, NPBs, JavaScript-only DFI sites). One row per deal.
     # countries: ISO2 codes separated by | (e.g. SN|CI). Keep a source_url for every row.
     manual = OUT / "manual_entries.csv"
@@ -812,18 +818,18 @@ TEMPLATE = r'''<!doctype html>
 <title>European public finance in the WAEMU</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* Dark by design: an operations-console look, identical in light and dark system settings */
 :root{
   --bg:#040a0f; --bg2:#071219; --panel:rgba(7,18,26,.9); --panel-solid:#08151d;
   --ink:#d9f4ff; --muted:#8db1c0; --dim:#56798a; --line:#163746; --line-hi:#2a6a80;
   --accent:#40e8ff; --focus:#40e8ff; --chip:#0a1c26;
-  --ocean:#03131b; --land:#1f4a5c; --land-eu:#2f6f86; --land-waemu:#e0a64a; --waemu-line:#ffbf5c;
+  --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --border:#5d93a6; --waemu-line:#ffbf5c;
   --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff;
   --k-tei:#4fa8ff; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --sans:"Chakra Petch","Segoe UI",system-ui,-apple-system,sans-serif;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
   color-scheme:dark;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
@@ -837,12 +843,11 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
 .stage{position:relative;min-height:0;overflow:hidden}
 #globe{position:absolute;inset:0}
 /* faint scanlines and vignette over the globe */
-.stage::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(to bottom,rgba(64,232,255,.035) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
 .hud{position:absolute;z-index:2;pointer-events:none}
 .title{left:clamp(16px,3vw,36px);top:clamp(14px,3vh,28px);max-width:40ch}
-.title .code{font:500 12px/1 var(--mono);color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin:0 0 10px}
-.title h1{margin:0;font-weight:700;font-size:clamp(26px,3.2vw,44px);line-height:1.02;letter-spacing:.01em;text-transform:uppercase;text-shadow:0 0 18px rgba(64,232,255,.25)}
+.title .code{font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.08em;margin:0 0 10px}
+.title h1{margin:0;font-weight:600;font-size:clamp(24px,2.8vw,38px);line-height:1.1;letter-spacing:-.005em}
 .title p{margin:.7em 0 0;color:var(--muted);font-size:14px;max-width:46ch}
 .readout{right:clamp(12px,2vw,24px);top:clamp(14px,3vh,28px);font:400 12px/1.7 var(--mono);color:var(--muted);text-align:right;
   background:rgba(4,12,17,.6);border:1px solid var(--line);padding:8px 12px}
@@ -850,37 +855,40 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
 .legend{left:clamp(16px,3vw,36px);bottom:clamp(14px,3vh,28px);display:flex;flex-direction:column;gap:6px;font-size:13px;
   background:rgba(4,12,17,.72);padding:10px 12px;border:1px solid var(--line)}
 .legend span{display:flex;align-items:center;gap:9px}
-.legend i{width:22px;height:0;border-top:2px dotted;display:inline-block;filter:drop-shadow(0 0 4px currentColor)}
+.legend i{width:22px;height:0;border-top:2px dotted;display:inline-block}
 .legend small{color:var(--dim);font-family:var(--mono);font-size:11px}
 .bracket::before,.bracket::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--accent);pointer-events:none}
 .bracket::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
 .bracket::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
 /* glowing pins */
-.pin{position:relative;width:0;height:0;pointer-events:auto;cursor:pointer}
+.pin{position:relative;width:0;height:0;pointer-events:auto;cursor:pointer;z-index:5}
+.pin b{position:absolute;left:-15px;top:-15px;width:30px;height:30px;border-radius:50%;background:transparent}
+.pin:hover i{transform:scale(1.5)}
+.pin:hover span,.pin:focus-visible span{opacity:1}
 .pin i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);
   box-shadow:0 0 6px 2px var(--c),0 0 18px 6px color-mix(in srgb,var(--c) 45%,transparent)}
 .pin.dest i{left:-3px;top:-3px;width:6px;height:6px;box-shadow:0 0 6px 1px var(--c)}
 .pin::after{content:"";position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);opacity:.0;animation:ping 2.4s ease-out infinite}
 .pin.dest::after{animation-duration:3.6s}
-.pin span{position:absolute;left:9px;top:-8px;font:500 11px/1 var(--mono);color:var(--ink);white-space:nowrap;text-shadow:0 0 6px #000,0 0 2px #000;opacity:.85}
+.pin span{position:absolute;left:12px;top:-8px;font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap;background:rgba(4,12,17,.85);border:1px solid var(--line-hi);padding:3px 6px;opacity:0;pointer-events:none}
 @keyframes ping{0%{transform:scale(.3);opacity:.9}100%{transform:scale(1.6);opacity:0}}
 aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;backdrop-filter:blur(6px)}
 .filters{padding:16px 18px 12px;border-bottom:1px solid var(--line);display:grid;gap:12px}
 .views{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line-hi)}
-.views button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;padding:10px 6px;cursor:pointer}
-.views button[aria-pressed="true"]{background:rgba(64,232,255,.12);color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.views button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px/1 var(--sans);padding:10px 6px;cursor:pointer}
+.views button[aria-pressed="true"]{background:rgba(64,232,255,.08);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
 [hidden]{display:none!important}
-.group h2{margin:0 0 6px;font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.group h2{margin:0 0 6px;font:600 12px/1 var(--sans);color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:4px 9px 4px 7px;font:500 13px/1.3 var(--sans);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .chip[aria-pressed="false"]{opacity:.4}
-.chip .sw,.sw{width:8px;height:8px;border-radius:50%;display:inline-block;box-shadow:0 0 6px currentColor}
+.chip .sw,.sw{width:8px;height:8px;border-radius:50%;display:inline-block}
 select{font:500 14px var(--sans);color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:6px 8px;width:100%}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .summary{padding:14px 18px;border-bottom:1px solid var(--line)}
 .summary .sel{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.summary strong{font:500 30px/1.1 var(--mono);color:var(--accent);text-shadow:0 0 14px rgba(64,232,255,.35)}
+.summary strong{font:600 28px/1.1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
 .summary p{margin:6px 0 0;color:var(--muted);font-size:13px}
 .clear{appearance:none;background:none;border:0;color:var(--accent);font:500 13px var(--sans);cursor:pointer;padding:0;text-decoration:underline}
 .list{overflow:auto;min-height:0;flex:1;padding:4px 0 16px;scrollbar-color:var(--line-hi) transparent}
@@ -891,7 +899,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .deal .who{display:flex;align-items:center;gap:6px}
 .deal .note{font-size:12.5px;color:var(--muted);margin-top:4px}
 .deal a{color:var(--accent);font-size:13px}
-.kind{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.kind{font:600 12px/1 var(--sans);margin-bottom:5px}
 .flag{font:500 11px var(--mono);border:1px dashed var(--line-hi);padding:0 5px;color:var(--muted)}
 .more{display:block;margin:12px auto;appearance:none;border:1px solid var(--line-hi);background:transparent;color:var(--accent);font:500 14px var(--sans);padding:6px 14px;cursor:pointer}
 .foot{padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
@@ -915,7 +923,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
   <section class="stage" aria-label="Interactive globe">
     <div id="globe"></div>
     <div class="hud title" style="position:absolute">
-      <p class="code">EU public finance monitor / WAEMU</p>
+      <p class="code">EU public finance monitor, WAEMU region</p>
       <h1>European public finance in the WAEMU</h1>
       <p>Where EU institutions and member states' development banks, DFIs, promotional banks and export credit agencies invest across the eight WAEMU countries, and the Team Europe programmes they run there. Click an arc, a country or a capital.</p>
     </div>
@@ -944,6 +952,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
         <div class="group" style="margin-top:12px"><h2><label for="f-part">Participant</label></h2><select id="f-part"></select></div>
       </div>
       <div class="group"><h2>Recipient country</h2><div class="chips" id="f-cc"></div></div>
+      <div class="group"><h2><label for="f-cap">Jump to a capital</label></h2><select id="f-cap"></select></div>
       <div class="row2" id="inv-filters-2">
         <div class="group"><h2><label for="f-ins">Instrument</label></h2><select id="f-ins"></select></div>
         <div class="group"><h2><label for="f-yr">Signed or started since</label></h2><select id="f-yr"></select></div>
@@ -956,7 +965,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="list" id="list"></div>
     <div class="foot">
       <details><summary>About the data</summary>
-        <p>Data updated <span id="gen"></span>. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
+        <p>Data updated <span id="gen"></span>. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
         <p id="gaps"></p>
       </details>
     </div>
@@ -1031,6 +1040,13 @@ const years = [...new Set(DATA.investments.map(i => i.year).filter(Boolean))].so
 opts(document.getElementById("f-yr"), [2000,2010,2015,2020,2023,2025].filter(y => y >= +years[0]).map(y => [y, String(y)]), "Any year");
 const parts = [...new Set(PROG.flatMap(p => p.participants))].filter(p => PLACES[p]).sort((a,b) => partName(a).localeCompare(partName(b)));
 opts(document.getElementById("f-part"), parts.map(p => [p, partName(p)]), "All");
+opts(document.getElementById("f-cap"), Object.entries(CAPITALS).map(([cc,[city]]) => [cc, `${city}, ${DATA.countries[cc].name}`]), "Choose a capital");
+document.getElementById("f-cap").onchange = e => {
+  const cc = e.target.value; if (!cc) return;
+  const [, lat, lng] = CAPITALS[cc];
+  globe.pointOfView({lat, lng, altitude: 0.9}, reduceMotion ? 0 : 1200);
+  state.focus = {cc}; update(); e.target.value = "";
+};
 for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr","yr"],["f-part","part"]])
   document.getElementById(id).onchange = e => { state[key] = e.target.value; state.focus = null; update(); };
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
@@ -1069,38 +1085,42 @@ const el = document.getElementById("globe");
 const features = topojson.feature(WORLD, WORLD.objects.countries).features;
 const globe = Globe()(el)
   .backgroundColor("rgba(0,0,0,0)")
-  .showGraticules(true)
-  .showAtmosphere(true).atmosphereAltitude(0.17)
-  .hexPolygonsData(features).hexPolygonResolution(3).hexPolygonMargin(0.55).hexPolygonUseDots(true).hexPolygonAltitude(0.003)
-  .polygonsData(features.filter(f => WAEMU_NUM[f.id]))
-  .polygonAltitude(0.006).polygonSideColor(() => "rgba(0,0,0,0)")
-  .polygonLabel(f => `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`)
-  .onPolygonClick(f => { state.focus = {cc: WAEMU_NUM[f.id]}; update(); })
+  .showGraticules(false)
+  .showAtmosphere(true).atmosphereAltitude(0.12)
+  .polygonsData(features.filter(f => f.id !== "010"))
+  .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.009 : 0.005).polygonSideColor(() => "rgba(0,0,0,0)").polygonsTransitionDuration(0)
+  .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`
+    : `<div class="tip">${esc(f.properties.name)}</div>`)
+  .onPolygonClick(f => { if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
   .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
   .arcAltitudeAutoScale(0.38)
   .arcLabel(d => d.part
     ? `<div class="tip"><b>${esc(d.label)}</b> in ${esc(ccName(d.cc))}<br>${d.n} programme${d.n>1?"s":""}</div>`
     : `<div class="tip"><b>${esc(d.label)}</b> to ${esc(ccName(d.cc))}<br>${d.n} deal${d.n>1?"s":""}${d.sum ? ", " + fmt(d.sum) : ""}</div>`)
-  .onArcClick(d => { state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.inst, cc:d.cc}; update(); })
-  .ringLat("lat").ringLng("lng").ringMaxRadius(d => d.r).ringPropagationSpeed(reduceMotion ? 0 : 1.6).ringRepeatPeriod(d => d.period)
+  .onArcClick(d => { if (pinHover) return; state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.inst, cc:d.cc}; update(); })
+  .ringLat("lat").ringLng("lng").ringMaxRadius(d => d.r).ringPropagationSpeed(reduceMotion ? 0 : 0.9).ringRepeatPeriod(d => d.period)
   .ringColor(d => t => rgba(d.color, Math.max(0, 0.75 * (1 - t))))
   .htmlLat("lat").htmlLng("lng").htmlAltitude(0.012)
   .htmlElement(d => {
     const p = document.createElement("div");
     p.className = "pin" + (d.dest ? " dest" : ""); p.style.setProperty("--c", d.color);
-    p.innerHTML = `<i></i>${d.text ? `<span>${esc(d.text)}</span>` : ""}`;
-    p.title = d.title; p.onclick = d.onclick;
+    p.innerHTML = `<b></b><i></i><span>${esc(d.title)}</span>`;
+    p.setAttribute("role", "button"); p.tabIndex = 0; p.setAttribute("aria-label", d.title);
+    p.onclick = e => { e.stopPropagation(); d.onclick(); };
+    p.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.onclick(); } };
+    p.onpointerenter = () => globe.arcsData().length && (pinHover = true);
+    p.onpointerleave = () => (pinHover = false);
     return p;
   })
   .htmlElementVisibilityModifier((elm, visible) => { elm.style.opacity = visible ? 1 : 0; elm.style.pointerEvents = visible ? "auto" : "none"; })
   .labelLat("lat").labelLng("lng").labelText("name").labelSize(1.15).labelDotRadius(0).labelAltitude(0.014).labelResolution(2);
 function paint() {
   const mat = globe.globeMaterial(); mat.color.set(css("--ocean"));
-  if (mat.emissive) { mat.emissive.set("#04202b"); mat.emissiveIntensity = 0.35; }
+  if (mat.emissive) { mat.emissive.set("#031820"); mat.emissiveIntensity = 0.3; }
   globe.atmosphereColor(css("--accent"));
-  globe.hexPolygonColor(f => WAEMU_NUM[f.id] ? css("--land-waemu") : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"));
-  globe.polygonCapColor(() => rgba(css("--waemu-line"), 0.06)).polygonStrokeColor(() => rgba(css("--waemu-line"), 0.85));
-  globe.labelColor(() => rgba(css("--waemu-line"), 0.9));
+  globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css("--land-waemu") : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
+    .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css("--waemu-line") : css("--border"));
+  globe.labelColor(() => "#ffe2b0");
   update(false);
 }
 globe.pointOfView(el.clientWidth < 600 ? {lat: 26, lng: -3, altitude: 2.5} : {lat: 28, lng: -2, altitude: 1.75}, 0);
@@ -1117,9 +1137,9 @@ function styleArcs(arcs, sparse) {
   globe.arcsData(arcs)
     .arcColor(d => [rgba(d.color, 0.18), rgba(d.color, 0.95)])
     .arcStroke("stroke")
-    .arcDashLength(sparse ? 0.006 : 0.012).arcDashGap(sparse ? 0.03 : 0.016)
+    .arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02)
     .arcDashInitialGap(d => d.seed)
-    .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 9000 : 4200));
+    .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
 }
 function setPins(origins) {
   const dests = Object.entries(CAPITALS).filter(([cc]) => state.cc.has(cc)).map(([cc,[city,lat,lng]]) => ({
@@ -1131,6 +1151,7 @@ function setPins(origins) {
   globe.labelsData(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc))
     .map(([cc,c]) => ({name: plain(c.name), lat: c.lat + 1.6, lng: c.lon})));
 }
+let pinHover = false;
 const seedOf = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 997; return h / 997; };
 
 // ---------- investments view
