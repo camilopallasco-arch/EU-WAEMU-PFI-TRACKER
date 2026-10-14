@@ -1,5 +1,5 @@
 """EU public financial institutions in the WAEMU - complete tracker in one file.
-
+ 
 Run everything:      python tracker.py
 Run some steps only: python tracker.py eib normalize build
 Steps: reference iati proparco bio wp eib normalize build
@@ -9,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 os.chdir(ROOT)
 for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "ref", "data", "site"]:
     (ROOT / _d).mkdir(parents=True, exist_ok=True)
-
+ 
 def step_reference():
     """Download reference files: DEG CSV, ECB FX rates, IATI sector codes, world map shapes."""
     import pathlib, urllib.request
@@ -25,7 +25,12 @@ def step_reference():
         dl(f"https://data-api.ecb.europa.eu/service/data/EXR/M.{c}.EUR.SP00.A?format=csvdata&startPeriod=1995-01", f"ref/ecb_{c}.csv")
     if not (ROOT / "ref/countries-110m.json").exists():
         dl("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", "ref/countries-110m.json")
-
+    # Map libraries, embedded into the page at build time so visitors never need to reach an outside server
+    for name, url in [("topojson-client.min.js", "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"),
+                      ("globe.gl.min.js", "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js")]:
+        if not (ROOT / "ref" / name).exists():
+            dl(url, f"ref/{name}")
+ 
 def step_iati():
     """Fetch full IATI XML (via d-portal, no API key) for target publishers x WAEMU countries."""
     import urllib.request, urllib.parse, pathlib, time
@@ -58,7 +63,7 @@ def step_iati():
                "select":"aid,commitment_eur,spend_eur,country_code,country_percent,status_code"})
             rows+=json.load(urllib.request.urlopen(f"https://d-portal.org/q.json?{q}",timeout=120))["rows"]
     json.dump(rows,open("raw/iati_amounts.json","w")); print(len(rows))
-
+ 
 def step_proparco():
     """Scrape Proparco's public project list (paged HTML) -> raw/proparco/projects.json"""
     import re, json, time, urllib.request, html as H
@@ -112,7 +117,7 @@ def step_proparco():
                 json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0)
             time.sleep(0.3)
     json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0); print("details",n)
-
+ 
 def step_bio():
     """BIO (Belgium): list investments per WAEMU country via the site's filter, then read each detail page."""
     import re,json,time,urllib.request,urllib.parse,html as H
@@ -136,7 +141,7 @@ def step_bio():
         out.append({"url":url,"countries_filter":sorted(ccs),"text":t[:12000]})
     json.dump(out,open("raw/bio/projects.json","w"),ensure_ascii=False)
     print(len(out),"BIO investments",{cc:sum(cc in x["countries_filter"] for x in out) for cc in C})
-
+ 
 def step_wp():
     """Generic WordPress REST fetcher for DFIs that publish portfolios as WP post types (Finnfund, IFU)."""
     import json,urllib.request,re,unicodedata,pathlib
@@ -169,7 +174,7 @@ def step_wp():
         pathlib.Path(f"raw/{key}").mkdir(exist_ok=True)
         json.dump({"terms":tid,"posts":list(posts.values())},open(f"raw/{key}/posts.json","w"),ensure_ascii=False)
         print(key,"WAEMU terms:",[tid[i] for i in ids],"posts:",len(posts))
-
+ 
 def step_eib():
     """EIB signed loans in WAEMU countries, from the JSON API behind eib.org/en/projects/loans."""
     import json, time, urllib.request, pathlib
@@ -192,22 +197,22 @@ def step_eib():
         print(cc, d.get("totalItems"))
     json.dump(list(out.values()), open("raw/eib/loans.json", "w"), ensure_ascii=False)
     print(len(out), "unique EIB projects")
-
+ 
 def step_normalize():
     """Normalise all raw sources into the tracker data model.
-
+ 
     Outputs (data/):
       institutions.csv, investments.csv, investment_countries.csv, sources.csv, countries.csv
       tracker.json  -> compact bundle read by the globe page
     """
     import csv, io, json, re, glob, datetime, html, pathlib, unicodedata
     from lxml import etree
-
+ 
     ROOT = pathlib.Path(__file__).parent
     RAW, REF, OUT = ROOT / "raw", ROOT / "ref", ROOT / "data"
     OUT.mkdir(exist_ok=True)
     TODAY = datetime.date.today().isoformat()
-
+ 
     # ---------------------------------------------------------------- reference data
     COUNTRIES = {  # WAEMU member states, approximate geographic centroids
         "BJ": ("BEN", "Benin", 9.31, 2.32), "BF": ("BFA", "Burkina Faso", 12.24, -1.56),
@@ -223,7 +228,7 @@ def step_normalize():
     }
     CC_PATTERN = re.compile(r"\b(benin|bénin|burkina faso|c[oô]te d[’'`]?\s?ivoire|ivory coast|guinea[- ]bissau|"
                             r"mali|niger|s[eé]n[eé]gal|togo)\b", re.I)
-
+ 
     def countries_in(text):
         """Return WAEMU ISO2 codes mentioned in free text (ignores 'Nigeria', 'Somalia')."""
         found = []
@@ -235,7 +240,7 @@ def step_normalize():
             if cc and cc not in found:
                 found.append(cc)
         return found
-
+ 
     # ECB monthly reference rates: units of currency per 1 EUR
     FX = {}
     for f in REF.glob("ecb_*.csv"):
@@ -243,7 +248,7 @@ def step_normalize():
         for r in csv.DictReader(open(f)):
             FX[(cur, r["TIME_PERIOD"])] = float(r["OBS_VALUE"])
     FX_FIXED = {"EUR": 1.0, "XOF": 655.957}  # CFA franc is pegged to the euro
-
+ 
     def to_eur(amount, cur, ym):
         """Convert using the ECB monthly average for ym (YYYY-MM); fall back to nearest earlier month."""
         if amount is None:
@@ -258,7 +263,7 @@ def step_normalize():
         cand = [m for m in months if m <= ym] or months[:1]
         rate = FX[(cur, cand[-1])]
         return amount / rate, rate
-
+ 
     SECTORS = {d["code"]: d["name"] for d in json.load(open(REF / "Sector.json"))["data"]}
     def broad_sector(text="", dac=None):
         """Map a DAC code or free-text sector label to one shared, broad sector."""
@@ -289,7 +294,7 @@ def step_normalize():
             if re.search(rx, t):
                 return name
         return "Other"
-
+ 
     def instrument_from(text):
         t = (text or "").lower()
         for name, rx in [("Equity", r"equity|share|fund invest"), ("Guarantee", r"guarant|insur|cover"),
@@ -298,12 +303,12 @@ def step_normalize():
             if re.search(rx, t):
                 return name
         return "Unknown"
-
+ 
     IATI_FIN = lambda code: ("Grant" if code[:1] == "1" and code != "1100" else
                              "Loan" if code[:1] == "4" else "Equity" if code[:1] == "5" else
                              "Guarantee" if code == "1100" else "Debt relief" if code[:1] == "6" else "Unknown")
     IATI_STATUS = {"1": "Pipeline", "2": "Active", "3": "Completing", "4": "Closed", "5": "Cancelled", "6": "Suspended"}
-
+ 
     # ---------------------------------------------------------------- institutions in scope
     INST = [  # id, name, member state, type, parent, hq city, lat, lon, website, coverage
         ("afd", "Agence Française de Développement (AFD)", "FR", "Bilateral development bank", "AFD Group", "Paris", 48.835, 2.383, "https://www.afd.fr", "automated"),
@@ -341,10 +346,10 @@ def step_normalize():
         ("ebrd", "European Bank for Reconstruction and Development (EBRD)", "INT", "Multilateral", "", "London", 51.507, -0.128, "https://www.ebrd.com", "automated"),
     ]
     INST_FIELDS = ["institution_id", "name", "member_state", "type", "parent_group", "hq_city", "hq_lat", "hq_lon", "website", "coverage"]
-
+ 
     # ---------------------------------------------------------------- collectors
     investments, allocations = [], []
-
+ 
     def add(inst, src, rec_id, url, title, *, desc="", client="", client_domicile="", instrument="Unknown",
             sector_broad="Other", sector_detail="", status="", date="", amount=None, currency="EUR",
             amount_eur=None, es="", shares=None, method="", note="", points=None):
@@ -385,7 +390,7 @@ def step_normalize():
                                 "amount_attributed_eur": att, "attribution_method": method,
                                 "lat": pt[0] if pt else lat, "lon": pt[1] if pt else lon,
                                 "geo_precision": "site" if pt else "country_centroid"})
-
+ 
     # ---- IATI (AFD, KfW via BMZ, FMO, EIB, EBRD, Atradius DSB, Invest International, DGGF)
     IATI_INST = {"FR-3": "afd", "NL-KVK-27078545": "fmo", "XM-DAC-918-3": "eib", "XI-IATI-EBRD": "ebrd",
                  "NL-KVK-33226495": "atradius-dsb", "NL-KVK-83517626": "invest-intl",
@@ -462,7 +467,7 @@ def step_normalize():
                 status=IATI_STATUS.get(status_el.get("code") if status_el is not None else "", ""),
                 date=start, amount_eur=total, shares=shares, method=method, points=pts,
                 note="Amount = commitment (or disbursement if no commitment) in EUR as computed by d-portal.")
-
+ 
     # ---- EIB (its own signed-loans API; replaces the smaller IATI feed)
     eib_file = RAW / "eib" / "loans.json"
     if eib_file.exists():
@@ -483,7 +488,7 @@ def step_normalize():
                 amount=float(amt) if amt else None, currency="EUR", shares={c: None for c in ccs},
                 method="single_country" if len(ccs) == 1 else "equal_split_estimate",
                 note="Signed amount as allocated to this country by the EIB. Instrument inferred: fund investments shown as equity, everything else as loans.")
-
+ 
     # ---- Proparco
     for p in json.load(open(RAW / "proparco" / "projects.json")):
         f = p.get("fields", {})
@@ -507,7 +512,7 @@ def step_normalize():
             amount=amount, currency="EUR", es=f.get("Environmental and social ranking", "")[:20],
             shares={c: None for c in ccs}, method=method,
             note=("Multi-country deal; countries listed: " + ctext[:300]) if multi else "")
-
+ 
     # ---- BIO
     MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                           "september", "october", "november", "december"], 1)}
@@ -537,7 +542,7 @@ def step_normalize():
             amount=amount, currency=cur, shares={c: None for c in ccs},
             method="single_country" if n_countries <= 1 and len(ccs) == 1 else "equal_split_estimate",
             note=f"Beneficiary locations span {n_countries} countries; WAEMU share estimated by equal split." if n_countries > 1 else "")
-
+ 
     # ---- DEG (official CSV)
     rows = list(csv.DictReader(io.StringIO(open(RAW / "deg" / "deginvest.csv", encoding="utf-8-sig").read()), delimiter=";"))
     for i, r in enumerate(rows):
@@ -560,7 +565,7 @@ def step_normalize():
             es=r["Environmental & Social Category"], shares=shares, method=method,
             note="Supraregional commitment; WAEMU countries mentioned in DEG's description, amount not allocated."
             if method == "regional_unallocated" else "")
-
+ 
     # ---- Finnfund & IFU (WordPress)
     for key, inst in (("finnfund", "finnfund"), ("ifu", "ifu")):
         d = json.load(open(RAW / key / "posts.json"))
@@ -589,13 +594,13 @@ def step_normalize():
                 shares={c: None for c in ccs}, method="single_country" if len(ccs) == 1 and not other else "equal_split_estimate",
                 note="Amount is the band published by Finnfund." if key == "finnfund" and amt else
                      ("Amount not disclosed." if not amt else ""))
-
+ 
     # ---- Editable templates: created once so they can be filled in directly on GitHub
     for _name, _header in [("manual_entries.csv", "institution_id,title,client,countries,year,instrument,sector,amount,currency,source_url,note"),
                            ("programmes_manual.csv", "programme_id,name,kind,countries,participants,amount_eur,period,description,source_url,note")]:
         if not (OUT / _name).exists():
             (OUT / _name).write_text(_header + "\n", encoding="utf-8")
-
+ 
     # ---- Manual research sheet (ECAs, NPBs, JavaScript-only DFI sites). One row per deal.
     # countries: ISO2 codes separated by | (e.g. SN|CI). Keep a source_url for every row.
     manual = OUT / "manual_entries.csv"
@@ -611,14 +616,14 @@ def step_normalize():
                 date=r.get("year", ""), amount=amt, currency=r.get("currency") or "EUR",
                 shares={c: None for c in ccs}, method="single_country" if len(ccs) == 1 else "equal_split_estimate",
                 note=r.get("note", ""))
-
+ 
     # ---------------------------------------------------------------- write tables
     def write(name, rows, fields):
         with open(OUT / f"{name}.csv", "w", newline="", encoding="utf-8") as fh:
             w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
             w.writeheader()
             w.writerows(rows)
-
+ 
     inst_rows = [dict(zip(INST_FIELDS, x)) for x in INST]
     write("institutions", inst_rows, INST_FIELDS)
     write("investments", investments, list(investments[0].keys()))
@@ -642,7 +647,7 @@ def step_normalize():
     write("sources", [{"source_id": s[0], "name": s[1], "url": s[2], "method": s[3], "terms": s[4],
                        "last_retrieved": TODAY, "records": counts.get(s[0], "")} for s in SOURCES],
           ["source_id", "name", "url", "method", "terms", "last_retrieved", "records"])
-
+ 
     # ---------------------------------------------------------------- programmes (curated, sourced)
     # Team Europe Initiatives, Global Gateway flagships, EU country envelopes and national programmes that
     # publish no deal-level data. Participants are institution ids or ISO codes of member states ("EU" = European Commission).
@@ -752,7 +757,7 @@ def step_normalize():
         w.writeheader()
         for p in PROGRAMMES:
             w.writerow({**p, "countries": " ".join(p["countries"]), "participants": " ".join(p["participants"])})
-
+ 
     # compact bundle for the website
     bundle = {"generated": TODAY, "programmes": PROGRAMMES,
               "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3]} for k, v in COUNTRIES.items()},
@@ -768,18 +773,27 @@ def step_normalize():
     for inv in investments:
         by[inv["institution_id"]] = by.get(inv["institution_id"], 0) + 1
     print(by)
-
+ 
 def step_build():
-    """Inline the data and the world map into the page -> site/index.html"""
+    """Inline the data, the world map and both map libraries into the page -> site/index.html"""
     data = json.dumps(json.load(open(ROOT / "data" / "tracker.json", encoding="utf-8")), ensure_ascii=False, separators=(",", ":"))
     world = (ROOT / "ref" / "countries-110m.json").read_text(encoding="utf-8")
     safe = lambda s: s.replace("</", "<\\/")
     html = TEMPLATE.replace("/*__DATA__*/null", safe(data)).replace("/*__WORLD__*/null", safe(world))
+    libs = {"/*__LIB_TOPOJSON__*/": ("topojson-client.min.js", "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"),
+            "/*__LIB_GLOBE__*/": ("globe.gl.min.js", "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js")}
+    for mark, (fname, url) in libs.items():
+        f = ROOT / "ref" / fname
+        code = f.read_text(encoding="utf-8") if f.exists() else ""
+        if code and "</script" not in code.lower():
+            html = html.replace(f"<script>{mark}</script>", "<script>" + code + "</script>")
+        else:  # library file missing: fall back to loading it from the CDN
+            html = html.replace(f"<script>{mark}</script>", f'<script src="{url}"></script>')
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
-
+ 
 FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib"]
-
+ 
 def main(steps):
     inv = ROOT / "data" / "investments.csv"
     before = {r["investment_id"]: r for r in csv.DictReader(open(inv, encoding="utf-8"))} if inv.exists() else {}
@@ -809,7 +823,7 @@ def main(steps):
     if "build" in steps:
         print("== build", flush=True)
         step_build()
-
+ 
 TEMPLATE = r'''<!doctype html>
 <html lang="en">
 <head>
@@ -841,9 +855,9 @@ html,body{height:100%;margin:0}
 body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);background-color:var(--bg);color:var(--ink);font:400 15px/1.5 var(--sans)}
 .app{display:grid;grid-template-columns:minmax(0,1fr) 410px;height:100%}
 .stage{position:relative;min-height:0;overflow:hidden}
-#globe{position:absolute;inset:0}
+#globe{position:absolute;top:0;right:0;bottom:0;left:0}
 /* faint scanlines and vignette over the globe */
-.stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
+.stage::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
 .hud{position:absolute;z-index:2;pointer-events:none}
 .title{left:clamp(16px,3vw,36px);top:clamp(14px,3vh,28px);max-width:40ch}
 .title .code{font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.08em;margin:0 0 10px}
@@ -866,7 +880,7 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
 .pin:hover i{transform:scale(1.5)}
 .pin:hover span,.pin:focus-visible span{opacity:1}
 .pin i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);
-  box-shadow:0 0 6px 2px var(--c),0 0 18px 6px color-mix(in srgb,var(--c) 45%,transparent)}
+  box-shadow:0 0 6px 2px var(--c),0 0 16px 4px var(--c)}
 .pin.dest i{left:-3px;top:-3px;width:6px;height:6px;box-shadow:0 0 6px 1px var(--c)}
 .pin::after{content:"";position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);opacity:.0;animation:ping 2.4s ease-out infinite}
 .pin.dest::after{animation-duration:3.6s}
@@ -906,7 +920,22 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .foot summary{cursor:pointer;font-family:var(--mono);letter-spacing:.06em}
 .tip{font:13px/1.4 var(--sans);background:var(--panel-solid);color:var(--ink);border:1px solid var(--line-hi);padding:8px 10px;max-width:260px;box-shadow:0 0 18px rgba(64,232,255,.15)}
 .tip b{color:var(--accent)}
-@media (prefers-reduced-motion:reduce){.pin::after{animation:none}}
+.maptools{position:absolute;z-index:3;right:clamp(12px,2vw,24px);bottom:clamp(14px,3vh,28px);display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:280px}
+.maptools button{appearance:none;background:rgba(4,12,17,.85);border:1px solid var(--line-hi);color:var(--ink);font:500 13px var(--sans);padding:7px 12px;cursor:pointer}
+.maptools button:hover{border-color:var(--accent)}
+.maptools p{margin:0;font-size:12.5px;color:var(--muted);background:rgba(4,12,17,.85);border:1px solid var(--line);padding:6px 9px;text-align:right}
+.flatmap{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;cursor:grab;touch-action:none;background:var(--ocean)}
+.flatmap:active{cursor:grabbing}
+.flatmap .land{fill:var(--land);stroke:var(--border);stroke-width:.6px;vector-effect:non-scaling-stroke}
+.flatmap .land.eu{fill:var(--land-eu)}
+.flatmap .land.waemu{fill:var(--land-waemu);stroke:var(--waemu-line);stroke-width:1.2px;cursor:pointer}
+.flatmap .arc{fill:none;stroke-linecap:round;stroke-dasharray:0 7;vector-effect:non-scaling-stroke;opacity:.9;cursor:pointer;animation:flow 14s linear infinite}
+.flatmap .arc.sparse{stroke-dasharray:0 13;animation-duration:26s}
+.flatmap .cname{fill:#ffe2b0;font:600 13px var(--sans);text-anchor:middle;paint-order:stroke;stroke:#000;stroke-width:3px;pointer-events:none}
+@keyframes flow{to{stroke-dashoffset:-70}}
+.pinlayer{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;overflow:hidden}
+.pinlayer .pin{position:absolute;left:0;top:0}
+@media (prefers-reduced-motion:reduce){.pin::after,.flatmap .arc{animation:none}}
 @media (max-width:860px){
   .app{grid-template-columns:1fr;grid-template-rows:64vh auto;height:auto}
   .stage{height:64vh}
@@ -919,6 +948,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 </style>
 </head>
 <body>
+<noscript><p style="padding:24px;font-size:16px">This tracker needs JavaScript to show the map and the deal list. Please enable JavaScript in your browser settings and reload the page.</p></noscript>
 <div class="app">
   <section class="stage" aria-label="Interactive globe">
     <div id="globe"></div>
@@ -933,6 +963,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
       <div>Cursor <b id="r-cur">off globe</b></div>
     </div>
     <div class="hud legend bracket" id="legend" aria-label="Legend"></div>
+    <div class="maptools"><button type="button" id="modebtn">Switch to 2D map</button><p id="mapnotice" hidden></p></div>
   </section>
   <aside>
     <div class="filters">
@@ -965,14 +996,14 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="list" id="list"></div>
     <div class="foot">
       <details><summary>About the data</summary>
-        <p>Data updated <span id="gen"></span>. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
+        <p>Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
         <p id="gaps"></p>
       </details>
     </div>
   </aside>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+<script>/*__LIB_TOPOJSON__*/</script>
+<script>/*__LIB_GLOBE__*/</script>
 <script>
 const DATA = /*__DATA__*/null;
 const WORLD = /*__WORLD__*/null;
@@ -1003,17 +1034,17 @@ const INV = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i]));
 const PROG = DATA.programmes || [], PLACES = DATA.places || {};
 const withData = new Set(DATA.investments.map(i => i.institution_id));
 const fmt = v => v >= 1e9 ? "€" + (v/1e9).toFixed(1) + " bn" : v >= 1e6 ? "€" + (v/1e6).toFixed(v >= 1e8 ? 0 : 1) + " m" : v >= 1e3 ? "€" + Math.round(v/1e3) + " k" : "€" + Math.round(v);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const plain = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");  // the globe's 3D font has no accents
 const rgba = (hex, a) => { const h = hex.replace("#",""); const n = parseInt(h.length === 3 ? h.split("").map(x => x+x).join("") : h, 16);
   return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; };
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const partName = p => (PLACES[p] && PLACES[p].name) || p;
 const ccName = cc => DATA.countries[cc].name;
-
+ 
 const state = {view:"inv", types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
   cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40};
-
+ 
 // ---------- controls
 function chipGroup(el, list, set) {
   list.forEach(([k,label,v]) => {
@@ -1044,7 +1075,7 @@ opts(document.getElementById("f-cap"), Object.entries(CAPITALS).map(([cc,[city]]
 document.getElementById("f-cap").onchange = e => {
   const cc = e.target.value; if (!cc) return;
   const [, lat, lng] = CAPITALS[cc];
-  globe.pointOfView({lat, lng, altitude: 0.9}, reduceMotion ? 0 : 1200);
+  R.focusOn(lat, lng);
   state.focus = {cc}; update(); e.target.value = "";
 };
 for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr","yr"],["f-part","part"]])
@@ -1079,81 +1110,221 @@ function drawLegend() {
     `<small>${state.view === "inv" ? "Line weight grows with the amount invested" : "Lines link participants to the countries a programme covers"}</small>`;
 }
 drawLegend();
-
-// ---------- globe
+ 
+// ---------- map renderers: a 3D globe where the device can draw it, a flat 2D map otherwise
 const el = document.getElementById("globe");
-const features = topojson.feature(WORLD, WORLD.objects.countries).features;
-const globe = Globe()(el)
-  .backgroundColor("rgba(0,0,0,0)")
-  .showGraticules(false)
-  .showAtmosphere(true).atmosphereAltitude(0.12)
-  .polygonsData(features.filter(f => f.id !== "010"))
-  .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.009 : 0.005).polygonSideColor(() => "rgba(0,0,0,0)").polygonsTransitionDuration(0)
-  .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`
-    : `<div class="tip">${esc(f.properties.name)}</div>`)
-  .onPolygonClick(f => { if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
-  .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
-  .arcAltitudeAutoScale(0.38)
-  .arcLabel(d => d.part
-    ? `<div class="tip"><b>${esc(d.label)}</b> in ${esc(ccName(d.cc))}<br>${d.n} programme${d.n>1?"s":""}</div>`
-    : `<div class="tip"><b>${esc(d.label)}</b> to ${esc(ccName(d.cc))}<br>${d.n} deal${d.n>1?"s":""}${d.sum ? ", " + fmt(d.sum) : ""}</div>`)
-  .onArcClick(d => { if (pinHover) return; state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.inst, cc:d.cc}; update(); })
-  .ringLat("lat").ringLng("lng").ringMaxRadius(d => d.r).ringPropagationSpeed(reduceMotion ? 0 : 0.9).ringRepeatPeriod(d => d.period)
-  .ringColor(d => t => rgba(d.color, Math.max(0, 0.75 * (1 - t))))
-  .htmlLat("lat").htmlLng("lng").htmlAltitude(0.012)
-  .htmlElement(d => {
-    const p = document.createElement("div");
-    p.className = "pin" + (d.dest ? " dest" : ""); p.style.setProperty("--c", d.color);
-    p.innerHTML = `<b></b><i></i><span>${esc(d.title)}</span>`;
-    p.setAttribute("role", "button"); p.tabIndex = 0; p.setAttribute("aria-label", d.title);
-    p.onclick = e => { e.stopPropagation(); d.onclick(); };
-    p.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.onclick(); } };
-    p.onpointerenter = () => globe.arcsData().length && (pinHover = true);
-    p.onpointerleave = () => (pinHover = false);
-    return p;
-  })
-  .htmlElementVisibilityModifier((elm, visible) => { elm.style.opacity = visible ? 1 : 0; elm.style.pointerEvents = visible ? "auto" : "none"; })
-  .labelLat("lat").labelLng("lng").labelText("name").labelSize(1.15).labelDotRadius(0).labelAltitude(0.014).labelResolution(2);
-function paint() {
-  const mat = globe.globeMaterial(); mat.color.set(css("--ocean"));
-  if (mat.emissive) { mat.emissive.set("#031820"); mat.emissiveIntensity = 0.3; }
-  globe.atmosphereColor(css("--accent"));
-  globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css("--land-waemu") : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
-    .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css("--waemu-line") : css("--border"));
-  globe.labelColor(() => "#ffe2b0");
-  update(false);
-}
-globe.pointOfView(el.clientWidth < 600 ? {lat: 26, lng: -3, altitude: 2.5} : {lat: 28, lng: -2, altitude: 1.75}, 0);
-const ctl = globe.controls(); ctl.autoRotate = false; ctl.enableDamping = true;
-new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight)).observe(el);
+const features = topojson.feature(WORLD, WORLD.objects.countries).features.filter(f => f.id !== "010");
+let pinHover = false;
+const seedOf = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 997; return h / 997; };
 const cur = document.getElementById("r-cur");
-el.addEventListener("pointermove", e => {
-  const r = el.getBoundingClientRect(); const c = globe.toGlobeCoords(e.clientX - r.left, e.clientY - r.top);
-  cur.textContent = c ? `${Math.abs(c.lat).toFixed(2)}°${c.lat >= 0 ? "N" : "S"} ${Math.abs(c.lng).toFixed(2)}°${c.lng >= 0 ? "E" : "W"}` : "off globe";
-});
-
-// arcs drawn as streams of separated dots, colour fading in from the origin
-function styleArcs(arcs, sparse) {
-  globe.arcsData(arcs)
-    .arcColor(d => [rgba(d.color, 0.18), rgba(d.color, 0.95)])
-    .arcStroke("stroke")
-    .arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02)
-    .arcDashInitialGap(d => d.seed)
-    .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
+const fmtCoord = c => c ? `${Math.abs(c.lat).toFixed(2)}°${c.lat >= 0 ? "N" : "S"} ${Math.abs(c.lng).toFixed(2)}°${c.lng >= 0 ? "E" : "W"}` : "off map";
+function pinElement(d) {
+  const p = document.createElement("div");
+  p.className = "pin" + (d.dest ? " dest" : ""); p.style.setProperty("--c", d.color);
+  p.innerHTML = `<b></b><i></i><span>${esc(d.title)}</span>`;
+  p.setAttribute("role", "button"); p.tabIndex = 0; p.setAttribute("aria-label", d.title);
+  p.onclick = e => { e.stopPropagation(); d.onclick(); };
+  p.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.onclick(); } };
+  p.onpointerenter = () => (pinHover = true);
+  p.onpointerleave = () => (pinHover = false);
+  return p;
 }
+function webgl2Available() {
+  try { const c = document.createElement("canvas"); return !!(window.WebGL2RenderingContext && c.getContext("webgl2")); } catch (e) { return false; }
+}
+ 
+function makeGlobe() {
+  if (typeof Globe === "undefined") throw new Error("globe library not loaded");
+  if (!webgl2Available()) throw new Error("WebGL 2 not available");
+  const host = document.createElement("div"); host.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0"; el.append(host);
+  const globe = Globe()(host)
+    .backgroundColor("rgba(0,0,0,0)")
+    .showGraticules(false)
+    .showAtmosphere(true).atmosphereAltitude(0.12)
+    .polygonsData(features)
+    .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.009 : 0.005).polygonSideColor(() => "rgba(0,0,0,0)").polygonsTransitionDuration(0)
+    .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`
+      : `<div class="tip">${esc(f.properties.name)}</div>`)
+    .onPolygonClick(f => { if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
+    .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
+    .arcAltitudeAutoScale(0.38)
+    .arcLabel(arcTip)
+    .onArcClick(d => { if (!pinHover) arcClick(d); })
+    .ringLat("lat").ringLng("lng").ringMaxRadius(d => d.r).ringPropagationSpeed(reduceMotion ? 0 : 0.9).ringRepeatPeriod(d => d.period)
+    .ringColor(d => t => rgba(d.color, Math.max(0, 0.75 * (1 - t))))
+    .htmlLat("lat").htmlLng("lng").htmlAltitude(0.012).htmlElement(pinElement)
+    .htmlElementVisibilityModifier((elm, visible) => { elm.style.opacity = visible ? 1 : 0; elm.style.pointerEvents = visible ? "auto" : "none"; })
+    .labelLat("lat").labelLng("lng").labelText("name").labelSize(1.15).labelDotRadius(0).labelAltitude(0.014).labelResolution(2);
+  globe.pointOfView(el.clientWidth < 600 ? {lat: 26, lng: -3, altitude: 2.5} : {lat: 28, lng: -2, altitude: 1.75}, 0);
+  const ctl = globe.controls(); ctl.autoRotate = false; ctl.enableDamping = true;
+  const ro = new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight)); ro.observe(el);
+  const canvas = host.querySelector("canvas");
+  if (canvas) canvas.addEventListener("webglcontextlost", () => fallBack("The 3D view stopped (graphics memory). Showing the 2D map."));
+  const move = e => { const r = el.getBoundingClientRect(); cur.textContent = fmtCoord(globe.toGlobeCoords(e.clientX - r.left, e.clientY - r.top)); };
+  el.addEventListener("pointermove", move);
+  return {
+    mode: "3d",
+    arcs(arcs, sparse) {
+      globe.arcsData(arcs).arcColor(d => [rgba(d.color, 0.18), rgba(d.color, 0.95)]).arcStroke("stroke")
+        .arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02).arcDashInitialGap(d => d.seed)
+        .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
+    },
+    pins(origins, dests) {
+      globe.htmlElementsData(origins.concat(dests));
+      globe.ringsData(origins.map(o => ({lat:o.lat, lng:o.lng, color:o.color, r:2.6, period:1800 + (o.seed || 0) * 900}))
+        .concat(dests.map(d => ({lat:d.lat, lng:d.lng, color:d.color, r:1.4, period:3200}))));
+    },
+    labels(list) { globe.labelsData(list.map(l => ({...l, name: plain(l.name), lat: l.lat + 1.6}))); },
+    paint() {
+      const mat = globe.globeMaterial(); mat.color.set(css("--ocean"));
+      if (mat.emissive) { mat.emissive.set("#031820"); mat.emissiveIntensity = 0.3; }
+      globe.atmosphereColor(css("--accent"));
+      globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css("--land-waemu") : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
+        .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css("--waemu-line") : css("--border"));
+      globe.labelColor(() => "#ffe2b0");
+    },
+    focusOn(lat, lng) { globe.pointOfView({lat, lng, altitude: 0.9}, reduceMotion ? 0 : 1200); },
+    // returns true if the globe really drew something in the middle of the screen
+    selfTest() {
+      try {
+        const r = globe.renderer(); r.render(globe.scene(), globe.camera());
+        const gl = r.getContext(); const px = new Uint8Array(4);
+        gl.readPixels(Math.floor(gl.drawingBufferWidth / 2), Math.floor(gl.drawingBufferHeight / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        return px[3] > 0 || px[0] + px[1] + px[2] > 0;
+      } catch (e) { return false; }
+    },
+    destroy() {
+      ro.disconnect(); el.removeEventListener("pointermove", move);
+      try { globe.pauseAnimation(); const r = globe.renderer(); r.dispose(); r.forceContextLoss && r.forceContextLoss(); } catch (e) {}
+      host.remove();
+    }
+  };
+}
+ 
+function makeFlat() {
+  const NS = "http://www.w3.org/2000/svg";
+  const K = 10, LAT_STRETCH = 1.25;                     // simple projection, stretched vertically to limit distortion
+  const P = (lng, lat) => [lng * K, -lat * K * LAT_STRETCH];
+  const inv = (x, y) => ({lng: x / K, lat: -y / (K * LAT_STRETCH)});
+  const svg = document.createElementNS(NS, "svg"); svg.setAttribute("class", "flatmap"); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Flat map of Europe and West Africa"); el.append(svg);
+  const pinLayer = document.createElement("div"); pinLayer.className = "pinlayer"; el.append(pinLayer);
+  let vb = {x: P(-40, 0)[0], y: P(0, 68)[1], w: (48 + 40) * K, h: (68 + 16) * K * LAT_STRETCH};
+  const home = {...vb};
+  function fit() {
+    const ar = el.clientWidth / Math.max(1, el.clientHeight), cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+    if (vb.w / vb.h > ar) vb.h = vb.w / ar; else vb.w = vb.h * ar;
+    vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
+    svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); placePins();
+  }
+  const ring = r => r.map(([lng, lat], i) => (i ? "L" : "M") + P(lng, lat).map(v => v.toFixed(1)).join(",")).join("") + "Z";
+  const gLand = document.createElementNS(NS, "g"), gLabels = document.createElementNS(NS, "g"), gArcs = document.createElementNS(NS, "g");
+  svg.append(gLand, gArcs, gLabels);
+  for (const f of features) {
+    const g = f.geometry; if (!g) continue;
+    const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", polys.map(p => p.map(ring).join("")).join(""));
+    path.setAttribute("class", WAEMU_NUM[f.id] ? "land waemu" : EU_NUM.has(f.id) ? "land eu" : "land");
+    const t = document.createElementNS(NS, "title"); t.textContent = WAEMU_NUM[f.id] ? ccName(WAEMU_NUM[f.id]) : f.properties.name; path.append(t);
+    if (WAEMU_NUM[f.id]) path.addEventListener("click", () => { state.focus = {cc: WAEMU_NUM[f.id]}; update(); });
+    gLand.append(path);
+  }
+  let pins = [];
+  function placePins() {
+    const r = el.getBoundingClientRect(), s = r.width / vb.w;
+    for (const {d, node} of pins) {
+      const [x, y] = P(d.lng, d.lat);
+      node.style.transform = `translate(${(x - vb.x) * s}px, ${(y - vb.y) * s}px)`;
+    }
+  }
+  // pan and zoom
+  let drag = null;
+  svg.addEventListener("pointerdown", e => { drag = {x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y}; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener("pointerup", () => (drag = null));
+  const move = e => {
+    const r = el.getBoundingClientRect(), s = vb.w / r.width;
+    if (drag) { vb.x = drag.vx - (e.clientX - drag.x) * s; vb.y = drag.vy - (e.clientY - drag.y) * s; fit(); }
+    cur.textContent = fmtCoord(inv(vb.x + (e.clientX - r.left) * s, vb.y + (e.clientY - r.top) * s));
+  };
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    const r = el.getBoundingClientRect(), f = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+    const mx = vb.x + (e.clientX - r.left) / r.width * vb.w, my = vb.y + (e.clientY - r.top) / r.height * vb.h;
+    const w = Math.min(home.w * 2, Math.max(home.w / 12, vb.w * f)), k = w / vb.w;
+    vb = {x: mx - (mx - vb.x) * k, y: my - (my - vb.y) * k, w, h: vb.h * k}; fit();
+  }, {passive: false});
+  const ro = new ResizeObserver(fit); ro.observe(el);
+  return {
+    mode: "2d",
+    arcs(arcs, sparse) {
+      gArcs.innerHTML = "";
+      for (const d of arcs) {
+        const [x1, y1] = P(d.sLng, d.sLat), [x2, y2] = P(d.eLng, d.eLat);
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+        const bend = 0.18 + d.seed * 0.12, cx = mx - dy / len * len * bend, cy = my + dx / len * len * bend;
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`);
+        p.setAttribute("class", "arc" + (sparse ? " sparse" : ""));
+        p.style.stroke = d.color; p.style.strokeWidth = (1 + d.stroke * 4).toFixed(2) + "px";
+        p.style.animationDelay = `-${(d.seed * 20).toFixed(1)}s`;
+        const t = document.createElementNS(NS, "title");
+        t.textContent = d.part ? `${d.label} in ${ccName(d.cc)}: ${d.n} programme${d.n > 1 ? "s" : ""}`
+          : `${d.label} to ${ccName(d.cc)}: ${d.n} deal${d.n > 1 ? "s" : ""}${d.sum ? ", " + fmt(d.sum) : ""}`;
+        p.append(t); p.addEventListener("click", () => arcClick(d)); gArcs.append(p);
+      }
+    },
+    pins(origins, dests) {
+      pinLayer.innerHTML = ""; pins = [];
+      for (const d of origins.concat(dests)) { const node = pinElement(d); node.classList.add("flat"); pinLayer.append(node); pins.push({d, node}); }
+      placePins();
+    },
+    labels(list) {
+      gLabels.innerHTML = "";
+      for (const l of list) {
+        const [x, y] = P(l.lng, l.lat); const t = document.createElementNS(NS, "text");
+        t.setAttribute("x", x); t.setAttribute("y", y - 14); t.setAttribute("class", "cname"); t.textContent = l.name; gLabels.append(t);
+      }
+    },
+    paint() {},
+    focusOn(lat, lng) { const [x, y] = P(lng, lat); vb = {x: x - home.w / 6, y: y - home.h / 6, w: home.w / 3, h: home.h / 3}; fit(); },
+    selfTest() { return true; },
+    destroy() { ro.disconnect(); svg.remove(); pinLayer.remove(); }
+  };
+}
+ 
+const modeBtn = document.getElementById("modebtn"), notice = document.getElementById("mapnotice");
+let R = null;
+function savedMode() { try { return localStorage.getItem("waemu-map-mode"); } catch (e) { return null; } }
+function saveMode(m) { try { localStorage.setItem("waemu-map-mode", m); } catch (e) {} }
+function start(mode, why) {
+  if (R) R.destroy();
+  try { R = mode === "3d" ? makeGlobe() : makeFlat(); }
+  catch (e) { R = makeFlat(); why = why || "Your browser cannot draw the 3D globe, so the 2D map is shown."; }
+  modeBtn.textContent = R.mode === "3d" ? "Switch to 2D map" : "Switch to 3D globe";
+  notice.textContent = why || ""; notice.hidden = !why;
+  R.paint(); update(false);
+  if (R.mode === "3d") setTimeout(() => { if (R && R.mode === "3d" && !R.selfTest()) fallBack("The 3D globe did not display on this device, so the 2D map is shown."); }, 2500);
+}
+function fallBack(msg) { start("2d", msg); }
+modeBtn.onclick = () => { const next = R && R.mode === "3d" ? "2d" : "3d"; saveMode(next); start(next); };
+ 
+function arcTip(d) {
+  return d.part
+    ? `<div class="tip"><b>${esc(d.label)}</b> in ${esc(ccName(d.cc))}<br>${d.n} programme${d.n>1?"s":""}</div>`
+    : `<div class="tip"><b>${esc(d.label)}</b> to ${esc(ccName(d.cc))}<br>${d.n} deal${d.n>1?"s":""}${d.sum ? ", " + fmt(d.sum) : ""}</div>`;
+}
+function arcClick(d) { state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.inst, cc:d.cc}; update(); }
+function styleArcs(arcs, sparse) { R.arcs(arcs, sparse); }
 function setPins(origins) {
   const dests = Object.entries(CAPITALS).filter(([cc]) => state.cc.has(cc)).map(([cc,[city,lat,lng]]) => ({
     lat, lng, dest:true, color: css("--waemu-line"), text: "", title: `${city}, ${ccName(cc)}`,
     onclick: () => { state.focus = {cc}; update(); }}));
-  globe.htmlElementsData(origins.concat(dests));
-  globe.ringsData(origins.map(o => ({lat:o.lat, lng:o.lng, color:o.color, r:2.6, period:1800 + (o.seed || 0) * 900}))
-    .concat(dests.map(d => ({lat:d.lat, lng:d.lng, color:d.color, r:1.4, period:3200}))));
-  globe.labelsData(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc))
-    .map(([cc,c]) => ({name: plain(c.name), lat: c.lat + 1.6, lng: c.lon})));
+  R.pins(origins, dests);
+  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name: c.name, lat: c.lat, lng: c.lon})));
 }
-let pinHover = false;
-const seedOf = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 997; return h / 997; };
-
+ 
 // ---------- investments view
 function passInv(inv) {
   const ins = INST[inv.institution_id];
@@ -1238,7 +1409,7 @@ function renderDeals(rows) {
   const m = document.getElementById("more");
   if (m) m.onclick = () => { state.shown += 40; renderDeals(filtered()); };
 }
-
+ 
 // ---------- programmes view
 function progFiltered() {
   return PROG.filter(p => state.kinds.has(p.kind)
@@ -1288,13 +1459,14 @@ function updateProgrammes() {
   const m = document.getElementById("more");
   if (m) m.onclick = () => { state.shown += 40; updateProgrammes(); };
 }
-
-paint();
+ 
+start(savedMode() === "2d" ? "2d" : "3d");
 })();
 </script>
 </body>
 </html>
 '''
-
+ 
 if __name__ == "__main__":
     main(sys.argv[1:] or FETCH_STEPS + ["normalize", "build"])
+ 
