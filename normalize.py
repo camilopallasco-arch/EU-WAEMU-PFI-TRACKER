@@ -82,7 +82,7 @@ def broad_sector(text="", dac=None):
             return table[c]
     t = (text or "").lower()
     rules = [("Energy", r"energ|solar|power|climate|hydro|electric"),
-             ("Financial services", r"financ|bank|microfin|fund|insur|leasing|payment"),
+             ("Financial services", r"financ|bank|microfin|fund|insur|leasing|payment|credit line"),
              ("Agriculture & food", r"agri|food|farm|cocoa|cashew|fish|forest"),
              ("Telecoms & digital", r"telecom|digital|tech|start-up|startup|ict"),
              ("Transport & infrastructure", r"infra|transport|network|logist|port|road|urban"),
@@ -206,6 +206,8 @@ for f in sorted(glob.glob(str(RAW / "iati" / "*.xml"))):
         if not aid or aid in seen:
             continue
         inst = IATI_INST[ref]
+        if inst == "eib" and (RAW / "eib" / "loans.json").exists():
+            continue  # EIB's own project list is more complete and already contains every IATI record
         porgs = a.findall("participating-org")
         if ref == "DE-1":  # keep only KfW-implemented financial cooperation
             if not any(p.get("ref") == "XM-DAC-5-2" or "kfw" in (p.findtext("narrative") or "").lower() for p in porgs):
@@ -261,6 +263,27 @@ for f in sorted(glob.glob(str(RAW / "iati" / "*.xml"))):
             status=IATI_STATUS.get(status_el.get("code") if status_el is not None else "", ""),
             date=start, amount_eur=total, shares=shares, method=method, points=pts,
             note="Amount = commitment (or disbursement if no commitment) in EUR as computed by d-portal.")
+
+# ---- EIB (its own signed-loans API; replaces the smaller IATI feed)
+eib_file = RAW / "eib" / "loans.json"
+if eib_file.exists():
+    for x in json.load(open(eib_file, encoding="utf-8")):
+        tags = x.get("primaryTags") or []
+        ccs = [t["value"] for t in tags if t.get("subType") == "countries" and t.get("value") in COUNTRIES]
+        if not ccs:
+            continue
+        info = x.get("additionalInformation") or []
+        amt = re.sub(r"[^\d]", "", info[0]) if info and isinstance(info[0], str) else ""
+        ts = info[1] if len(info) > 1 and isinstance(info[1], (int, float)) else x.get("startDate")
+        date = datetime.datetime.fromtimestamp(ts / 1000, datetime.UTC).strftime("%Y-%m") if ts else ""
+        sector = ", ".join(t["label"] for t in tags if t.get("subType") == "sectors")
+        title = x.get("title") or x["id"]
+        add("eib", "eib-api", x["id"], f"https://www.eib.org/en/projects/all/{x['id']}", title,
+            desc=x.get("description") or "", instrument="Equity" if re.search(r"\bFUND\b", title.upper()) else "Loan",
+            sector_broad=broad_sector(sector + " " + title), sector_detail=sector, status="Signed", date=date,
+            amount=float(amt) if amt else None, currency="EUR", shares={c: None for c in ccs},
+            method="single_country" if len(ccs) == 1 else "equal_split_estimate",
+            note="Signed amount as allocated to this country by the EIB. Instrument inferred: fund investments shown as equity, everything else as loans.")
 
 # ---- Proparco
 for p in json.load(open(RAW / "proparco" / "projects.json")):
@@ -401,7 +424,8 @@ counts = {}
 for inv in investments:
     counts[inv["source_id"]] = counts.get(inv["source_id"], 0) + 1
 SOURCES = [
-    ("iati", "IATI via d-portal.org (AFD, KfW/BMZ, FMO, EIB, EBRD, Atradius DSB, Invest International, DGGF)", "https://d-portal.org", "api", "IATI data is published under open licences (mostly CC BY / ODbL)"),
+    ("iati", "IATI via d-portal.org (AFD, KfW/BMZ, FMO, EBRD, Atradius DSB, Invest International, DGGF)", "https://d-portal.org", "api", "IATI data is published under open licences (mostly CC BY / ODbL)"),
+    ("eib-api", "EIB signed loans (JSON API behind eib.org/en/projects/loans)", "https://www.eib.org/en/projects/loans/index", "api", "Public website; cite the EIB"),
     ("proparco-web", "Proparco project list and project pages", "https://www.proparco.fr/en/projects/list", "scrape", "Public website; cite Proparco"),
     ("bio-web", "BIO investment portfolio pages", "https://www.bio-invest.be/en/investments", "scrape", "Public website; cite BIO"),
     ("deg-csv", "DEG investments database (CSV export)", "https://deginvest-investments.de/deginvest.csv", "csv", "Public download; cite DEG"),

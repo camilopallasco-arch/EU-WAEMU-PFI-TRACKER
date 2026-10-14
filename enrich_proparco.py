@@ -23,5 +23,7 @@ for x in d:
         if "fields" in x: continue
         try: x["fields"]=fields(x.pop("detail_text",None) or txt(x["url"])); n+=1
         except Exception as e: x["detail_error"]=str(e)
+        if n % 20 == 0:  # save progress so an interrupted run can resume
+            json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0)
         time.sleep(0.3)
 json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0); print("details",n)

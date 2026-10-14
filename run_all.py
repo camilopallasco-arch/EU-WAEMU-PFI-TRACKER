@@ -3,9 +3,9 @@ A source that fails keeps last month's raw files, so one broken website never bl
 import subprocess, sys, csv, pathlib, datetime
 ROOT = pathlib.Path(__file__).parent
 STEPS = ["fetch_reference.py", "fetch_iati.py", "fetch_iati_amounts.py", "fetch_proparco.py",
-         "enrich_proparco.py", "fetch_bio.py", "fetch_wp_dfis.py"]
+         "enrich_proparco.py", "fetch_bio.py", "fetch_wp_dfis.py", "fetch_eib.py"]
 # A fresh GitHub checkout has no raw/ folder: create every folder the fetchers write into.
-for d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "ref", "data"]:
+for d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "ref", "data"]:
     (ROOT / d).mkdir(parents=True, exist_ok=True)
 failed = []
 for s in STEPS:
