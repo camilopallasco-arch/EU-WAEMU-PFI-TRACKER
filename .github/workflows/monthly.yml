@@ -2,10 +2,10 @@ name: Monthly update
 
 on:
   schedule:
-    - cron: "0 5 1 * *"      # 05:00 UTC on the 1st of every month
-  workflow_dispatch:          # adds a "Run workflow" button in the Actions tab
+    - cron: "0 5 1 * *"
+  workflow_dispatch:
   push:
-    branches: [main]          # also republish whenever you edit files
+    branches: [main]
 
 permissions:
   contents: write
@@ -23,15 +23,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - name: Fetch every source, normalise, rebuild the site
-        run: python run_all.py
+      - run: pip install lxml==5.3.0
+      - name: Fetch every source, normalise, build the site
+        run: python tracker.py
       - name: Save updated data to the repository
         run: |
           git config user.name "tracker-bot"
           git config user.email "tracker-bot@users.noreply.github.com"
-          git add data site/index.html raw
-          git diff --cached --quiet || git commit -m "Monthly data update $(date +%Y-%m-%d)"
+          git add data site raw ref
+          git diff --cached --quiet || git commit -m "Data update $(date +%Y-%m-%d)"
           git push
       - uses: actions/upload-pages-artifact@v3
         with:
