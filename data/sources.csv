@@ -7,5 +7,5 @@ deg-csv,DEG investments database (CSV export),https://deginvest-investments.de/d
 finnfund-wp,Finnfund investments (WordPress REST API),https://www.finnfund.fi/en/investments/,api,Public website; cite Finnfund,2026-10-15,3
 ifu-wp,IFU investments (WordPress REST API),https://impactfund.dk,api,Public website; cite IFU,2026-10-15,5
 ecb-fx,ECB monthly reference exchange rates,https://data.ecb.europa.eu,api,"ECB statistics, free reuse with attribution",2026-10-15,
-curated,"Curated deals from press releases (BGK, KUKE)",,manual,Per-record source URLs,2026-10-15,4
+curated,"Curated deals from press releases (BGK, KUKE)",,manual,Per-record source URLs,2026-10-15,12
 manual,"Manual research sheet (ECAs, NPBs, JavaScript-only DFI sites)",,manual,Per-record source URLs,2026-10-15,

@@ -9,26 +9,30 @@ dggf,Dutch Good Growth Fund – Local SME (DGGF),NL,DFI,Dutch Ministry of Foreig
 bio,BIO – Belgian Investment Company for Developing Countries,BE,DFI,,Brussels,50.85,4.352,https://www.bio-invest.be,automated
 finnfund,Finnfund,FI,DFI,,Helsinki,60.17,24.938,https://www.finnfund.fi,automated
 ifu,IFU – Investment Fund for Developing Countries,DK,DFI,,Copenhagen,55.676,12.568,https://impactfund.dk,automated
-swedfund,Swedfund,SE,DFI,,Stockholm,59.329,18.069,https://www.swedfund.se,not yet covered
-oeeb,OeEB – Development Bank of Austria,AT,DFI,OeKB Group,Vienna,48.208,16.374,https://www.oe-eb.at,not yet covered
-cofides,COFIDES,ES,DFI,,Madrid,40.417,-3.704,https://www.cofides.es,not yet covered
-simest,SIMEST,IT,DFI,CDP Group,Rome,41.903,12.496,https://www.simest.it,not yet covered
-sofid,SOFID,PT,DFI,,Lisbon,38.722,-9.139,https://www.sofid.pt,not yet covered
-cdp,Cassa Depositi e Prestiti (CDP),IT,NPB,CDP Group,Rome,41.9,12.48,https://www.cdp.it,manual
-bpifrance,Bpifrance,FR,NPB,,Paris,48.88,2.33,https://www.bpifrance.fr,manual
+swedfund,Swedfund,SE,DFI,,Stockholm,59.329,18.069,https://www.swedfund.se,curated
+oeeb,OeEB – Development Bank of Austria,AT,DFI,OeKB Group,Vienna,48.208,16.374,https://www.oe-eb.at,checked: no WAEMU deals found
+cofides,COFIDES,ES,DFI,,Madrid,40.417,-3.704,https://www.cofides.es,automated
+simest,SIMEST,IT,DFI,CDP Group,Rome,41.903,12.496,https://www.simest.it,programme level
+sofid,SOFID,PT,DFI,,Lisbon,38.722,-9.139,https://www.sofid.pt,programme level
+cdp,Cassa Depositi e Prestiti (CDP),IT,NPB,CDP Group,Rome,41.9,12.48,https://www.cdp.it,curated
+bpifrance,Bpifrance,FR,NPB,,Paris,48.88,2.33,https://www.bpifrance.fr,programme level
 ico,Instituto de Crédito Oficial (ICO),ES,NPB,,Madrid,40.41,-3.69,https://www.ico.es,manual
 bgk,Bank Gospodarstwa Krajowego (BGK),PL,NPB,,Warsaw,52.23,21.012,https://www.bgk.pl,curated
 atradius-dsb,Atradius Dutch State Business,NL,ECA,Atradius,Amsterdam,52.34,4.87,https://atradiusdutchstatebusiness.nl,automated
 allianz-trade-de,Allianz Trade (Euler Hermes) for the German Federal Government,DE,ECA,,Hamburg,53.551,9.994,https://www.exportkreditgarantien.de,manual
-bpifrance-ae,Bpifrance Assurance Export,FR,ECA,Bpifrance,Paris,48.89,2.3,https://www.bpifrance.fr,manual
-sace,SACE,IT,ECA,,Rome,41.91,12.5,https://www.sace.it,manual
-credendo,Credendo,BE,ECA,,Brussels,50.84,4.37,https://credendo.com,manual
-cesce,CESCE,ES,ECA,,Madrid,40.44,-3.69,https://www.cesce.es,manual
+bpifrance-ae,Bpifrance Assurance Export,FR,ECA,Bpifrance,Paris,48.89,2.3,https://www.bpifrance.fr,curated
+sace,SACE,IT,ECA,,Rome,41.91,12.5,https://www.sace.it,curated
+credendo,Credendo,BE,ECA,,Brussels,50.84,4.37,https://credendo.com,curated
+cesce,CESCE,ES,ECA,,Madrid,40.44,-3.69,https://www.cesce.es,programme level
 ekn,EKN – Swedish Export Credit Agency,SE,ECA,,Stockholm,59.34,18.05,https://www.ekn.se,manual
-eifo,EIFO – Export and Investment Fund of Denmark,DK,ECA,,Copenhagen,55.69,12.59,https://www.eifo.dk,manual
+eifo,EIFO – Export and Investment Fund of Denmark,DK,ECA,,Copenhagen,55.69,12.59,https://www.eifo.dk,curated
 finnvera,Finnvera,FI,ECA,,Helsinki,60.18,24.95,https://www.finnvera.fi,manual
 oekb,OeKB – Oesterreichische Kontrollbank,AT,ECA,OeKB Group,Vienna,48.215,16.365,https://www.oekb.at,manual
 kuke,KUKE – Export Credit Insurance Corporation,PL,ECA,,Warsaw,52.24,21.0,https://www.kuke.com.pl,curated
 eu-intpa,"European Commission – DG International Partnerships (NDICI-Global Europe, EDF)",EU,EU institution,European Union,Brussels,50.843,4.382,https://international-partnerships.ec.europa.eu,automated
 eib,European Investment Bank (EIB),EU,EU institution,EIB Group,Luxembourg,49.627,6.155,https://www.eib.org,automated
 ebrd,European Bank for Reconstruction and Development (EBRD),INT,Multilateral,,London,51.507,-0.128,https://www.ebrd.com,automated
+worldbank,World Bank (IBRD/IDA),NONEU,Non-EU,World Bank Group,Washington,38.899,-77.042,https://projects.worldbank.org,automated
+ifc,International Finance Corporation (IFC),NONEU,Non-EU,World Bank Group,Washington,38.902,-77.044,https://disclosures.ifc.org,automated
+afdb,African Development Bank Group (incl. African Development Fund),NONEU,Non-EU,AfDB Group,Abidjan,5.32,-4.02,https://www.afdb.org,automated
+aiib,Asian Infrastructure Investment Bank (AIIB),NONEU,Non-EU,,Beijing,39.99,116.39,https://www.aiib.org,automated

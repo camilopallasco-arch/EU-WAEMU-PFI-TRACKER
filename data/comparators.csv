@@ -1,0 +1,971 @@
+institution_id,country,sector_broad,amount_attributed_eur,year,instrument,title,source_url
+afdb,BF,Energy and climate,5975693,2025,Grant,Burkina Faso - Desert to Power Centrale Solaire Photovoltaïque (PV) de 18 MW de Dédougou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FF0-009
+afdb,BF,Financial sector and SMEs,37136912,2017,Loan,Burkina Faso – Coris Bank International - Ligne de Credit,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-HA0-001
+afdb,BF,Financial sector and SMEs,2535854,2015,Loan,Burkina Faso - Africa SME Program – Fidelis Finance (Formerly ‘Burkina Bail LTD’),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-HB0-001
+afdb,BF,Agriculture and food systems,11108838,2005,Loan,Burkina Faso - Community Investment Project for Agricultural Fertility (PICOFA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-A00-002
+afdb,BF,Agriculture and food systems,755419,2016,Grant,"Burkina Faso - Project for the integration of youth and women in the agro-sylvo-pastoral, fisheries and wildlife sectors (PIJEF)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-A00-007
+afdb,BF,Agriculture and food systems,49171384,2019,Loan,Burkina Faso - Leraba Plain Management and Development Project (PAVAL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-A00-012
+afdb,BF,Agriculture and food systems,885019,2019,Grant,Burkina Faso - Aide d'urgence pour la lutte intégrée contre l'invasion de la chenille légionnaire d'automne,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-A00-013
+afdb,BF,Agriculture and food systems,36400344,2024,Loan,Burkina Faso - Integrated Livestock Value Chain Development Project In Burkina Faso (PDCVIE-BF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-A00-015
+afdb,BF,Agriculture and food systems,5068042,1976,Loan,Burkina Faso - Earth dam operation (Dablo-Tamassogo),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-003
+afdb,BF,Agriculture and food systems,9652086,1979,Loan,Burkina Faso - Formation des jeunes agriculteurs (FJA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-004
+afdb,BF,Agriculture and food systems,5078496,1984,Loan,Burkina Faso - Agricultural credit line at CNCA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-005
+afdb,BF,Agriculture and food systems,10320,1990,Grant,Burkina Faso - Institutional Support Project for Research and Development,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-008
+afdb,BF,Agriculture and food systems,435420,1993,Loan,Burkina Faso - Bazega Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-010
+afdb,BF,Agriculture and food systems,2298648,1997,Grant,"Burkina Faso - Etude de faisabilité relative à trois projets de développement agricole dans les provinces d'Oubritenga, Yatenga et de Kossi",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-011
+afdb,BF,Agriculture and food systems,3290318,1998,Grant,Burkina Faso - Etude pour le programme de la mise en valeur des petits barrages,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-015
+afdb,BF,Agriculture and food systems,873461,2002,Grant,Burkina Faso - Projet d'appui au développement rural décentralisé de la Région Centre Ouest,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-017
+afdb,BF,Agriculture and food systems,13489509,2003,Loan,"Burkina Faso - Project for the sustainable management of forest resources in the South-West, Centre-East and East Regions",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-019
+afdb,BF,Agriculture and food systems,13686064,2003,Loan,Burkina Faso - Projet de mise en valeur et de gestion durable des petits barrages,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-020
+afdb,BF,Agriculture and food systems,20160286,2003,Loan,"Burkina Faso - Local Development Support Project for Comoe, Leraba and Kenedougou Provinces",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-021
+afdb,BF,Agriculture and food systems,32380580,2015,Loan,Burkina Faso - Bagre Growth Pole Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-025
+afdb,BF,Agriculture and food systems,34719880,2023,Grant,"Burkina Faso - Integrated Maize, Soybean, Poultry and Fish Chain Development and Resilience Building Project",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-032
+afdb,BF,Agriculture and food systems,17216380,2024,Loan,Burkina Faso - Financement additionnel - Projet d'appui au pole de croissance de Bagré (FA-PAPCB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-035
+afdb,BF,Agriculture and food systems,36703872,2023,Loan,Burkina Faso - Emergency Project for Increasing Agricultural Production in Burkina Faso (PURPA-BF)  - (AEFPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-037
+afdb,BF,Agriculture and food systems,86208950,2026,Loan,"Burkina Faso - Emergency Project for Increasing Agricultural Production, Phase 2 (PURPA-BF-2)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AA0-042
+afdb,BF,Agriculture and food systems,8459005,1987,Loan,Burkina Faso - Livestock development project in Soum province,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AAE-001
+afdb,BF,Agriculture and food systems,17790728,2000,Loan,Burkina Faso - Projet de Développement de l’élevage dans la province du Soum- Phase II (PDES II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AAE-002
+afdb,BF,Agriculture and food systems,378696,2006,Grant,Burkina Faso - Aide d'urgence pour la lutte contre la propagation de la grippe aviaire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AAE-004
+afdb,BF,"Other (social, humanitarian, multi-sector)",491957,1993,Loan,Burkina Faso - Piela-Bilanga Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-002
+afdb,BF,"Other (social, humanitarian, multi-sector)",9594035,1984,Loan,Burkina Faso - Projet de Développement Rural Intégré dans le Département de la Comoé,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-003
+afdb,BF,"Other (social, humanitarian, multi-sector)",41389748,1989,Loan,Burkina Faso - Bagré Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-004
+afdb,BF,"Other (social, humanitarian, multi-sector)",13486753,1982,Loan,Burkina Faso - East Ex-West Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-005
+afdb,BF,"Other (social, humanitarian, multi-sector)",5827280,1977,Loan,Burkina Faso - Développement Rural Intégré,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-006
+afdb,BF,"Other (social, humanitarian, multi-sector)",26447,1993,Grant,Burkina Faso - Etude Réhabilitation de l'infrastructure hydraulique lery,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-008
+afdb,BF,"Other (social, humanitarian, multi-sector)",26060038,2001,Loan,Burkina Faso - Decentralised and Participatory Rural Development Project in the Bazéga and Kadiogo Provinces (PDRDP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-011
+afdb,BF,"Other (social, humanitarian, multi-sector)",15246273,2006,Loan,Burkina Faso - Decentralised Rural Development Support Project in the Provinces of Gnagna and Kourittenga (PADER-GK),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-AB0-012
+afdb,BF,Industry and trade,51429,1993,Grant,Burkina Faso - Etude Mine d'or,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-B00-001
+afdb,BF,Industry and trade,2205520,1972,Loan,Burkina Faso - Ligne de Crédit I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-B00-002
+afdb,BF,Industry and trade,2055942,1975,Loan,Burkina Faso - Ligne de Crédit II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-B00-003
+afdb,BF,Transport and corridors,1725219,1978,Grant,Burkina Faso - Construction de la Route Sakoince-Hounde,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-D00-003
+afdb,BF,Transport and corridors,34866332,2001,Loan,Burkina Faso - Deuxième Programme Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-D00-004
+afdb,BF,Transport and corridors,8336280,1984,Loan,Burkina Faso - Construction de la route Fada-Ngourma-Pama-Tindan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-001
+afdb,BF,Transport and corridors,845928,1991,Loan,Burkina Faso - Bilanga-Fada-N'gourma Road Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-002
+afdb,BF,Transport and corridors,11812079,1983,Loan,Burkina Faso - Construction de la Route Bilanga-Taparko,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-005
+afdb,BF,Transport and corridors,18635880,1988,Loan,Burkina Faso - Rehabilitation of the Banfora-Gaoua-Battie road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-006
+afdb,BF,Transport and corridors,872585,1989,Grant,Burkina Faso - Etudes Routes Ouaga-Leo - Bobo-Dedougou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-007
+afdb,BF,Transport and corridors,406280,1974,Loan,Burkina Faso - Etude de la Route Dori-Djibo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-008
+afdb,BF,Transport and corridors,8122488,1979,Loan,Burkina Faso - Construction de la Route Sakoince-Hounde,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-009
+afdb,BF,Transport and corridors,6452343,1978,Loan,Burkina Faso - Route Dori-Djibo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-010
+afdb,BF,Transport and corridors,31930816,1997,Loan,Burkina Faso - Projet d'Entretien Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-011
+afdb,BF,Transport and corridors,21711504,2004,Loan,Burkina Faso - Feeder Roads Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-012
+afdb,BF,Transport and corridors,10882343,2009,Loan,Burkina Faso - Project to Rehabilitate the Koupela - Bittou - Cinkanse - Togo Border Road and the Mogande Access Road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-015
+afdb,BF,Transport and corridors,21884240,2008,Loan,Burkina Faso - Programme routier I (Prêt supplémentaire),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-016
+afdb,BF,Transport and corridors,35098372,2014,Loan,Burkina Faso - Projet d’aménagement de routes de désenclavement,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-017
+afdb,BF,Transport and corridors,121135920,2026,Loan,Burkina Faso - Projet d’appui au secteur des transports (PAST),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-DB0-024
+afdb,BF,Water and sanitation,1488832,2000,Grant,Burkina Faso - Etude d'assainissement et d'approvisionnement en haut potable,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-001
+afdb,BF,Water and sanitation,27808898,2003,Loan,Burkina Faso - Drinking Water Supply and Sanitation Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-006
+afdb,BF,Water and sanitation,30844678,2007,Loan,"Burkina Faso - Projet d’approvisionnement en eau potable et d’assainissement en milieu rural dans les régions des Cascades, du Centre-ouest, du Centre-sud et du Sahel",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-008
+afdb,BF,Water and sanitation,15379542,2020,Loan,Burkina Faso - Projet d’eau potable et d’assainissement en milieu rural (PEPA-MR),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-016
+afdb,BF,Water and sanitation,43405544,2023,Grant,Burkina Faso - Projet d'amélioration des services d'eau potable et d'assainissement pour le renforcement de la résilience (PASEPA-2R),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-018
+afdb,BF,Water and sanitation,6914810,2023,Grant,"Burkina Faso - Projet de promotion de l’hygiène, de l’eau potable, de l’assainissement et de renforcement de la résilience de la population a la Covid 19 et au changement climatique en milieu rural dans huit (8) provinces (PHEPA – 8P)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-020
+afdb,BF,Water and sanitation,3985412,2024,Grant,Burkina Faso - Climato-resilient water and sanitation study project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-E00-021
+afdb,BF,Water and sanitation,1464330,1986,Loan,Burkina Faso - Etude d'aménagement hydro-agricole et de 35 barrages,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EA0-001
+afdb,BF,Water and sanitation,6163172,1979,Loan,Burkina Faso - Maitrise de l'eau et Développement Rural Intégré Thiou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EA0-002
+afdb,BF,Water and sanitation,344726,1993,Loan,Burkina Faso - Projet d'Hydraulique Rurale,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EA0-003
+afdb,BF,Water and sanitation,1924390,2023,Grant,Burkina Faso - Project to support access to drinking water and sanitation in outlying areas,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EA0-007
+afdb,BF,Water and sanitation,1809743,2005,Grant,Burkina Faso - Elaboration du Programme National d'Approvisionnement en eau potable,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EA0-022
+afdb,BF,Water and sanitation,29443212,1998,Loan,Burkina Faso - Ouagadougou Drinking Water Supply Project (Ziga Project),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EAB-001
+afdb,BF,Water and sanitation,275262,2008,Grant,Burkina Faso - Capacity building for decentralized integrated water resources management (IWRM),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EAZ-001
+afdb,BF,Water and sanitation,833706,2016,Grant,Burkina Faso - Project Integrated studies for the development of the Naré underground dam and the rehabilitation of related infrastructures,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EAZ-002
+afdb,BF,Water and sanitation,42074316,2013,Grant,Burkina Faso - Premier sous-projet d’assainissement des quartiers périphériques de Ouagadougou (SPAQPO),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EB0-001
+afdb,BF,Water and sanitation,589062,2008,Grant,Burkina Faso - Feasibility and design study of storm water drainage and solid waste management systems in Ouagadougou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-EBZ-001
+afdb,BF,Energy and climate,1193091,2002,Grant,Burkina Faso - Etude d’Électrification Rurale,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-002
+afdb,BF,Energy and climate,30211468,2010,Grant,Burkina Faso - Electricity Infrastructure Strengthening and Rural Electrification Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-006
+afdb,BF,Energy and climate,39975096,2016,Loan,Burkina Faso - Electrification of Semi-Urban Areas of Ouagadougou and Bobo-Dioulasso Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-007
+afdb,BF,Energy and climate,25379836,2015,Loan,Burkina Faso - Energy Sector Budget Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-008
+afdb,BF,Energy and climate,4901253,2019,Grant,Burkina Faso – Initiative « Désert à l’énergie » - Projet Yeleen électrification rurale,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-010
+afdb,BF,Energy and climate,59867948,2021,Loan,Burkina Faso - Desert to Power - Electrification and Power Connection Development Project (PEDECEL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FA0-013
+afdb,BF,Energy and climate,29078116,1984,Loan,Burkina Faso - Barrage Hydro-Electrique de Kompienga,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FAB-001
+afdb,BF,Energy and climate,62372128,2020,Loan,Burkina Faso - Desert to Power” Initiative – Yeleen Solar Plant Development and National Power System Reinforcement Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-FF0-006
+afdb,BF,Financial sector and SMEs,8264375,2019,Loan,Burkina Faso - Projet d’Appui à la Création d’une Banque d'Agrobusiness (PACBA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-HAA-001
+afdb,BF,"Other (social, humanitarian, multi-sector)",12396584,2018,Grant,Burkina Faso - Projet d'Appui à l'Emploi des Jeunes et Développement des Compétences en Milieu Rural (PADEJ-MR),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-I00-002
+afdb,BF,Education and skills,313377,1992,Loan,Burkina Faso - Project for Improving the Quality of Primary and Secondary Education (Education III Project),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IA0-001
+afdb,BF,Education and skills,14372981,1986,Loan,Burkina Faso - Project to Strengthen Primary and Secondary Education and Training in Rural Areas,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IA0-002
+afdb,BF,Education and skills,44155928,1997,Loan,Burkina Faso - Basic Education Reinforcement Project (Education IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IA0-004
+afdb,BF,Education and skills,22806012,2003,Loan,Burkina Faso - Basic Education and Capacity Building Project (Education V),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IA0-005
+afdb,BF,Education and skills,34574908,2025,Loan,BURKINA FASO - Multisectoral Project to Support Skills Development for Resilience (PMACR-BF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IAZ-002
+afdb,BF,Health,703785,2009,Grant,Burkina Faso - Aide humanitaire d’urgence aux victimes des inondations,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IB0-001
+afdb,BF,Health,4570646,1975,Loan,Burkina Faso - Health Services Improvement Project (Centre-Est),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBD-001
+afdb,BF,Health,303389,1992,Loan,Burkina Faso - Project for the Renovation of the Dori and Djibo Health Facilities,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBD-002
+afdb,BF,Health,689457,1990,Grant,Burkina Faso - Etude Technique et préparatoire dans le Secteur de la Santé,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBD-003
+afdb,BF,Health,378774,2005,Grant,Burkina Faso - Aide multinationale d'urgence pour l'éradication de la poliomyélite,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBE-001
+afdb,BF,Health,15132746,2000,Loan,Burkina Faso - Health Service Strengthening Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBZ-001
+afdb,BF,Health,6371658,2003,Grant,Burkina Faso - Project to support the fight against HIV/AIDS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBZ-002
+afdb,BF,Health,31778032,2005,Loan,Burkina Faso - Health Care Development Support Project (Centre - East and North Regions),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IBZ-003
+afdb,BF,Health,25193,1992,Grant,Burkina Faso - Etude dans Le secteur de la Population,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IC0-001
+afdb,BF,"Other (social, humanitarian, multi-sector)",20441954,1999,Loan,Burkina Faso - Poverty Reduction Programme in Municipalities (PRPC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-IE0-002
+afdb,BF,Governance and budget support,3421610,2002,Grant,Burkina Faso - Good Governance Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-001
+afdb,BF,Governance and budget support,2337195,2004,Grant,Burkina Faso - Etude Schéma d'aménagement du Territoire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-002
+afdb,BF,Governance and budget support,46254952,2008,Loan,Burkina Faso - Programme d’appui à la stratégie de réduction de la pauvreté IV (PASRP IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-006
+afdb,BF,Governance and budget support,11873305,2010,Loan,Burkina Faso - Cinquième programme d’appui à la stratégie de réduction de la pauvreté (PASRP V),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-008
+afdb,BF,Governance and budget support,56791556,2011,Loan,Burkina Faso - Accelerated Growth Strategy and Business Environment Support Programme (PASCACAF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-009
+afdb,BF,Governance and budget support,18604450,2004,Loan,Burkina Faso - Complementary Poverty Reduction Strategy Support Program (PCASRP) II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-011
+afdb,BF,Governance and budget support,36062112,2006,Loan,Burkina Faso - Third Poverty Strategy Support Loan (PRSSP III),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-012
+afdb,BF,Governance and budget support,3207512,2006,Grant,Burkina Faso - Projet d'appui aux Institutions Chargées de la Gestion des Ressources Publiques,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-K00-014
+afdb,BF,Governance and budget support,27113,1993,Grant,Burkina Faso - Projet d'appui institutionnel aux dimensions sociales de l'ajustement,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KA0-002
+afdb,BF,Governance and budget support,32611754,2001,Loan,Burkina Faso - Poverty Reduction Strategy Support Programme- Phase 1,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KA0-003
+afdb,BF,Governance and budget support,31815880,2003,Loan,Burkina Faso - Poverty Reduction Strategy Support Programme (PCASRP II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KA0-005
+afdb,BF,Governance and budget support,23332134,2014,Loan,Burkina Faso - Private Sector Promotion Support Programme (PAPSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KA0-009
+afdb,BF,Governance and budget support,80930,1991,Grant,Burkina Faso - Appui Institutionnel  à Quatres Ministères,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KF0-001
+afdb,BF,Governance and budget support,11666067,2014,Grant,Burkina Faso - Economic Transformation and Job Creation Support Project (PATECE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KF0-009
+afdb,BF,Governance and budget support,12135511,2018,Loan,Burkina Faso - Energy Sector Reform Support Programme (PARSE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KZ0-001
+afdb,BF,Governance and budget support,47985588,2020,Loan,"Burkina Faso - COVID-19 Support Programme in G5 Sahel Countries - Burkina Faso, Mali, Mauritania, Niger and Chad (PARC COVID-19 - G5 Sahel)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BF-KZ0-003
+afdb,BJ,Industry and trade,3326672,1998,Loan,"Benin - Fludor-Benin S.A., Cotonou",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-BB0-001
+afdb,BJ,Transport and corridors,84529536,2025,Loan,Benin - Rehabilitation and Expansion of  Port Autonome de Cotonou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DD0-002
+afdb,BJ,Financial sector and SMEs,201671700,2022,Unknown,Benin - Partial Credit Guarantee for the Mobilisation of Financing Allocated to the Sustainable Development Goals (BENIN PCG-SDG),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-H00-001
+afdb,BJ,Financial sector and SMEs,24568970,2026,Loan,Benin - Trade Finance Facility for SMEs and Other Businesses in Benin,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-HA0-002
+afdb,BJ,Agriculture and food systems,10111587,2019,Loan,Benin - Cashew Nuts Sector and Agricultural Entrepreneurship Development Support Project (PADEFA-ENA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-A00-005
+afdb,BJ,Agriculture and food systems,29192822,2025,Loan,Benin – Agricultural Sector Resilience and Climate Risk Management Project (PRERAB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-A00-012
+afdb,BJ,Agriculture and food systems,14229122,2001,Loan,Benin - Fire Wood Project - Phase II (PBF II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AA0-002
+afdb,BJ,Agriculture and food systems,26251928,2015,Grant,"Benin - Project to Support Food Production and Build Resilience in Alibori, Borgou and Collines Departments",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AA0-007
+afdb,BJ,Agriculture and food systems,644174,2014,Grant,Benin - Emergency aid program for the communes of Malanville and Karimama affected by the floods,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AA0-009
+afdb,BJ,Agriculture and food systems,101731560,2026,Loan,Benin - Programme de transformation de l’agriculture dans la zone des savanes – Phase 1 (PROTAS-P1),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AA0-016
+afdb,BJ,Agriculture and food systems,3738764,1973,Loan,Benin - Projet de développement hydro-agricole de la vallée de l'Ouémé,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAC-001
+afdb,BJ,Agriculture and food systems,15704699,1983,Loan,Benin - Firewood Plantation Project in South Benin,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAD-001
+afdb,BJ,Agriculture and food systems,15942002,2000,Loan,"Benin - Agoua, Monts Kouffe and Wari-Maro Forestry Management Project",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAD-002
+afdb,BJ,Agriculture and food systems,44170872,2005,Loan,Benin - Communal Forests Management Support Project (PAGEFCOM),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAD-003
+afdb,BJ,Agriculture and food systems,19015820,1987,Loan,Benin - Livestock Production Development Project Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAE-001
+afdb,BJ,Agriculture and food systems,5596213,1978,Loan,Benin - Livestock Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAE-002
+afdb,BJ,Agriculture and food systems,27274914,1998,Loan,Benin - Livestock Development Project Phase III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAE-003
+afdb,BJ,Agriculture and food systems,375129,2007,Grant,Benin - Aide d'urgence pour la lutte contre la propagation de la grippe aviaire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAE-005
+afdb,BJ,Agriculture and food systems,24597584,2022,Grant,Benin - Milk and Meat Sub-Sector Development and Livestock Enterprise Promotion Support Project (PRODEFILAV-PEL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAE-006
+afdb,BJ,Agriculture and food systems,20669968,2002,Loan,Benin - Participatory Artisanal Fisheries Development Support Programme (PADPPA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAF-001
+afdb,BJ,Agriculture and food systems,24578930,2023,Loan,Benin - PROMAC-Project to promote Aquaculture and the competitiveness of fisheries value chains,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AAF-003
+afdb,BJ,"Other (social, humanitarian, multi-sector)",18071672,1989,Loan,Benin - Integrated Rural Development of the Mono Province,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AB0-001
+afdb,BJ,"Other (social, humanitarian, multi-sector)",11960258,1985,Loan,Benin - Rural development of the Ouémé Province,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AB0-002
+afdb,BJ,"Other (social, humanitarian, multi-sector)",17715512,2000,Loan,Benin - Oueme Rural Development Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AB0-003
+afdb,BJ,"Other (social, humanitarian, multi-sector)",11348373,2001,Loan,Benin - Mono and Couffo Rural Development Support Project (PADMOC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AB0-004
+afdb,BJ,"Other (social, humanitarian, multi-sector)",35235340,2009,Loan,Benin - The Milk and Meat Sectors Support Project (PAFILAV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-AB0-005
+afdb,BJ,Industry and trade,1102760,1977,Loan,Benin - Line of Credit I (Banque Béninoise pour le Développement),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-B00-001
+afdb,BJ,Industry and trade,2327867,1981,Loan,Benin - Line of Credit II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-B00-002
+afdb,BJ,Transport and corridors,1705088,1984,Loan,Benin - Abom-Boh-Ketou-Illara & Save-Okeow road feasibility study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-D00-001
+afdb,BJ,Transport and corridors,783298,1987,Loan,Benin - Cotonou Access and Crossing Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-D00-002
+afdb,BJ,Transport and corridors,8085586,1985,Loan,Benin - Improvement of the Save-Parakou road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-D00-003
+afdb,BJ,Transport and corridors,7044103,2015,Loan,Benin - Parakou Urban Transport Project – Additional loan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-D00-007
+afdb,BJ,Transport and corridors,451381,1992,Loan,Benin- Cotonou Access and Crossing Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-001
+afdb,BJ,Transport and corridors,30644,1992,Grant,Benin - Study for the upgrading of the Parakou-Nikki-Segbana road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-002
+afdb,BJ,Transport and corridors,7840698,1988,Loan,Benin - Porto Novo-Pobe Road Rehabilitation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-003
+afdb,BJ,Transport and corridors,162512,1974,Loan,Benin - Etudes de la Route Dogbo-Azove,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-004
+afdb,BJ,Transport and corridors,4248330,1975,Loan,Benin - Bridge and dam on the Cotonou Lagoon,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-005
+afdb,BJ,Transport and corridors,7885532,1977,Loan,Benin- Construction Route Dogbo-Azove,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-006
+afdb,BJ,Transport and corridors,8134510,1980,Loan,Benin - Pobe-Ketou Road Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-007
+afdb,BJ,Transport and corridors,5002680,1996,Loan,Benin - The Cotonou-Porto Novo Road Upgrade Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-008
+afdb,BJ,Transport and corridors,500090,2000,Grant,Benin - Pobe-Ketou-Illara Road Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-009
+afdb,BJ,Transport and corridors,18032672,2004,Loan,Benin - Djougou-N'dali Road Improvement Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-010
+afdb,BJ,Transport and corridors,7479402,2004,Loan,Benin - Pobe-Ketou-Illara Road Rehabilitation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-012
+afdb,BJ,Transport and corridors,39429040,2010,Loan,Benin - Ndali-Nikki-Chicandou Nigerian border road asphalting project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-013
+afdb,BJ,Transport and corridors,177182350,2019,Loan,Benin - Djougou-Pehunco-Banikoara Cotton Road Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-017
+afdb,BJ,Transport and corridors,9765607,2021,Grant,Benin - Djougou-Pehunco-Kerou-Banikoara cotton road development project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DB0-020
+afdb,BJ,Transport and corridors,2657098,1978,Loan,Benin - Port of Cotonou construction,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-DD0-001
+afdb,BJ,Water and sanitation,8483499,2015,Loan,"Benin - Project for Water Loss Reduction and Performance Improvement of Drinking Water Supply Systems in Cotonou, Porto-Novo and their Suburbs",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-E00-002
+afdb,BJ,Water and sanitation,126635230,2025,Loan,Benin - Programme for Achieving Drinking Water Security to Build Resilience in Rural Areas (PROSER MR),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-E00-007
+afdb,BJ,Water and sanitation,2550425,1997,Grant,Benin - Southern Benin Water Course Development Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EA0-001
+afdb,BJ,Water and sanitation,11936592,2004,Loan,Benin - Rural Drinking Water and Sanitation Programme (PAEPA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EA0-002
+afdb,BJ,Water and sanitation,974910,2013,Grant,"Benin - Support for the decentralisation of the water, sanitation and hygiene services in Atacora-Donga region",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EAZ-003
+afdb,BJ,Water and sanitation,41141,1992,Grant,Benin - Sanitation study in Cotonou & Porto-Novo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EBC-001
+afdb,BJ,Water and sanitation,85475624,2019,Loan,Benin - Support Project for Cotonou Stormwater Drainage Programme (PAPC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EBC-002
+afdb,BJ,Water and sanitation,167858660,2023,Loan,Benin - Secondary Towns Stormwater Drainage Programme (PAPVS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EBC-003
+afdb,BJ,Water and sanitation,1038947,2013,Grant,Benin - Improvement of waste management in Grand-Nokoué as part of a public-private partnership,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-EBZ-002
+afdb,BJ,Energy and climate,9141293,1983,Loan,Benin - Drinking water and electricity supply project in nine district capitals,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-F00-001
+afdb,BJ,Energy and climate,3859660,1974,Loan,Benin - Electricty project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-F00-002
+afdb,BJ,Energy and climate,5513798,1978,Loan,Benin - Cement plant electrification,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-F00-003
+afdb,BJ,Energy and climate,730165,1979,Loan,Benin - Water and electricity supply studies,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-F00-004
+afdb,BJ,Energy and climate,1909829,1998,Grant,Benin - Rural Electrification Program Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-F00-005
+afdb,BJ,Energy and climate,6837438,2000,Loan,Benin - Project for the Electrification of seventeen Rural Centres,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FA0-001
+afdb,BJ,Energy and climate,15457867,2004,Loan,Benin - Second Rural Electrification Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FA0-002
+afdb,BJ,Energy and climate,16760990,2018,Loan,Benin - Electricity Corporation of Benin Sub-Transmission and Distribution System Restructuring and Extension Project (PRESREDI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FA0-004
+afdb,BJ,Energy and climate,65136312,2019,Loan,Benin - Projet d’électrification rurale (PERU),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FA0-007
+afdb,BJ,Energy and climate,110553776,2025,Loan,BENIN - Projet d’électrification rurale au Benin-phase II (PERU II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FA0-011
+afdb,BJ,Energy and climate,25467746,2017,Loan,Benin - Energy Sector Budget Support Programme - Phase I (PASEBE I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-FZ0-001
+afdb,BJ,Digital and telecoms,8709233,1990,Loan,Benin - Communications development project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-GB0-001
+afdb,BJ,Digital and telecoms,13372503,1988,Loan,Benin - National telecommunications network maintenance improvement plan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-GB0-002
+afdb,BJ,Digital and telecoms,56714,1990,Loan,Benin - Development of technical education - PROFE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-GB0-003
+afdb,BJ,"Other (social, humanitarian, multi-sector)",237028,1991,Loan,Benin - Project to build and equip the Ouidah regional public health institute,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-I00-001
+afdb,BJ,"Other (social, humanitarian, multi-sector)",3889326,1997,Loan,Benin - Project for the Promotion of Women’s Economic Activities in Oueme Department,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-I00-002
+afdb,BJ,Education and skills,8125594,1979,Loan,Benin – « Complexes Polytechniques » Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IA0-001
+afdb,BJ,Education and skills,22022108,1998,Loan,Benin - Education Project III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IA0-003
+afdb,BJ,Education and skills,12351875,2002,Loan,Benin - Educational System Strengthening Project (Education IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IA0-004
+afdb,BJ,Education and skills,15947,1990,Grant,Benin - Technical & Vocational Education Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IAE-001
+afdb,BJ,Education and skills,84463944,2024,Loan,"Benin - Project to Develop Skills for Employment in Priority Sectors, Phase 1 (PDCESP-1)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IAE-004
+afdb,BJ,Health,349997,1994,Loan,Benin - Health System Strengthening Project (Health II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IB0-002
+afdb,BJ,Health,665198,1985,Grant,Benin - Capacity building for health project implementation,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IB0-003
+afdb,BJ,Health,381208,1985,Loan,Benin - Study in the Health Sector,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IB0-004
+afdb,BJ,Health,26608214,2005,Loan,Benin - Health System Development Support Project (PADS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IB0-006
+afdb,BJ,Health,5078496,1977,Loan,Benin - Development of medical and health services,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IBD-001
+afdb,BJ,Health,3406854,2004,Grant,Benin - HIV/Aids Control Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IBZ-001
+afdb,BJ,"Other (social, humanitarian, multi-sector)",20048692,2001,Loan,Benin - Poverty Reduction Budget Reform Support Program (PRBRSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IE0-001
+afdb,BJ,"Other (social, humanitarian, multi-sector)",23324610,2000,Loan,Benin - Human Resource Development Programme (HRDP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-IZ0-001
+afdb,BJ,Governance and budget support,8520480,2018,Loan,Benin - Economic Competitiveness Support Programme (PACEB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-K00-005
+afdb,BJ,Governance and budget support,6203515,2019,Loan,Benin - Economic Competitiveness Support Programme (PACEB) - PHASE II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-K00-006
+afdb,BJ,Governance and budget support,56340992,2024,Loan,Benin - Economic Governance and Private Sector Development Support Programme - Phase II (PAGE-DSP II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-K00-007
+afdb,BJ,Governance and budget support,117255600,2025,Loan,BENIN - Programme d’appui au développement économique des collectivités territoriales (PADECT),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-K00-009
+afdb,BJ,Governance and budget support,24107584,2026,Loan,Benin - Economic Governance and Private Sector Development Support Programme (PAGE-DSP) - Supplementary Financing 2025 (FS 2025),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-K00-010
+afdb,BJ,Governance and budget support,11877943,1990,Loan,Benin - 1st Structural Adjustment Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-001
+afdb,BJ,Governance and budget support,431040,1991,Loan,Benin - Structural Adjustment Program II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-002
+afdb,BJ,Governance and budget support,192041,1992,Loan,"Benin - Institutional Support Project for the Ministries of Finance, Planning and Economic Restructuring",https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-003
+afdb,BJ,Governance and budget support,28524122,2004,Loan,Benin - Poverty Reduction Strategy Support Program I (PRSP I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-006
+afdb,BJ,Governance and budget support,2336281,2005,Grant,Benin - Control Institutions Support Project (PAIC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-007
+afdb,BJ,Governance and budget support,24953286,2009,Loan,Benin - The Third Growth and Poverty Reduction Strategy Support Program (GPRSSP-III),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-009
+afdb,BJ,Governance and budget support,8151428,2010,Loan,Benin - Public Finance Management and Business Climate Improvement Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-011
+afdb,BJ,Governance and budget support,17258322,2006,Loan,Benin - Poverty Reduction Strategy Support Programme - Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-013
+afdb,BJ,Governance and budget support,35621352,2012,Loan,Benin - Economic and Financial Reform Support Programme (PAREF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KA0-014
+afdb,BJ,Governance and budget support,38469872,2023,Loan,Benin - Economic Governance and Private Sector Development Support Programme - Phase I (PAGE-DSP I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KF0-001
+afdb,BJ,Governance and budget support,6118162,2020,Loan,Benin - Multi-Country (Benin-Togo-Guinea) COVID-19 Response Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-BJ-KZ0-001
+afdb,CI,Agriculture and food systems,99903824,2015,Loan,Côte d’Ivoire - Sucres et denrées (SUCDEN)  - Soft Commodity Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAA-001
+afdb,CI,Agriculture and food systems,101812856,2019,Loan,Cote d'Ivoire - Cocoa Pre-Export and Value Chain Trade Finance Support Facility - Sucres et denrées (SUCDEN),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAA-004
+afdb,CI,Agriculture and food systems,98999440,2020,Loan,Cote d'Ivoire - Cocoa Pre-Export and Value Chain Trade Finance Support Facility -Sucres et denrées (SUCDEN),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAA-005
+afdb,CI,Agriculture and food systems,91194696,2021,Loan,Cote d'Ivoire - Cocoa Pre-Export and Value Chain Trade Finance Support Facility - Sucres et denrées (SUCDEN),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAA-006
+afdb,CI,Industry and trade,100768650,2025,Loan,Côte d'Ivoire - SUCDEN Côte d’Ivoire (SUCDEN-CI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAG-014
+afdb,CI,Industry and trade,100069810,2025,Loan,COTE D’IVOIRE - SUCDEN Côte d’Ivoire (SUCDEN-CI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAG-015
+afdb,CI,Transport and corridors,133130024,2012,Loan,Côte d’Ivoire - Henri Konan Bédié Toll Bridge Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-D00-001
+afdb,CI,Transport and corridors,2473699,2012,Loan,Côte d’Ivoire - Henri Konan Bédié Toll Bridge Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-D00-002
+afdb,CI,Transport and corridors,44131376,2017,Loan,Côte d'Ivoire - Air Côte d'Ivoire's Expansion Plan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DA0-001
+afdb,CI,Energy and climate,35323464,2019,Loan,Côte d'Ivoire - Azito Power Expansion Project - Phase IV,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-F00-007
+afdb,CI,Energy and climate,86260616,2020,Loan,Cote d'Ivoire - Atinkou (CIPREL V) 390 MW Gas Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-F00-011
+afdb,CI,Energy and climate,21524394,1998,Loan,Côte d’Ivoire - Azito Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-001
+afdb,CI,Energy and climate,29871504,2013,Loan,Côte d’Ivoire - Azito Power Expansion Project - Phase III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-004
+afdb,CI,Energy and climate,47965984,2013,Loan,Côte d’Ivoire - CIPREL Power Expansion Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-005
+afdb,CI,Energy and climate,15170497,2025,Loan,Côte d'Ivoire - M300 - Financement du programme électricité pour tous (PEPT) Phase II-TRANCHE C,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-028
+afdb,CI,Energy and climate,7585248,2025,Loan,COTE D'IVOIRE - M300 - Financement du programme électricité pour tous (PEPT) Phase II-TRANCHE B,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-029
+afdb,CI,Energy and climate,53803988,2021,Loan,Côte d'Ivoire - 44 MW Singrobo - Ahouaty Hydropower Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FAB-001
+afdb,CI,Energy and climate,195988900,2026,Loan,Côte d’Ivoire – Clean Air Hydrotreating and Desulfurization Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FZ0-002
+afdb,CI,Financial sector and SMEs,399736800,2023,Unknown,"Côte d'Ivoire  - Partial Credit Guarantee for the Mobilization of Environmental, Social and Governance Financing",https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-H00-014
+afdb,CI,Financial sector and SMEs,9887252,2025,Loan,Côte D'Ivoire - Bridge Bank - Facilité de financement et de garantie des PME et des activités,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-HAB-009
+afdb,CI,Financial sector and SMEs,51860544,2023,Loan,Côte d’Ivoire - Ligne de Crédit à la NSIA Banque,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-HZ0-003
+afdb,CI,Agriculture and food systems,1527365,2022,Grant,Côte d'Ivoire - Etude de préparation de pôle agro-industriel dans la région nord-ouest de la Côte d'Ivoire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-A00-008
+afdb,CI,Agriculture and food systems,118158440,2019,Loan,Cote d'Ivoire - Government Social Program Support Project (PA-PSGOUV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-A00-011
+afdb,CI,Agriculture and food systems,455122,1990,Loan,Côte d'Ivoire - Agricultural Sector Adjustment Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-001
+afdb,CI,Agriculture and food systems,73215150,1989,Loan,Côte d'Ivoire - Soybean Cultivation Development Project in the Northeast,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-002
+afdb,CI,Agriculture and food systems,84045,1993,Grant,Côte d'Ivoire - Etude de faisabilité d'un projet de développement rural des régions du Centre et du Centre-Nord,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-004
+afdb,CI,Agriculture and food systems,10606136,1996,Loan,Côte d'Ivoire - Programme d'Ajustement  du Secteur Agriculture (PASA II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-008
+afdb,CI,Agriculture and food systems,5293062,1998,Grant,Côte d'Ivoire - Etude pour la Promotion des Jeunes et pour la Transformation Agro-Industrielle -PASA II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-010
+afdb,CI,Agriculture and food systems,997146,2003,Grant,Cote d’Ivoire - Study of the Agnéby Region Rural Development Plan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-013
+afdb,CI,Agriculture and food systems,25747930,2012,Grant,Côte d’Ivoire - Agricultural Infrastructure Support Project in Indénié-Djuablin Region (PAIA-ID),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-019
+afdb,CI,Agriculture and food systems,150087650,2017,Loan,Côte d'Ivoire - Belier Region Agro-Industrial Pole Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-020
+afdb,CI,Agriculture and food systems,4937764,2017,Loan,Côte d’Ivoire - Projet de développement des chaines de valeur dans la région de l’Indénié-Djuablin (PDC-ID),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-023
+afdb,CI,Agriculture and food systems,1442800,2017,Grant,Côte d’Ivoire - PPF-Pôle Agro-Industriel au nord de la Côte d'Ivoire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-024
+afdb,CI,Agriculture and food systems,1135301,2017,Grant,Côte d'Ivoire - Financement de la Préparation des Projets (PPF) en faveur du Projet d’emploi des jeunes en agribusiness (Enable Youth-Côte d’Ivoire),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-027
+afdb,CI,Agriculture and food systems,147159010,2022,Loan,Côte d'Ivoire - Agro-Industrial Pole Project in the North (2PAI-NORD),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-030
+afdb,CI,Agriculture and food systems,12941546,2019,Loan,Cote d’Ivoire - Support Project for the Implementation of the Inclusive Service Delivery Development (PAME/PDSI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-033
+afdb,CI,Agriculture and food systems,12809253,2021,Loan,Cote d'Ivoire - Project to Improve the Livelihoods of Smallholders and Women in the N’Zi Region (PREMOPEF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-034
+afdb,CI,Agriculture and food systems,166589600,2022,Loan,Côte d'Ivoire - Emergency Food Production Programme (2 PAU-CIAEFPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AA0-037
+afdb,CI,Agriculture and food systems,1880985,2000,Grant,Côte d’Ivoire - Etude du Plan de Développement de l'Irrigation,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAC-001
+afdb,CI,Agriculture and food systems,26101162,1988,Loan,Côte d'Ivoire - Projet de reboisement et aménagement forestiers,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAD-001
+afdb,CI,Agriculture and food systems,10814959,1984,Loan,Côte d'Ivoire - Development and Livestock Farming in the Central and Southwest Region,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAE-001
+afdb,CI,Agriculture and food systems,759558,1993,Loan,Côte d'Ivoire - Livestock Development Project - Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAE-002
+afdb,CI,Agriculture and food systems,364843,2007,Grant,Côte d'Ivoire - Aide d'urgence contre la Propagation de la Grippe Aviaire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAE-003
+afdb,CI,Agriculture and food systems,893343,2016,Grant,Côte d'Ivoire - Aide Humanitaire d'Urgence au Gouvernement dans la lutte contre la Grippe Aviaire en Côte d'Ivoire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAE-004
+afdb,CI,Agriculture and food systems,4708784,1985,Loan,Côte d'Ivoire - Development of Artisanal Fishing on the Aby Lagoon,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAF-001
+afdb,CI,Agriculture and food systems,26045178,2024,Loan,Côte d'Ivoire - Competitive Aquaculture and Sustainable Fisheries Value Chains Development Project (ProDeCAP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAF-003
+afdb,CI,Agriculture and food systems,384321,2008,Grant,Côte d'Ivoire - Aide alimentaire humanitaire d’urgence aux victimes de la guerre civile,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AAZ-001
+afdb,CI,"Other (social, humanitarian, multi-sector)",1810122,1992,Loan,Côte d'IVoire - West Forest Region Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AB0-001
+afdb,CI,"Other (social, humanitarian, multi-sector)",4756074,2000,Loan,Côte d’Ivoire - Lakes Region Rural Development Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-AB0-002
+afdb,CI,Industry and trade,2204895,1977,Loan,Côte d'Ivoire - Lign of Credit I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-B00-003
+afdb,CI,Industry and trade,394177,1972,Loan,Côte d'Ivoire - Fertilizer Plant Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-BG0-001
+afdb,CI,Industry and trade,172520900,2024,Loan,"Côte d'Ivoire - Diversification, Accélération industrielle, Compétitivité et Emploi (DAICE)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-BG0-002
+afdb,CI,Transport and corridors,341709900,2019,Loan,Côte d'Ivoire - Abidjan Urban Transport Project-Phase 2,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-D00-010
+afdb,CI,Transport and corridors,24471838,2019,Loan,Cote d'Ivoire - Projet de routes de désenclavement des zones transfrontalières phase 1,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-D00-011
+afdb,CI,Transport and corridors,115627456,2017,Loan,Côte d'Ivoire - Air Côte d'Ivoire Modernization and Expansion Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DA0-002
+afdb,CI,Transport and corridors,162314670,1988,Loan,Côte d'Ivoire - Deuxième Programme Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-001
+afdb,CI,Transport and corridors,34241004,1979,Loan,Côte d'Ivoire - Aboisso to Noe Road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-002
+afdb,CI,Transport and corridors,4823577,1994,Loan,Côte d'Ivoire - Programme Routier phase 3,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-003
+afdb,CI,Transport and corridors,61975104,1985,Loan,Côte d'Ivoire - Programme Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-004
+afdb,CI,Transport and corridors,1107342,2000,Grant,Côte d'Ivoire - Etude de Péage et de Pesage Routiers,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-005
+afdb,CI,Transport and corridors,118654230,2025,Loan,Côte d'Ivoire  - Programme for Opening Up Cross-Border and Agricultural Areas - Phase 2 (PD-ZTA-2),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DB0-009
+afdb,CI,Transport and corridors,3639108,1974,Loan,Côte d'Ivoire - Dragage de l'entrée du canal de vridi,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-DD0-001
+afdb,CI,Water and sanitation,25919828,2011,Grant,Côte d’Ivoire - Gourou Integrated Watershed Management Project - Emergency Phase,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-E00-002
+afdb,CI,Water and sanitation,49990708,2021,Loan,Côte d'Ivoire - Project to Improve Sanitation and the Living Environment in the Autonomous District of Abidjan (PAACA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-E00-006
+afdb,CI,Water and sanitation,12782915,1997,Loan,Côte d'Ivoire - Rural Hydraulics Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EA0-002
+afdb,CI,Water and sanitation,1148837,2014,Grant,Côte d'Ivoire - Promotion de l'accès aux toilettes et à l'emploi à Bouaké et Katiola à travers la réutilisation des boues et urines,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EB0-001
+afdb,CI,Water and sanitation,960694,2019,Grant,Côte d'Ivoire - Amélioration des services d'assainissement non collectif à travers le partenariat public privé,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EB0-007
+afdb,CI,Water and sanitation,497402,2026,Grant,Côte d'Ivoire - Study on the development of wastewater treatment and reuse value chains,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EB0-008
+afdb,CI,Water and sanitation,5513800,1975,Loan,Côte d'Ivoire - Adduction  d'eau dans cinq centres,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EBA-001
+afdb,CI,Water and sanitation,5498254,1977,Loan,Côte d'Ivoire - Adduction  d'eau à Abidjan et San-Pedro,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EBA-002
+afdb,CI,Water and sanitation,5513799,1977,Loan,Côte d'Ivoire - Adduction  d'eau de Bouaké,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EBA-003
+afdb,CI,Water and sanitation,1812708,1998,Grant,"Côte d'Ivoire - Etude d' Assainissement de Daloa, Gagnoa et San-Pedro",https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-EBA-005
+afdb,CI,Energy and climate,132331184,1988,Loan,Côte d'Ivoire -  Programme d'ajustement du secteur de l'énergie,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-F00-001
+afdb,CI,Energy and climate,3961444,1979,Loan,Côte d'Ivoire - Electrical interconnection,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-F00-002
+afdb,CI,Energy and climate,147673490,2016,Loan,Côte d’Ivoire - Power Transmission and Distribution Networks Reinforcement Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-014
+afdb,CI,Energy and climate,44087528,2019,Loan,Côte d'Ivoire - Project to Improve Access to Electricity in Rural Areas,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-017
+afdb,CI,Energy and climate,165828940,2020,Loan,Côte d'Ivoire - Project to Strengthen the Structures of the Electricity System and Access to Electricity Phase I (PROSER I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-024
+afdb,CI,Energy and climate,149191360,2026,Loan,Côte d’Ivoire – Power System Infrastructure Strengthening and Electricity Access Project – Phase II (PROSER II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-025
+afdb,CI,Energy and climate,14493369,2022,Loan,Côte d’Ivoire - Electricity for all Project (PEPT),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-FA0-027
+afdb,CI,Digital and telecoms,11026755,1982,Loan,"Côte d'Ivoire - Plateau Telecommunications Project, phase 3",https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-GB0-001
+afdb,CI,Digital and telecoms,95559864,2023,Loan,Côte d'Ivoire - E-Government Strengthening Support Project (PARAE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-GB0-005
+afdb,CI,"Other (social, humanitarian, multi-sector)",89559744,2008,Grant,Côte d'Ivoire - Multi-sectoral institutional support project for post-crisis recovery,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-I00-002
+afdb,CI,"Other (social, humanitarian, multi-sector)",121955904,2014,Loan,Côte d’Ivoire - Programme d’appui au renforcement de l’inclusion et de la cohésion sociale (PARICS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-I00-003
+afdb,CI,Education and skills,1851093,1992,Loan,Côte d'Ivoire - Education IV Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IA0-001
+afdb,CI,Education and skills,37217976,1979,Loan,Côte d'Ivoire - Lycée  Professionnel Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IA0-002
+afdb,CI,Education and skills,37217748,1981,Loan,Côte d'Ivoire - Lycée  Professionnel Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IA0-003
+afdb,CI,Education and skills,17335382,1985,Loan,Côte d'Ivoire - Regional Academy of Marine Sciences and Techniques (ARSTM) project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IA0-004
+afdb,CI,Education and skills,3772559,2002,Loan,Côte d'Ivoire - Project to support training for the integration of young people and improve the efficiency of the education system,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IA0-006
+afdb,CI,Health,52966,1990,Loan,Côte d'Ivoire - Rehabilitation of hospital infrastructures and support for basic healthcare,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IBD-001
+afdb,CI,Health,1858715,1992,Loan,Côte d'Ivoire - Human Resources Sector Adjustment Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IC0-001
+afdb,CI,Health,2283614,1999,Loan,Côte d'Ivoire - Human Resources Development Program (PVRH) II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IC0-002
+afdb,CI,"Other (social, humanitarian, multi-sector)",105681696,2011,Loan,Côte d’Ivoire - Emergency Programme to Restore Basic Social and Administrative Services (PURSSAB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IZ0-001
+afdb,CI,"Other (social, humanitarian, multi-sector)",6118414,2011,Grant,Côte d’Ivoire - Emergency Programme to Restore Basic Social and Administrative Services (PURSSAB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IZ0-002
+afdb,CI,"Other (social, humanitarian, multi-sector)",731444,2011,Grant,Côte d'Ivoire - Emergency humanitarian aid for victims of post-election violence,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IZ0-003
+afdb,CI,"Other (social, humanitarian, multi-sector)",21166932,2013,Loan,Côte d’Ivoire - Programme d’appui à l’amélioration de l’employabilité et de l’insertion des jeunes,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-IZ0-004
+afdb,CI,"Other (social, humanitarian, multi-sector)",4728706,2021,Loan,Cote d'Ivoire - Pilot Support for the Mobilisation of Municipal Revenue (PAMREC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-J00-002
+afdb,CI,Governance and budget support,106018904,1998,Grant,Côte d'Ivoire - Supplementary Financing Mechanism Loan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-001
+afdb,CI,Governance and budget support,6420210,2002,Grant,Côte d'Ivoire - Appui à la bonne gouvernance et au renforcement des capacités,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-004
+afdb,CI,Governance and budget support,32668370,2002,Grant,Côte d'Ivoire - Mécanisme de Financement Supplémentaire  2001,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-006
+afdb,CI,Governance and budget support,96170936,2009,Loan,Côte d'Ivoire - Economic and Financial Reform Support Programme (PAREF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-008
+afdb,CI,Governance and budget support,20048338,2017,Loan,Côte d'Ivoire - Economic and Financial Management Support Project (PAGEF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-011
+afdb,CI,Governance and budget support,148494620,2025,Loan,"Côte D’Ivoire - Projet d’amélioration des compétences, de l’entrepreneuriat et de l’emploi des jeunes (PACE)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-K00-014
+afdb,CI,Governance and budget support,20355534,2002,Loan,Côte d'Ivoire - Economic Reform Support Program I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-001
+afdb,CI,Governance and budget support,44285060,2017,Loan,Côte d'Ivoire - Economic Governance and Growth Support Programme (PAGEC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-009
+afdb,CI,Governance and budget support,78601656,2019,Loan,Côte d'Ivoire -  Programme d’Appui aux Réformes Economiques et Sociales (PARES),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-010
+afdb,CI,Governance and budget support,32084618,2021,Loan,Côte d'Ivoire - Economic and Social Reform Support Programme (PARES) – Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-011
+afdb,CI,Governance and budget support,79227090,2020,Loan,Côte d'Ivoire - Covid-19 Response Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-012
+afdb,CI,Governance and budget support,33854064,2023,Loan,Côte d'Ivoire - Economic and Social Reform Support Programme - Phase III (PARES III),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-013
+afdb,CI,Governance and budget support,32514002,2025,Loan,Côte d'ivoire -  Inclusive Governance and Economic Transformation Support Programme - PHASE I (PATEGI-I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KA0-014
+afdb,CI,Governance and budget support,12741134,2015,Grant,Côte d’Ivoire  - Projet d’appui au renforcement de la compétitivité du secteur industriel,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-001
+afdb,CI,Governance and budget support,6157354,2019,Loan,Côte d'Ivoire - Cocoa Sector Governance Support Project (PAGFIC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-003
+afdb,CI,Governance and budget support,16042370,2022,Loan,Côte d'Ivoire - Business Climate Improvement Support Programme for the Structural Transformation of the Ivorian Economy (PACA-CI) - Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-004
+afdb,CI,Governance and budget support,39036888,2026,Loan,COTE D'IVOIRE - Governance Support Project for The Promotion of Inclusive Growth (PAGOCI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-007
+afdb,CI,Governance and budget support,1576088,1992,Loan,Côte d'Ivoire - Financial sector adjustment program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KZ0-001
+afdb,GW,Agriculture and food systems,5063608,2017,Loan,Guinea Bissau - Rice Value Chain Development Project in the Bafata and Oio Regions,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-A00-003
+afdb,GW,Agriculture and food systems,11896268,2019,Loan,"Guinea-Bissau - Value Chains, Agricultural and Rural Entrepreneurship Support Project (PACVEAR)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-A00-004
+afdb,GW,Agriculture and food systems,1290594,2022,Grant,Guinea  Bissau - Support project for the resilience of groups and farms in the northern and eastern regions of Guinea Bissau (PARGEA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-A00-007
+afdb,GW,Agriculture and food systems,6283360,2023,Grant,Guinea-Bissau - Emergency Food Security Support Project (AEFPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-A00-010
+afdb,GW,Agriculture and food systems,5044534,1981,Loan,Guinea-Bissau – Livestock Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AA0-001
+afdb,GW,Agriculture and food systems,9703448,1987,Loan,Guinea-Bissau – Agricultural Credit Line to the National Bank of Guinea-Bissau (BNGB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AA0-002
+afdb,GW,Agriculture and food systems,7668820,2006,Loan,"Guinea-Bissau – Agricultural and Rural Sector Rehabilitation Project, Northern, Western and Eastern Regions (PRESAR)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AA0-008
+afdb,GW,Agriculture and food systems,623694,2018,Grant,AIDE D#URGENCE POUR LA LUTTE CONTRE SPODOPTERA EN GUINÉE BISSAU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AA0-012
+afdb,GW,Agriculture and food systems,10779111,2024,Grant,"Guinea Bissau - Value Chains, Agricultural and Rural Entrepreneurship Support Project (PACVEAR-GAFSP) - Additional Financing",https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AA0-014
+afdb,GW,Agriculture and food systems,44251,1992,Grant,ETUDE PLAN DIR.&PREP. PROJ PECHE INDUST.,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AAF-001
+afdb,GW,Agriculture and food systems,46291,1990,Loan,Guinea-Bissau - Advanced Artisanal Fisheries Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AAF-002
+afdb,GW,Agriculture and food systems,8296752,2002,Loan,Guinea-Bissau - Fishing Sector Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AAF-003
+afdb,GW,Agriculture and food systems,2258295,2009,Grant,Guinea-Bissau - The Fishing Sector Support Project (Supplementary Grant),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AAF-004
+afdb,GW,Industry and trade,15151496,1984,Loan,PROJ. DEV. RIZICOLE TOMBALI,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AAG-001
+afdb,GW,"Other (social, humanitarian, multi-sector)",1709774,2001,Grant,Guinea-Bissau - Rural Development Institutional Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-AB0-001
+afdb,GW,Transport and corridors,11820876,1982,Loan,AMENAG. L'AEROPORT INTER. BISSALANCA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-D00-001
+afdb,GW,Transport and corridors,11069216,1997,Loan,REHABILITAT. DES INFRASTRUCT. ROUTIERES,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-D00-004
+afdb,GW,Transport and corridors,2611321,1989,Loan,Guinea Bissau - Civil aviation institutional support project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-DA0-001
+afdb,GW,Transport and corridors,13815230,1984,Loan,ROUTE BAMBADINCA-XITOLE-QUEBO-BUBA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-DB0-001
+afdb,GW,Transport and corridors,9461648,1976,Loan,CONSTRUCTION DE ROUTE JUDUGUL-BANBADINCA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-DB0-002
+afdb,GW,Water and sanitation,6190166,1989,Loan,Guinea-Bissau – Drinking Water Supply and Stormwater Drainage Project in Bissau,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-EBA-001
+afdb,GW,Energy and climate,5098745,1989,Loan,Guinée-Bissau - Projet de Réhabilitation et d’Extension de la Centrale Thermique et des Réseaux de Distribution de Bissau,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-F00-001
+afdb,GW,Energy and climate,1113788,1979,Loan,ELECTRICITE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-F00-003
+afdb,GW,Energy and climate,2842073,1979,Loan,CENTRALE THERMIQUE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-F00-004
+afdb,GW,Energy and climate,6631862,1979,Loan,Guinea Bissau - Electrification of 7 Urban Centers,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-F00-005
+afdb,GW,Energy and climate,17526518,2015,Loan,Guinea-Bissau - Bissau City Electricity Supply Improvement Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-FA0-004
+afdb,GW,Energy and climate,24550138,2018,Loan,Guinea-Bissau - Bissau City Power Distribution System Improvement Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-FA0-005
+afdb,GW,"Other (social, humanitarian, multi-sector)",4021731,1976,Loan,FOURN.-EQUIP.DE L'ECOLE TECHNIQUE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-001
+afdb,GW,"Other (social, humanitarian, multi-sector)",472172,2000,Grant,Guinée-Bissau - Programme d'aide humanitaire d'urgence,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-002
+afdb,GW,"Other (social, humanitarian, multi-sector)",6477740,2001,Loan,Guinea-Bissau - Post-Conflict Rehabilitation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-003
+afdb,GW,"Other (social, humanitarian, multi-sector)",5920846,2021,Loan,"Guinea Bissau - Project to Support the Empowerment and Financial Inclusion of Women and Youths in The Cashew, Fruit and Vegetable Sectors (PAIFJ)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-007
+afdb,GW,"Other (social, humanitarian, multi-sector)",7463947,2023,Grant,Guinea Bissau - Youth and Women Entrepreneurship and SME Development Lusophone Compact Facility Phase 1,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-008
+afdb,GW,"Other (social, humanitarian, multi-sector)",1160808,2025,Grant,Guinea-Bissau – Strengthening resilience and boosting private sector development,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-I00-009
+afdb,GW,Education and skills,12364787,1984,Loan,Guinea-Bissau - Primary and Vocational Education Strengthening Project (Education II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IA0-001
+afdb,GW,Education and skills,2970549,2005,Loan,EDUCATION III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IA0-002
+afdb,GW,Education and skills,3047098,1984,Loan,EDUCATION (I) - (COMPLEMENTAIRE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IA0-003
+afdb,GW,Education and skills,8487900,2009,Grant,Guinea Bissau - The Administrative Capacity Building Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IAD-001
+afdb,GW,Health,7009,1993,Grant,ETUDE FAISAB. DANS SECT. SANTE & POPULAT,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-001
+afdb,GW,Health,26327012,1998,Loan,Guinea-Bissau - National Health Development Plan Support Project - Health II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-002
+afdb,GW,Health,6774886,2009,Grant,Guinea-Bissau - The Health Development Programme Support Project (Health II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-003
+afdb,GW,Health,937494,2017,Grant,Guinea-Bissau - Emergency Assistance to Support the Guinea-Bissau Preparedness and Response Plan to Fight the Zika Virus Outbreak,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-004
+afdb,GW,Health,7132668,2021,Grant,Guinea Bissau - Coronavirus Pandemic (COVID-19) Control Support Project - PALPC,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-005
+afdb,GW,Health,16344319,2025,Grant,GUINEA-BISSAU - Project to Strengthen Health Systems and Skills and Create Jobs for Young People and Women (PSCE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-007
+afdb,GW,Health,1282884,2025,Grant,GUINEA-BISSAU - Project to Strengthen Health Systems and Skills and Create Jobs for Young People and Women (PSCE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IB0-009
+afdb,GW,Health,1423453,1987,Loan,REHABILITATION DE HOPITAL SIMAO MENDES,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IBD-001
+afdb,GW,Health,4904719,1984,Loan,PROJ. DEV. SVCES SANTE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IBD-002
+afdb,GW,Health,381194,2006,Grant,AIDE D'URGENCE CHOLERA-GUINEE-BISSAU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IBE-001
+afdb,GW,Health,374308,2009,Grant,AIDE URGENCE CHOLERA-II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IBE-002
+afdb,GW,Health,723292,2014,Grant,Guinea-Bissau - Emergency assistance to fight cholera epidemic,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-IBE-003
+afdb,GW,Governance and budget support,10156992,1987,Loan,PROJET D'AJUSTEMENT STRUCTUREL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-K00-001
+afdb,GW,Governance and budget support,15006572,1989,Loan,PROGRAMME D'AJUSTEMENT STRUCTUREL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-K00-002
+afdb,GW,Governance and budget support,1063312,2015,Grant,Guinea-Bissau - Economic and Financial Governance Strengthening Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-K00-005
+afdb,GW,Governance and budget support,6691449,2010,Grant,Guinea-Bissau - Emergency Fiscal Reform Support Programme (EFRSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KA0-005
+afdb,GW,Governance and budget support,6235856,2015,Loan,Guinea-Bissau - Emergency Economic and Financial Reform Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KA0-008
+afdb,GW,Governance and budget support,6180985,2024,Loan,"Guinea Bissau -  Public Administration and Finance Reform Programme (PRAFP),  Phase I",https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KA0-009
+afdb,GW,Governance and budget support,7624656,2023,Grant,Guinea-Bissau - Public Administration Management Support Project (PAGAP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KA0-010
+afdb,GW,Governance and budget support,3709366,1989,Loan,Guinea Bissau - Institutional support program for the Ministry of Planning,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KF0-001
+afdb,GW,Governance and budget support,1392817,2005,Grant,Guinea Bissau - Economic Management Capacity Building Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KF0-002
+afdb,GW,Governance and budget support,771568,2012,Grant,Guinea Bissau - Capacity building for administrative institutions,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KF0-008
+afdb,GW,Governance and budget support,1515540,2017,Grant,Guinea-Bissau - Project to support the institutional capacity building of the justice sector,https://d-portal.org/ctrack.html#view=act&aid=46002-P-GW-KF0-009
+afdb,ML,Industry and trade,16547145,2014,Loan,Mali - Diversification des activités du moulin moderne du Mali (M3),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAG-003
+afdb,ML,Energy and climate,8305462,2016,Loan,Mali - Projet de centrale solaire photovoltaïque de Segou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-FF0-001
+afdb,ML,Financial sector and SMEs,4962718,2014,Loan,Mali - Banque Malienne de Solidarité,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-HA0-003
+afdb,ML,Agriculture and food systems,9307440,1989,Loan,Mali - Irrigated Agricultural Development Project of the Daye Plain,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-A00-001
+afdb,ML,Agriculture and food systems,317714,1992,Loan,Mali - Mali South II Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-A00-002
+afdb,ML,Agriculture and food systems,23837480,2001,Loan,Mali - Projet d'appui au développement Rural de la région de Mopti,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-A00-003
+afdb,ML,Agriculture and food systems,4731418,1976,Loan,Mali - Production des Sémences Sélectionnées,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-001
+afdb,ML,Agriculture and food systems,5078496,1987,Loan,"Mali - Agricultural credit line to the National Agricultural Development Bank (BNDA), I",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-003
+afdb,ML,Agriculture and food systems,1647160,1989,Loan,Mali - Institutional Support Project for the National Directorate of Rural Engineering (DNGR),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-004
+afdb,ML,Agriculture and food systems,14474474,1986,Loan,Mali - Mopti Agricultural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-007
+afdb,ML,Agriculture and food systems,4933392,1976,Loan,Mali - Opération de travaux d'équipement rural,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-008
+afdb,ML,Agriculture and food systems,65991968,1998,Loan,Mali - Middle Bani Plains Development Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-009
+afdb,ML,Agriculture and food systems,1167066,1998,Grant,Mali - Baguineda Irrigation Scheme Extension Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-011
+afdb,ML,Agriculture and food systems,5550804,1977,Loan,PROJET RIZICULTURE A MOPTI,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-014
+afdb,ML,Agriculture and food systems,12183087,2001,Loan,"Mali - Projet d’Appui au Développement Rural des Plaines de Daye, Hamadja et Korioumé (PADR-PDHK)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-015
+afdb,ML,Agriculture and food systems,18874554,2003,Loan,Mali - Deuxième Ligne de Crédit (LDC) à la Banque Nationale de Développement Agricole (BNDA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-016
+afdb,ML,Agriculture and food systems,,2011,Loan,Mali - Markala Sugar Project - Agricultural Component,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-018
+afdb,ML,Agriculture and food systems,66652868,2009,Loan,Mali - Programme de développement de l’irrigation dans le bassin du Bani et à Sélingué (PDI-BS) – Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-019
+afdb,ML,Agriculture and food systems,37555556,2014,Loan,Mali - Project for Food Security Consolidation Through Development of Irrigation Farming,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-022
+afdb,ML,Agriculture and food systems,41418852,2014,Loan,Mali - Koulikoro Region Food and Nutrition Security Enhancement Project (PReSAN-KL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-024
+afdb,ML,Agriculture and food systems,1223997,2018,Grant,Mali - Programme d’Appui à la Transformation de l’Agriculture Malienne – Volet Entreprenariat Agricole Jeunes (PATAM-EAJ),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-025
+afdb,ML,Agriculture and food systems,51710908,2023,Grant,Mali - Grassroots Community Resilience Building Support Project (PARCB),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-037
+afdb,ML,Agriculture and food systems,6886440,2023,Grant,Mali - Emergency Food & Nutrition Security and Production Project (PUPSAN/AEFPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AA0-041
+afdb,ML,Agriculture and food systems,7878470,2001,Loan,Mali - Project to support the seed sub-sector,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAB-001
+afdb,ML,Agriculture and food systems,22236174,2000,Loan,Mali - Maninkoura irrigated scheme development project (PAPIM),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAC-001
+afdb,ML,Agriculture and food systems,809526,2002,Grant,ETUDE DE FAISABILITE DU PROJET D'AMENAGEMENT HYDROAGRICOLE DES PERIMETRES DE PHEDIE ET SABALIBOUGOU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAC-002
+afdb,ML,Agriculture and food systems,829376,2001,Grant,Mali - Douentza Province Agricultural Development Study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAC-003
+afdb,ML,Agriculture and food systems,1317705,2004,Grant,ETUDE DEVELOPPEMENT CERCLE DJENNE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAC-004
+afdb,ML,Agriculture and food systems,19997472,2006,Loan,Mali - Baguinéda Irrigation Scheme Intensification Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAC-005
+afdb,ML,Agriculture and food systems,16140779,2003,Loan,APPUI AU DEVELOPPEMENT DE L'ELEVAGE AU NORD-EST,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAE-001
+afdb,ML,Agriculture and food systems,371275,2006,Grant,AIDE D'URGENCE CONTRE LA PROPAGATION DE LA GRIPPE AVIAIRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAE-003
+afdb,ML,Agriculture and food systems,19419322,2007,Loan,Mali - Project in support of the Development of Animal Production in the South-Kayes Area (PADEPA –KS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAE-004
+afdb,ML,Agriculture and food systems,16885816,1989,Loan,DEVELOPPEMENT AGRO-SYLVO-PASTORAL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAF-001
+afdb,ML,Agriculture and food systems,11865427,2004,Loan,Mali - Projet d’appui au développement de la pêche continentale (PADEPECHE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAF-002
+afdb,ML,Industry and trade,17144602,2020,Grant,Mali - Development Programme for the Special Agro-Industrial Processing Zone of Koulikoro and Semi-Urban Bamako Regions (PDZSTA-BK),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAG-004
+afdb,ML,Agriculture and food systems,5078496,1974,Loan,Mali - Operation Well,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAZ-001
+afdb,ML,Agriculture and food systems,12979476,1982,Loan,Mali - Opération Puits (Phase II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAZ-002
+afdb,ML,Agriculture and food systems,14704259,2000,Loan,Mali - Ansongo District Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AAZ-003
+afdb,ML,"Other (social, humanitarian, multi-sector)",9267237,1977,Loan,DEVELOPPEMENT RURAL INTEGRE AU MALI-SUD,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AB0-001
+afdb,ML,"Other (social, humanitarian, multi-sector)",13312045,1980,Loan,Mali - Projet de Développement Rural de Selingué,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-AB0-002
+afdb,ML,Transport and corridors,1834929,1982,Loan,BARRAGE MANANTALI : MAT. CHEMIN FER - MA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-D00-001
+afdb,ML,Transport and corridors,13665858,1986,Loan,Mali - Bamako-Bougouni Road Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-001
+afdb,ML,Transport and corridors,13820475,1981,Loan,Mali - Projet de route Transsaharienne Sevare-Gao,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-002
+afdb,ML,Transport and corridors,8633443,1978,Loan,Mali - Markala-Niono Road Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-003
+afdb,ML,Transport and corridors,349631,1974,Loan,Mali - Projet d'étude de la Route Sikasso-Kinia-Dioila,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-004
+afdb,ML,Transport and corridors,485043,1993,Loan,Mali - Bamako Expressway Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-005
+afdb,ML,Transport and corridors,42979704,1997,Loan,Mali - Projet d'entretien Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-006
+afdb,ML,Transport and corridors,8195676,2009,Loan,Mali - UEMOA/Ghana - Programme routier I : Prêt supplémentaire au Mali,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-009
+afdb,ML,Transport and corridors,12889206,2010,Loan,Mali - Project to Widen the Carrefour de la Paix - Woyowayanko Bridge - Point Y Urban Road Section in Bamako,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-011
+afdb,ML,Transport and corridors,91152550,2019,Loan,Mali - Projet d’aménagement de la route transsaharienne (RTS-phase 2 –Section Bourem-Kidal),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-DB0-015
+afdb,ML,Water and sanitation,13660710,1985,Loan,Mali - Project of creation of water points in Liptako-Gourma,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-001
+afdb,ML,Water and sanitation,13925817,1979,Loan,Mali - Alimentation en Eau Potable de 5 Villes,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-002
+afdb,ML,Water and sanitation,6175183,1985,Loan,Mali - Projet d’Hydraulique Villageoise au Mali (Programme CEAO),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-003
+afdb,ML,Water and sanitation,1562334,1987,Loan,Mali - Etude d'assainissement de Bamako,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-004
+afdb,ML,Water and sanitation,4581813,1989,Loan,Mali - Alimentation en Eau Potable dans 5 Villes (Supplément ),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-005
+afdb,ML,Water and sanitation,14197586,2004,Loan,Mali - Programme AEPA en Milieu Rural,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-006
+afdb,ML,Water and sanitation,62633616,2013,Loan,Mali - Project to Supply Drinking Water to Bamako from the Kabala Locality (PAEP Bamako/Kabala),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-008
+afdb,ML,Water and sanitation,1711756,2023,Grant,Mali - Climate Change Resilience Support Project and COVID-19 in Bamako,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-010
+afdb,ML,Water and sanitation,6964282,2023,Grant,Mali - Climate-Change and Covid-19-Resilient Drinking Water Supply And Sanitation Support Project In The Kayes Region And Kati Circle,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-E00-011
+afdb,ML,Water and sanitation,47339,1992,Grant,Mali - Etude Hydro-agricole et du barrage de Selingue,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EA0-001
+afdb,ML,Water and sanitation,15856478,1989,Loan,Mali - Baguineda hydro-agricultural perimeter rehabilitation project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EA0-002
+afdb,ML,Water and sanitation,1577445,1998,Grant,ETUDE EAU POTABLE & ASSAINISS. SEGOU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EA0-003
+afdb,ML,Water and sanitation,30393036,2008,Loan,"Mali - Projet d'approvisionnement en eau potable et d'assainissement dans les régions de Gao, de Koulikoro et de Segou",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EA0-004
+afdb,ML,Water and sanitation,1791812,2010,Grant,Mali - Projet d'appui à la mise en œuvre du Plan d’Action de Gestion Intégrée des Ressources en Eau,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EAZ-002
+afdb,ML,Water and sanitation,2219708,2018,Grant,Mali - Etudes d’élaboration du Schéma directeur et du Programme d’investissement du Projet de développement intégré et de résilience climatique dans les plaines du Delta 2 (PDIR-PD2),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EAZ-004
+afdb,ML,Water and sanitation,996558,2004,Grant,Mali - Sanitation master plan for the city of Bamako,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-EB0-003
+afdb,ML,Energy and climate,294112,1991,Loan,"Mali - Electrification project, phase 2. Rehabilitation and extension of the distribution networks of Bamako",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-F00-001
+afdb,ML,Energy and climate,19296512,1977,Loan,Mali - Construction de Barrage de Selingue,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-F00-003
+afdb,ML,Energy and climate,983298,1986,Loan,Mali - Projet d'études sur le transport d'électricité,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-F00-004
+afdb,ML,Energy and climate,11426616,1984,Loan,Mali - Project for the creation of a regional center for solar energy (CRES) in Bamako,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-F00-005
+afdb,ML,Energy and climate,1361158,2003,Grant,Mali - Etude d'électrification Rurale,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-F00-006
+afdb,ML,Financial sector and SMEs,4976164,1986,Loan,LIGNE DE CREDIT A LA BDM,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-HA0-001
+afdb,ML,Financial sector and SMEs,1063437,1990,Grant,ASSISTANCE TECHNIQUE A LA BDM,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-HA0-002
+afdb,ML,"Other (social, humanitarian, multi-sector)",600486,1989,Grant,ETUDE FAISAB. L'UNIV. MALI,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-I00-001
+afdb,ML,"Other (social, humanitarian, multi-sector)",212553,1993,Loan,Mali - Basic Education Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-I00-002
+afdb,ML,"Other (social, humanitarian, multi-sector)",6143138,2019,Loan,Mali - Project for the Economic Empowerment of Women in the Shea Butter Subsector (PAEFFK),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-I00-006
+afdb,ML,"Other (social, humanitarian, multi-sector)",123478,2021,Grant,Mali - Emergency Humanitarian Assistance to Internally Displaced Persons Project (PAHU-PDI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-I00-008
+afdb,ML,Education and skills,26347350,1997,Loan,Mali - Education III Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IA0-001
+afdb,ML,Education and skills,6622358,1986,Loan,FORMAT  MAITRES L'ENS. FONDAMENTA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IA0-002
+afdb,ML,Education and skills,19801954,2003,Loan,Mali - Projet d'appui au Programme Décennal de Développement de l'Education (Education IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IA0-003
+afdb,ML,Education and skills,2146721,2011,Loan,Mali - Bamako Digital Complex Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IAD-001
+afdb,ML,Education and skills,9319186,1976,Loan,Mali - Extension de l'IPR de Katibougou,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IAE-001
+afdb,ML,Education and skills,13433035,2017,Grant,Mali - Projet d’appui à la réinsertion socio-économique des populations du Nord du Mali,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IAZ-001
+afdb,ML,Health,1639538,1989,Grant,ETUDE-EQUIP.SOCIO-SANIT.RENFOR.MIN.SANTE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IB0-001
+afdb,ML,Health,371655,1992,Loan,Mali - Project for the Rehabilitation of Four Rural Health Facilities,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IB0-002
+afdb,ML,Health,23429080,2002,Loan,Mali - Projet d'appui au programme de développement sanitaire et social dans la région de Sikasso - Santé IV,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IB0-003
+afdb,ML,Health,1452450,1983,Loan,ETUDE RENF.INFRASTRUC.SANIT. KOULIKORO,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IBD-001
+afdb,ML,Health,10348004,1982,Loan,Mali - Project to strengthen health infrastructure in the Timbuktu region,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IBD-002
+afdb,ML,Health,11108157,1987,Loan,"Mali - Project to strengthen health infrastructure in Kouli, Nara and Niafounké",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IBD-003
+afdb,ML,Health,10699820,2004,Grant,PROJET D'APPUI A  LUTTE CONTRE VIH/SIDA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IBZ-001
+afdb,ML,"Other (social, humanitarian, multi-sector)",17223592,1999,Loan,Mali - Poverty Reduction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IE0-001
+afdb,ML,"Other (social, humanitarian, multi-sector)",19138014,2006,Loan,PROJET D'APPUI AU DEVELOPPEMENT COMMUNAUTAIRE DANS LES REGIONS DE KAYES ET KOULIKORO (PADEC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IE0-002
+afdb,ML,"Other (social, humanitarian, multi-sector)",780985,2012,Grant,Mali - Aide humanitaire d’urgence en faveur des populations affectées par les crises sécuritaire et alimentaire au Nord du Mali,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-IE0-004
+afdb,ML,Governance and budget support,35549472,1988,Loan,Mali - Program to restructure the public enterprise sector,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-001
+afdb,ML,Governance and budget support,344501,1991,Loan,Mali - Programme d'ajustement Structurel,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-002
+afdb,ML,Governance and budget support,195361,1993,Loan,Mali - Programme d'Ajustement Structurel (PAS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-003
+afdb,ML,Governance and budget support,35870948,1997,Loan,Mali - Economic Management Support Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-006
+afdb,ML,Governance and budget support,698586,1970,Loan,Mali - Prise de Participartion SIEA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-007
+afdb,ML,Governance and budget support,2504073,2003,Grant,Mali - Good Governance Support Project (PABG),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-008
+afdb,ML,Governance and budget support,29438344,2002,Loan,Mali - Third Structural Adjustment Program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-009
+afdb,ML,Governance and budget support,10318282,2004,Loan,PROGRAMME  COMPLEMENTAIRE AU PAS III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-011
+afdb,ML,Governance and budget support,42109724,2005,Loan,Mali - Fourth Structural Adjustment Support Programme (SAP-IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-014
+afdb,ML,Governance and budget support,36914964,2008,Loan,Mali - Programme d'appui à la stratégie pour la croissance et la réduction de la pauvreté (PASCRP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-015
+afdb,ML,Governance and budget support,5011746,2007,Loan,Mali - Decentralization and Regional Economic Development Support Project (PADDER),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-017
+afdb,ML,Governance and budget support,5902303,2009,Loan,"Mali - Growth and Poverty Reduction Strategy Support Programme (GPRSSP) and assist in
+Mitigating the Impact of the Global Crisis",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-018
+afdb,ML,Governance and budget support,17355228,2011,Loan,Mali - Deuxième programme d’appui à la stratégie pour la croissance et la réduction de la pauvreté (PASCRP-II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-020
+afdb,ML,Governance and budget support,11343454,2013,Grant,Mali - Economic Governance Support Project (PAGE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-021
+afdb,ML,Governance and budget support,1230300,2019,Grant,Mali - Economic Governance and Gender Promotion Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-K00-026
+afdb,ML,Governance and budget support,46142164,2013,Loan,Mali - Emergency Economic Recovery Support Programme (EERSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-001
+afdb,ML,Governance and budget support,17158358,2014,Loan,Mali - Emergency Governance and Economic Recovery Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-003
+afdb,ML,Governance and budget support,29617412,2017,Loan,Mali - Economic Governance Reform Support Programme - Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-004
+afdb,ML,Governance and budget support,2058324,2017,Grant,Mali - National Land Use Plan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-005
+afdb,ML,Governance and budget support,19161646,2015,Loan,Mali - Economic Governance Reform Support Programme – Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-006
+afdb,ML,Governance and budget support,10821000,2017,Loan,Mali - Economic Growth Support Programme - Phase I (PACE-I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-007
+afdb,ML,Governance and budget support,15453993,2019,Loan,Mali - Economic Growth Support Programme II (PACE-II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-008
+afdb,ML,Governance and budget support,43520356,2020,Loan,"Mali - COVID-19 Support Programme in G5 Sahel Countries - Burkina Faso, Mali, Mauritania, Niger and Chad (PARC COVID-19 - G5 Sahel)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KA0-009
+afdb,ML,Governance and budget support,11969663,2018,Grant,Mali - Project to Support the Competitiveness of the Malian Economy (PACEM),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KF0-001
+afdb,ML,Governance and budget support,7743564,2022,Grant,Mali - Governance Structures Support Project (PASG),https://d-portal.org/ctrack.html#view=act&aid=46002-P-ML-KF0-002
+afdb,NE,Financial sector and SMEs,12653863,2013,Loan,Niger - Société Nigérienne de Banque (Sonibank),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-HAB-001
+afdb,NE,Agriculture and food systems,2583512,1998,Grant,Niger - Etude de faisabilité du barrage de kandadji,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-001
+afdb,NE,Agriculture and food systems,18132704,2003,Loan,Niger - Diffa Region Local Development Support Project (PADL - DIFFA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-002
+afdb,NE,Agriculture and food systems,37546496,2011,Loan,"Niger - Water Mobilisation Project to Enhance Food Security in Maradi, Tahoua and Zinder Regions (PMERSA-MTZ)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-004
+afdb,NE,Agriculture and food systems,931772,2016,Grant,Niger - Aide humanitaire d’urgence aux déplacés de guerre de la région de Diffa,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-007
+afdb,NE,Agriculture and food systems,4797254,2020,Grant,Niger - Africa Disaster Risks Financing Programme (ADRiFi),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-008
+afdb,NE,Agriculture and food systems,30614196,2020,Grant,Niger - Project to Strengthen Resilience of Rural Communities to Food and Nutrition Insecurity in Niger (PRECIS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-009
+afdb,NE,Agriculture and food systems,420203,2021,Grant,Niger - Assistance humanitaire d'urgence en faveur des populations affectées par les inondations,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-011
+afdb,NE,Agriculture and food systems,5140098,2022,Grant,Niger – Food Crisis Response and Emergency Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-A00-012
+afdb,NE,Agriculture and food systems,568564,1993,Loan,PROJET DE MICRO-REALISATIONS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-002
+afdb,NE,Agriculture and food systems,4356348,1982,Loan,LIGNE DE CREDIT A LA CNCA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-004
+afdb,NE,Agriculture and food systems,13347739,1984,Loan,AMENAG. HYDR-AGR KOURANI-BARIA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-005
+afdb,NE,Agriculture and food systems,580535,1987,Loan,ETUDE FACT. D'1 PROJ. MICRO-REALISATIONS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-006
+afdb,NE,Agriculture and food systems,9736,1991,Grant,PROJ RECHERCHE-DEV.EN MANAGT L'IRRIGAT.,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-011
+afdb,NE,Agriculture and food systems,1687152,1997,Grant,ETUDE DEVELOP. AGRO-PASTORAL DE DIFFA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-012
+afdb,NE,Agriculture and food systems,489845,1993,Loan,Niger - Dosso Department Rural Development Support Project (PADER-D),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-013
+afdb,NE,Agriculture and food systems,392226,2005,Grant,Niger - Aide alimentaire d’urgence aux victimes de la sécheresse et de l’invasion acridienne,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-016
+afdb,NE,Agriculture and food systems,78027664,2008,Loan,Niger - Programme Kandaji de régénération des écosystèmes et de mise en valeur de la Vallée du Niger (PKRESMIN),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-017
+afdb,NE,Agriculture and food systems,113213910,2019,Loan,Niger - Kandadji Ecosystems Regeneration and Niger Valley Development Programme Support Project (PA_KRESMIN),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AA0-020
+afdb,NE,Agriculture and food systems,776203,2010,Grant,AIDE HUMANIT URGENCE VICTIMES SECHERESSE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAB-001
+afdb,NE,Agriculture and food systems,1625118,1987,Loan,ETUDE MOBILISATION DES EAUX DE RUISSELLEMENT DANS TROIS DEPARTEMENTS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-001
+afdb,NE,Agriculture and food systems,20561354,1998,Loan,Niger - Projet de mobilisation des eaux dans le département de Tahoua,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-002
+afdb,NE,Agriculture and food systems,699194,2001,Grant,Niger - Etude de mobilisation des eaux de ruissellement dans les régions de Dosso et de Tillabéry,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-003
+afdb,NE,Agriculture and food systems,8267777,2001,Loan,Niger - Agricultural Development Support Project in Zinder Region,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-004
+afdb,NE,Agriculture and food systems,1146476,2003,Grant,Niger - Etude de mobilisation des eaux dans la région de Maradi,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-006
+afdb,NE,Agriculture and food systems,17007212,2006,Grant,Niger - Projet de valorisation des eaux dans les régions de Dosso et de Tillabéri (PVDT),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAC-008
+afdb,NE,Agriculture and food systems,24037052,1998,Loan,Niger - Natural Forest Management Project (NFMP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAD-001
+afdb,NE,Agriculture and food systems,381323,2006,Grant,AIDE D'URGENCE POUR LA LUTTE CONTRE LA PROPAGATION DE LA GRIPPE AVIAIRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAE-001
+afdb,NE,Agriculture and food systems,11533120,1989,Loan,AMENAG. & DEV. PECHE CONTINENTALE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-AAF-001
+afdb,NE,Industry and trade,2058334,1981,Loan,LIGNE DE CREDIT A LA BDRN (I & II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-B00-002
+afdb,NE,Industry and trade,8658375,1982,Loan,SONICHAR II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-B00-003
+afdb,NE,Transport and corridors,5691630,1987,Loan,Niger - Projet de Routes Secondaires (Phase II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-001
+afdb,NE,Transport and corridors,4538036,1989,Loan,"Niger - Projet de construction de la route Zinder-Agadez, Phase II",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-002
+afdb,NE,Transport and corridors,457008,1993,Loan,Niger - Premier Projet d'entretien Routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-003
+afdb,NE,Transport and corridors,2960708,1976,Loan,Niger - Construction de la Route Zinder-Dogo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-004
+afdb,NE,Transport and corridors,2539248,1984,Loan,"Niger - Projet de Construction des Routes Secondaires, phase 1",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-005
+afdb,NE,Transport and corridors,11370028,1984,Loan,Niger - Projet de Construction de la route Zinder-Agadez,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-006
+afdb,NE,Transport and corridors,1263146,2001,Grant,Niger - Etude du deuxième projet routier,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-007
+afdb,NE,Transport and corridors,24270808,2006,Loan,Niger - Projet d'aménagement des Routes Tibiri-Dakoro et Madaoua-Bouza-Keita,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-008
+afdb,NE,Transport and corridors,37077600,2020,Loan,Niger - Projet d'aménagement des routes Tamaské-Tahoua et Tamaské- Mararraba,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-011
+afdb,NE,Transport and corridors,112003376,2022,Grant,Niger - Integrated project for opening up the Hamdara-Wacha Dungass- Nigeria border cross-border production areas (PIDZT),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-DB0-013
+afdb,NE,Water and sanitation,11624697,1983,Loan,Niger - Assainissement de la ville de Niamey,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-E00-001
+afdb,NE,Water and sanitation,18521458,2011,Loan,Niger - National Rural Drinking Water Supply and Sanitation Programme (NRDWSSP) (Phase II: Second Sub-Programme - 2011-2014),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-E00-003
+afdb,NE,Water and sanitation,1512846,2025,Grant,Niger - Project to support climate-change-resilient drinking water and sanitation services in Niamey and Tillaberi (PASEPA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-E00-004
+afdb,NE,Water and sanitation,7576712,2023,Grant,"Niger - Project to support Resilient Drinking Water and Sanitation Services in Rural Areas in Maradi, Tahoua, Tillaberi and Zinder Regions (PASEPAR-MR)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-E00-005
+afdb,NE,Water and sanitation,142076110,2025,Loan,"NIGER - Project to Strengthen Drinking Water Supply and Sanitation and Improve Resilience in Zinder, Mirriah and Surrounding Villages (PREPAAR -ZMVE)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-E00-006
+afdb,NE,Water and sanitation,2777937,1977,Loan,Niger - Operation 204 Wells,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EA0-001
+afdb,NE,Water and sanitation,1430302,2001,Grant,Niger - Etude d’un programme d’hydraulique rurale au Niger,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EA0-003
+afdb,NE,Water and sanitation,4490813,1980,Loan,Niger - Projet Sonichar d'adduction d'eau,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EA0-004
+afdb,NE,Water and sanitation,5756406,1978,Loan,Niger - Projet Sonichar d'adduction d'eau,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EA0-005
+afdb,NE,Water and sanitation,15807106,2007,Grant,"Niger - Projet d'approvisionnement en eau potable et assainissement en Milieu Rural dans les Régions de Maradi,Tahoua et Tillaberi",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EA0-007
+afdb,NE,Water and sanitation,922210,2014,Grant,Niger - Development and Implementation of the National Action Plan for Integrated Water Resources Management (PANGIRE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-EAZ-004
+afdb,NE,Energy and climate,5513800,1978,Loan,Niger - Projet de production et de distribution d'énergie électrique,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-F00-001
+afdb,NE,Energy and climate,909844,2002,Grant,Niger - Elaboration de la stratégie nationale des energies domestiques ( SNED),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-F00-002
+afdb,NE,Energy and climate,74830240,2017,Loan,"Niger - Projet d’électrification rurale, périurbaine et urbaine",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-F00-004
+afdb,NE,Energy and climate,125498200,2022,Loan,Niger - Desert to Power Initiative - Project for the Development of Solar Power Plants and Improvement of Access to Electricity (RANAA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-FA0-005
+afdb,NE,Digital and telecoms,1543864,1971,Loan,Niger - Projet Télécommunication,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-GB0-001
+afdb,NE,Financial sector and SMEs,2201291,1977,Loan,LIGNE DE CREDIT I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-HA0-001
+afdb,NE,"Other (social, humanitarian, multi-sector)",10926031,1975,Loan,Niger - Project to build a school of health sciences,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-I00-001
+afdb,NE,"Other (social, humanitarian, multi-sector)",1244482,2022,Grant,Niger - Project to support the development of a strategy and a national action plan for decent employment for young people in the agriculture and agri-food sectors in Niger,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-I00-004
+afdb,NE,"Other (social, humanitarian, multi-sector)",154029280,2026,Loan,Niger - Programme intégré de développement de l’agripreneuriat des jeunes et d’innovation technologique et financière au Niger (PIDAJ),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-I00-006
+afdb,NE,Education and skills,12462629,1985,Loan,ECOLE DES MINES ET DE GEOLOGIE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IA0-002
+afdb,NE,Education and skills,787638,1987,Loan,ETUDES PEDAG. & TECHN. AMELIOR. ENSEI. S,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IA0-003
+afdb,NE,Education and skills,24939948,1998,Loan,Niger - Basic Education Support Project (Education I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IA0-004
+afdb,NE,Education and skills,15454744,2003,Loan,"Niger - Basic Education Enhancement
+Project (Education Project II)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IA0-005
+afdb,NE,Education and skills,5494545,2021,Loan,Niger - Projet d’appui au développement de l’enseignement et la formation professionnels et techniques (PADEFPT) - prêt supplémentaire,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IA0-007
+afdb,NE,Education and skills,31213416,2010,Loan,Niger - Projet d’appui au développement de l’enseignement et la formation professionnels et techniques,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IAE-001
+afdb,NE,Health,24690300,2001,Loan,"Niger - Healthcare Quality Improvement in
+the Tahoua and Tillaberi Regions",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IB0-002
+afdb,NE,Health,3627025,2004,Grant,Niger - Gender Equity Reinforcement Projec,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IB0-006
+afdb,NE,Health,457803,1993,Loan,Niger - Local Health Care Sector Improvement Project in the Departments of Maradi and Diffa,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IBD-001
+afdb,NE,Health,378774,2005,Grant,AIDE MULTINAT URG ERADIC POLIOMYELITE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IBE-001
+afdb,NE,"Other (social, humanitarian, multi-sector)",16133642,1998,Loan,Niger - Poverty Reduction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-IE0-002
+afdb,NE,Governance and budget support,14066567,2002,Loan,Niger - Third Structural Adjustment Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-003
+afdb,NE,Governance and budget support,1535496,2003,Grant,ETUDE D'IMPACT ENVIRONNEMENTAL KANDADJI,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-004
+afdb,NE,Governance and budget support,16872276,2003,Loan,Niger - Fourth Structural Adjustment Programme (SAP IV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-005
+afdb,NE,Governance and budget support,21661408,2005,Loan,Niger - Cinquième programme d'ajustement Structurel,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-007
+afdb,NE,Governance and budget support,2744418,2006,Grant,Niger - Decentralization Support Project (PAD),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-008
+afdb,NE,Governance and budget support,11447019,2012,Loan,Niger - Domestic Resource Mobilization and Economic and Financial Governance Improvement Support Project (PAMOGEF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-011
+afdb,NE,Governance and budget support,11441421,2019,Grant,Niger - Economic Competitiveness and Financial Management Support Project (PACEGEF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-K00-014
+afdb,NE,Governance and budget support,13989089,1998,Loan,PROG. REFORME FINANCES PUBLIQUES,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-001
+afdb,NE,Governance and budget support,32605714,2010,Loan,Niger - Accelerated Development and Poverty Reduction Support Strategy (PASDRP-I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-006
+afdb,NE,Governance and budget support,25799230,2012,Loan,Niger - Programme d’appui à la croissance inclusive et au renforcement de la sécurité alimentaire (PACIRSA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-008
+afdb,NE,Governance and budget support,25548860,2015,Loan,Niger - Financial Reforms and Food Security Support Programme - Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-010
+afdb,NE,Governance and budget support,12526093,2016,Loan,Niger - Financial Reforms and Food Security Support Programme – Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-011
+afdb,NE,Governance and budget support,35849776,2018,Loan,Niger - Programme d’appui aux réformes et à la résilience économique,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-012
+afdb,NE,Governance and budget support,24344228,2018,Loan,Niger - Programme d'appui aux réformes et à la résilience économique - Phase 2,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-013
+afdb,NE,Governance and budget support,122609856,2025,Loan,Niger -  Energy Sector Competitiveness and Governance Support Program - Phase I (PAGSEC – I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-014
+afdb,NE,Governance and budget support,98553424,2020,Loan,"Niger - COVID-19 Support Programme in G5 Sahel Countries - Burkina Faso, Mali, Mauritania, Niger and Chad (PARC COVID-19 - G5 Sahel)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KA0-015
+afdb,NE,Governance and budget support,1204590,2018,Grant,Niger - Projet d’Appui à la Mobilisation des Ressources et la Mise en œuvre du PDES 2017-2021,https://d-portal.org/ctrack.html#view=act&aid=46002-P-NE-KZ0-001
+afdb,SN,Industry and trade,13998809,2016,Loan,Senegal - Integrated Agro-industrial Rice Project - “Compagnie Agricole de Saint-Louis du Senegal”,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAG-001
+afdb,SN,Industry and trade,13606511,2024,Loan,SENEGAL - Institut Pasteur de Dakar (IPD) - Projet VAXSEN,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-BB0-004
+afdb,SN,Transport and corridors,62197888,2011,Loan,"Senegal - ""Aéroport International Blaise-Diagne""",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DA0-001
+afdb,SN,Transport and corridors,8327568,2010,Loan,Senegal -  Dakar Toll Highway Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-012
+afdb,SN,Transport and corridors,1336092,2010,Loan,Senegal -  Dakar Toll Highway Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-017
+afdb,SN,Transport and corridors,18771286,2010,Loan,Senegal - The Dakar Container Terminal Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DD0-002
+afdb,SN,Energy and climate,5312081,2016,Loan,Senegal - Sendou Coal Power Project Supplementary Loan,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-F00-005
+afdb,SN,Energy and climate,54737108,2022,Loan,Senegal - 120 MW Malicounda Dual Fuel Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-F00-009
+afdb,SN,Energy and climate,7219458,2005,Loan,Senegal - Kounoune Thermal Power Plant Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-FAA-001
+afdb,SN,Financial sector and SMEs,977319,2022,Grant,Senegal - Digital market oriented platform for small holder farmers financial inclusion,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-H00-009
+afdb,SN,Financial sector and SMEs,404841820,2023,Unknown,SENEGAL - Garantie partielle de crédit pour la mobilisation de financement durable (Sénégal GPC Durable),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-H00-010
+afdb,SN,Financial sector and SMEs,22441152,2021,Loan,Senegal - Banque Nationale pour le Développement Economique (BNDE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-HA0-002
+afdb,SN,"Other (social, humanitarian, multi-sector)",906079,2022,Grant,Senegal - Business Partnership Program for SMEs,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-I00-009
+afdb,SN,Education and skills,90411,2010,Grant,Senegal - Colloque sur les Collèges Communautaires à Dakar,https://d-portal.org/ctrack.html#view=act&aid=46002-G-SN-IA0-ZZZ-001
+afdb,SN,Governance and budget support,59134,2010,Grant,Senegal - Regional Integration Plan for West Africa,https://d-portal.org/ctrack.html#view=act&aid=46002-G-SN-KZ0-STY-001
+afdb,SN,Agriculture and food systems,28749128,2005,Loan,Senegal - Casamance Rural Development Support Project (PADERCA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-001
+afdb,SN,Agriculture and food systems,37759888,2013,Loan,"Senegal - Food Security Support Project in Louga, Matam and Kaffrine Regions (PASA/LOU-MA-KAF)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-005
+afdb,SN,Agriculture and food systems,780985,2012,Grant,Senegal - Emergency program in favor of the rural world affected by the bad agricultural season 2011/2012,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-006
+afdb,SN,Agriculture and food systems,687656,2016,Grant,Senegal - Preparation mechanism for the Senegal Valley Rice Value Chain Development Project (PDCV Riz),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-008
+afdb,SN,Agriculture and food systems,97657160,2019,Loan,Senegal - Water Valorisation for Value Chains Development Project (PROVALE-CV),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-013
+afdb,SN,Agriculture and food systems,87726130,2022,Loan,Senegal - Centre Agro-Industrial Processing Zone Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-015
+afdb,SN,Agriculture and food systems,55291700,2024,Loan,SENEGAL - Projet de valorisation des eaux pour le développement des chaînes de valeurs – Phase 2 (Provale-CV2),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-021
+afdb,SN,Agriculture and food systems,132077744,2022,Loan,Senegal - Emergency Food Production Program (AEFPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-022
+afdb,SN,Agriculture and food systems,4312970,2022,Grant,"Senegal - Project to Mitigate the Impact of COVID-19 on Food Security in the Louga, Matam and Kaffrine Regions",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-023
+afdb,SN,Agriculture and food systems,18038372,2024,Grant,Senegal - Post-Covid Food and Nutrition Security Enhancement Project - PRESAN-PC,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-A00-024
+afdb,SN,Agriculture and food systems,4154249,1978,Loan,DEVELOPPEMENT DE LA VALLEE DE GUIDEL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-001
+afdb,SN,Agriculture and food systems,9127681,1986,Loan,AMEN.HYDRO-AGRI.BASS.ANAMBE PHA.CONSOLI.,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-002
+afdb,SN,Agriculture and food systems,25341334,1997,Loan,"Senegal - Agricultural Modernization and
+Intensification Project",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-004
+afdb,SN,Agriculture and food systems,11468703,1981,Loan,M'BOUR LOUGA AGRICULTURE PROJECT,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-005
+afdb,SN,Agriculture and food systems,26019238,2002,Loan,Senegal - Community Feeder Roads Project to Support the National Rural Infrastructure Programme (PPC/PNIR),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-006
+afdb,SN,Agriculture and food systems,1038080,2016,Grant,PPF_DEVELOPPEMENT ENTREPRENARIAT JEUNES AGRI&AGROALIMENTAIRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-011
+afdb,SN,Agriculture and food systems,120253416,2023,Loan,Senegal - North Agro-Industrial Processing Zone Project - SAPZ-Nord Or Agropole-Nord,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AA0-014
+afdb,SN,Agriculture and food systems,1936103,1998,Grant,ETUDE EXECUTION 3 BARRAGES COLLINAIRES,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAC-001
+afdb,SN,Agriculture and food systems,19498980,2003,Loan,Senegal - Project to Support Local Small-scale Irrigation (PAPIL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAC-002
+afdb,SN,Agriculture and food systems,10236507,2011,Loan,Senegal - Project to Support Local Small-Scale Irrigation (PAPIL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAC-003
+afdb,SN,Agriculture and food systems,6491796,1984,Loan,LUTTE CTRE FEUX BROUSSE&REFORESTAT.,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAD-001
+afdb,SN,Agriculture and food systems,253037,1992,Loan,PROJET D'APPUI A L'ELEVAGE : PHASE I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAE-001
+afdb,SN,Agriculture and food systems,16744906,2000,Loan,Senegal - Livestock Support Project - Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAE-002
+afdb,SN,Agriculture and food systems,41234564,2023,Loan,Senegal - National Integrated Livestock Development Programme - Phase 1 (PNDIES-P1),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAE-004
+afdb,SN,Agriculture and food systems,535120,1989,Grant,ETUDE D'1 STRATEGIE POUR RELANCE PECHE I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAF-001
+afdb,SN,Agriculture and food systems,7743156,1986,Loan,DEV. PECHE ARTISA. / PETITE COTE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAF-002
+afdb,SN,Industry and trade,62889656,2020,Loan,"Senegal - The South Agro-Industrial Processing Zone Project (PZTA-Sud, or Agropole Sud)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AAG-003
+afdb,SN,"Other (social, humanitarian, multi-sector)",14921148,1987,Loan,DEVELOPEMENT RURAL DE LA BASSE CASAMANCE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AB0-001
+afdb,SN,"Other (social, humanitarian, multi-sector)",9967826,2001,Loan,Senegal - The Anambe Basin Rural Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-AB0-002
+afdb,SN,Industry and trade,361910,1991,Loan,INDUSTRIES CHIMIQUES DU SENEGAL (ICS),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-B00-001
+afdb,SN,Industry and trade,1231746,1986,Loan,Senegal - Line of credit to Société Financière Sénégalaise pour le Développement de l'Industrie et du Tourisme (SOFISEDIT),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-B00-002
+afdb,SN,Industry and trade,1441490,1973,Loan,Senegal - Lign of credit to the Union Senegalaise de Banque,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-B00-003
+afdb,SN,Industry and trade,1201166,1991,Loan,Projet de réhabilitation de la société textile de Kaolack,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-B00-004
+afdb,SN,Industry and trade,12416285,1980,Loan,Projet d'appui à la société textile de Kaolack,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-BB0-001
+afdb,SN,Industry and trade,17564660,1981,Loan,PROJET D'ENGRAIS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-BB0-002
+afdb,SN,Industry and trade,112739330,2022,Loan,"Senegal - Accelerated Industrialization, Competitiveness and Employment Support Programme (PAAICE)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-BG0-001
+afdb,SN,Industry and trade,3237846,1991,Loan,PROJET DE SOUTIEN A LA PROMOTION DES PME,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-BZ0-001
+afdb,SN,Energy and climate,66631,1992,Grant,ETUD.D'IMPACT CANAL CAYOR SUR L'ENVIRON.,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-C00-001
+afdb,SN,Energy and climate,2613954,1990,Grant,Cayor Canal implementation study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-C00-002
+afdb,SN,Energy and climate,331349,1976,Loan,AMENAGEMENT TOURISTIQUE BASSE CASAMANCE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-C00-003
+afdb,SN,Transport and corridors,22590916,2001,Loan,Senegal - Diam Niadio-Mbour-Kaolack Road Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-D00-002
+afdb,SN,Transport and corridors,5411568,1982,Loan,BARRAGE MANANTALI : MAT. CHEMIN FER-SENE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-D00-003
+afdb,SN,Transport and corridors,146969100,2017,Loan,Senegal - Cities Modernisation Programme – Phase 1 (Promovilles-1),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-D00-005
+afdb,SN,Transport and corridors,131283,1991,Loan,PROJ. REHAB. SECT. TRANSPORTS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-001
+afdb,SN,Transport and corridors,3828558,1974,Loan,Contruction de la route Louga-N'gnith,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-002
+afdb,SN,Transport and corridors,1213036,1973,Loan,Construction of the Diosmane-Fimala-N'dangane road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-003
+afdb,SN,Transport and corridors,220533,1974,Loan,Senegal - Dakar Toll Highway Project – Phase 2,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-004
+afdb,SN,Transport and corridors,5361501,1977,Loan,Construction de la route Cap Skirring Phase 1,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-005
+afdb,SN,Transport and corridors,6775142,1979,Loan,Construction de la route Cap Skirring Phase 2,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-006
+afdb,SN,Transport and corridors,36691284,2005,Loan,Senegal - Road Maintenance Project (PER),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-008
+afdb,SN,Transport and corridors,97121790,2009,Loan,Senegal - The Dakar-Diamniadio Highway Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-010
+afdb,SN,Transport and corridors,31670160,2014,Loan,Senegal - Transport Sector Support Project: Rehabilitation of the Dinguiraye-Nioro-Keur Ayib Road,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-020
+afdb,SN,Transport and corridors,157373550,2016,Loan,Senegal - Project to rehabilitate National Road 2 (RN2) and open up access to Morphil Island,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-021
+afdb,SN,Transport and corridors,112542704,2018,Loan,Senegal - Rehabilitation of the Senoba – Ziguinchor -Mpack Road and Opening Up of the Southern Regions,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-023
+afdb,SN,Transport and corridors,174549150,2023,Loan,Senegal - The Dakar-Tivaouane-Saint-Louis Highway Construction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-025
+afdb,SN,Transport and corridors,167978690,2022,Loan,Senegal - Programme to Open up Agricultural and Mining Areas – Phase 1 (PDZAM-1),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DB0-028
+afdb,SN,Transport and corridors,385658530,2017,Loan,Senegal - Dakar-Diamniadio-AIBD Regional Express Train Project - Phase I: Dakar-Diamniadio Segment,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DC0-003
+afdb,SN,Transport and corridors,377236,1989,Grant,ETUDE PROJ. NAVIGATION SUR LE FLEUVE SEN,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-DD0-001
+afdb,SN,Water and sanitation,18909004,2001,Loan,Senegal - Dakar City Sanitation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-E00-002
+afdb,SN,Water and sanitation,33743164,2005,Loan,Senegal - First Water Supply and Sanitation Sub-Program (WSS) in Rural Areas,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-E00-003
+afdb,SN,Water and sanitation,36790632,2009,Loan,Senegal - The Rural Drinking Water Supply and Sanitation Sub-Programme – Phase II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-E00-004
+afdb,SN,Water and sanitation,43480672,2014,Loan,Senegal - Water and Sanitation Sector Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-E00-007
+afdb,SN,Water and sanitation,42996284,2022,Loan,Senegal - Access to Water and Sanitation Services for Sustainable Resilience in Disadvantaged Areas Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-E00-008
+afdb,SN,Water and sanitation,7109894,1984,Loan,Senegal - Salde-Wala Irrigation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EA0-001
+afdb,SN,Water and sanitation,1034782,1980,Loan,Senegal - Studies on runoff water storage,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EA0-003
+afdb,SN,Water and sanitation,10790643,1975,Loan,Senegal - Water supply project for Dakar and surrounding area,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EA0-004
+afdb,SN,Water and sanitation,92050216,2016,Loan,Senegal - Reinforcement of Multiple-Use Water Supply along the Louga-Thies-Dakar Road from the Keur Momar Sarr Treatment Plant Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EA0-007
+afdb,SN,Water and sanitation,1536803,2007,Grant,MISE EN OEUVRE DU PAGIRE DU SENEGAL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EAZ-002
+afdb,SN,Water and sanitation,13217199,1983,Loan,Senegal - First sanitation project for Dakar and surrounding area,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EB0-001
+afdb,SN,Water and sanitation,929416,2007,Grant,Senegal - Ziguinchor sanitation master plan study,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EB0-002
+afdb,SN,Water and sanitation,1205838,2013,Grant,Senegal - Improvement of Faecal Sludge Management and Recovery in Ziguinchor City (PAGEBZ),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-EBZ-001
+afdb,SN,Energy and climate,7024274,1987,Loan,Senegal - Rural and urban electrification project in Senegal,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-F00-001
+afdb,SN,Energy and climate,3198004,1977,Loan,ELECTRICITE DE SAINT-LOUIS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-F00-002
+afdb,SN,Energy and climate,14151489,1998,Loan,Senegal - Energy Sector Adjustment Programme (ESAP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-F00-003
+afdb,SN,Energy and climate,31469018,1987,Loan,Programme de redressement du secteur de l'électricité du Sénégal,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-FA0-001
+afdb,SN,Energy and climate,7021553,2004,Loan,Senegal - Rural electrification project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-FA0-002
+afdb,SN,Energy and climate,78637880,2018,Loan,Senegal - Project to Improve Access to Electricity in Peri-Urban and Rural Areas,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-FA0-005
+afdb,SN,Energy and climate,8447249,2024,Loan,SENEGAL - Programme de promotion des lampes d'éclairage efficace,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-FZ0-004
+afdb,SN,Digital and telecoms,76211296,2015,Loan,Senegal - Digital Technology Park Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-G00-001
+afdb,SN,Digital and telecoms,5266156,2023,Loan,Senegal - Digital Technology Park - Additional Financing,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-G00-004
+afdb,SN,Digital and telecoms,7432961,1987,Loan,PLAN NAT.D'AMELIORA.MAINTEN.RESEAU TELEC,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-GB0-001
+afdb,SN,"Other (social, humanitarian, multi-sector)",64266936,2019,Loan,Senegal - Project to Support and Enhance the Entrepreneurial Initiatives of Women and Young People (PAVIE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-I00-008
+afdb,SN,"Other (social, humanitarian, multi-sector)",73465256,2025,Loan,Senegal - Project to Support and Promote Women’s and Youth Entrepreneurial Initiatives - Phase II (PAVIE II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-I00-011
+afdb,SN,Education and skills,15599707,1997,Loan,Senegal - Education Project II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IA0-002
+afdb,SN,Education and skills,21637240,1999,Loan,"Senegal - Primary, Mid-Level and Secondary Education Development Support Project",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IA0-003
+afdb,SN,Education and skills,18937970,2003,Loan,Education Projet IV,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IA0-004
+afdb,SN,Education and skills,7975018,1987,Loan,PROJET DE DEVELOPPEMENT DE L'ENSEIGNEMENT ELEMENTAIRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IAA-001
+afdb,SN,Education and skills,4777970,2014,Loan,Senegal - Senegal Virtual University Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IAD-001
+afdb,SN,Education and skills,9028547,2013,Loan,Senegal - Project to Support the Promotion of Employment for Youth and Women (PAPEJF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IAZ-001
+afdb,SN,Health,1072544,1984,Loan,Senegal - Feasibility Study for the Dakar University Hospital Center,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IB0-001
+afdb,SN,Health,25835696,1998,Loan,Senegal - National Health Development Plan Support Project (Health I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IB0-002
+afdb,SN,Health,17833744,2003,Loan,"Senegal - Project in Support of the National Health Development Plan in the Regions of Matam, Tambaccounda, Fatick and Kaolack (Health II)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IB0-003
+afdb,SN,Health,22233,1993,Grant,ETUDE DANS LE SECTEUR DE LA POPULATION,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IC0-001
+afdb,SN,"Other (social, humanitarian, multi-sector)",145014,1992,Loan,APPUI AUX GRPT PROMO. FEM. (GPF),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IE0-001
+afdb,SN,"Other (social, humanitarian, multi-sector)",17566052,1999,Loan,Senegal - Poverty Reduction Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-IE0-002
+afdb,SN,Governance and budget support,31787,1990,Loan,PROGRAMME D'AJUSTEMENT STRUCTUREL II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-001
+afdb,SN,Governance and budget support,34362792,2008,Loan,Senegal - The Poverty Reduction Strategy Support Programme (PRSSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-005
+afdb,SN,Governance and budget support,30293906,2011,Loan,Senegal - Economic Reform Support Programme (PARE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-006
+afdb,SN,Governance and budget support,29546826,2013,Loan,Senegal - Inclusive Growth and Economic Competitiveness Support Programme (PACICE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-008
+afdb,SN,Governance and budget support,16849726,2018,Loan,Senegal - Project for Support to Skills Development and Youth Entrepreneurship in Growth Sectors,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-010
+afdb,SN,Governance and budget support,91413944,2020,Loan,Senegal - Emergency COVID-19 Response Support Programme (PUARC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-013
+afdb,SN,Governance and budget support,30228916,2026,Loan,Senegal - Resource Mobilisation and Investment Attractiveness Institutional Support Project - PHASE II (PAMRAI II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-K00-014
+afdb,SN,Governance and budget support,30470976,1987,Loan,PROGRAMME D'AJUSTEMENT STRUCTUREL I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-001
+afdb,SN,Governance and budget support,28967040,2000,Loan,Senegal - Tariff Reform and Competitiveness Promotion Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-002
+afdb,SN,Governance and budget support,45822660,2004,Loan,PROGRAMME D'APPUI A L'AJUSTEMENT DU SECTEUR PRIVE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-005
+afdb,SN,Governance and budget support,3824562,2012,Loan,Senegal - Private Sector Promotion Support Project (PAPSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-008
+afdb,SN,Governance and budget support,43366620,2016,Loan,Senegal - Local Development Reform Support Programme – Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-009
+afdb,SN,Governance and budget support,65981704,2019,Loan,Senegal - Resource Mobilisation and Reform Effectiveness Support Programme – Phase I (PAMRER I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-014
+afdb,SN,Governance and budget support,12978109,2019,Loan,Senegal - Resource Mobilisation and Investment Attractiveness Institutional Support Project (PAIMRAI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-015
+afdb,SN,Governance and budget support,66833144,2021,Loan,"Senegal - Program to Support Resource Mobilization and Reform effectiveness, Resource Mobilisation and Reform Effectiveness Support Programme - Phase II (PAMRER)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-016
+afdb,SN,Governance and budget support,509789,2020,Grant,Senegal - Project to support the Emerging Senegal Plan Operational Monitoring Office (BOS-PSE),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-017
+afdb,SN,Governance and budget support,72315410,2023,Loan,Senegal - Resources Mobilization and Reforms Effectiveness Support Program Phase III,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-018
+afdb,SN,Governance and budget support,77619080,2023,Loan,"Senegal - Resource Mobilisation and Industrial Development Support Programme, Phase I (PAMRDI-I)",https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KA0-019
+afdb,SN,"Other (social, humanitarian, multi-sector)",44396984,2013,Loan,Senegal - Community Roads Project in Support of the National Local Development Programme (PPC/PNLD),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KE0-001
+afdb,SN,"Other (social, humanitarian, multi-sector)",44631200,2018,Loan,Senegal - Project to Open Up Production Areas in Support of the National Local Development Programme (PDZP/PNDL),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KE0-004
+afdb,SN,Governance and budget support,3435480,1990,Loan,APPUI INST. MIN. ECO.FIN.PLAN,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KF0-001
+afdb,SN,Governance and budget support,1905678,2003,Grant,PROJET D'APPUI A LA DIRECTION DE LA STATISTIQUE ET LA PREVISION,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KZ0-001
+afdb,SN,Governance and budget support,4120570,2005,Grant,PROJET DE MODERNISATION DU CADASTRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KZ0-003
+afdb,SN,Governance and budget support,60644048,2018,Loan,Senegal - Emergency Community Development Programme Support Project  (PA-PUDC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-SN-KZ0-004
+afdb,TG,Transport and corridors,41358896,2012,Loan,Togo - Lomé Container Terminal Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-DD0-001
+afdb,TG,Energy and climate,22101522,2025,Loan,Togo - Projet de Centrale Solaire Sokodé,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-F00-003
+afdb,TG,Agriculture and food systems,885019,2019,Grant,Togo - Aide d’urgence pour la lutte contre l’invasion de la Chenille Légionnaire d’Automne (Spodoptera frugiperda),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-A00-005
+afdb,TG,Agriculture and food systems,4199890,1977,Loan,Togo - Construction Huilerie,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-002
+afdb,TG,Agriculture and food systems,1337133,2016,Grant,Togo - Mécanisme de préparation (PPF) pour le Projet de développement des agropoles (PRODAT - Projet agropole),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-008
+afdb,TG,Agriculture and food systems,34822848,2018,Loan,Togo - Agro-Food Processing Zone Project - (PTA-TOGO),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-009
+afdb,TG,Agriculture and food systems,4922344,2019,Loan,Togo - Agro-Food Processing Project (PTA-TOGO) - Additional Financing,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-012
+afdb,TG,Agriculture and food systems,24426806,2024,Loan,TOGO - Agro-Food Processing Project - Phase II (PTA II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-014
+afdb,TG,Agriculture and food systems,5140098,2022,Loan,Togo – Food Crisis Response and Emergency Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AA0-015
+afdb,TG,Agriculture and food systems,378696,2006,Grant,AIDE D'URGENCE POUR LA LUTTE CONTRE LA PROPAGATION DE LA GRIPPE AVIAIRE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AAE-001
+afdb,TG,Agriculture and food systems,369171,2011,Grant,AIDE HUMANITAIRE  VICTIMES INONDATIONS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-AAZ-001
+afdb,TG,Industry and trade,1488671,1972,Loan,Togo - 1ere Ligne de Crédit  Banque Togolaise de développement (BTD),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-B00-001
+afdb,TG,Industry and trade,2619511,1980,Loan,2EME LIGNE DE CREDIT BTD,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-B00-002
+afdb,TG,Energy and climate,270605,2023,Grant,Togo - Project to update and validate Environmental and Social Impact Assessments (ESIAs) for 31 semi-urban centers,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-C00-001
+afdb,TG,Transport and corridors,5513244,1984,Loan,PROJET ROUTE KARA-KETAO KEMERIDA,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-D00-001
+afdb,TG,Transport and corridors,4570648,1975,Loan,CONSTRUCTION ROUTE SOKODE-BASSAR,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-D00-002
+afdb,TG,Transport and corridors,13374829,1976,Loan,ETUDES ROUTE YEGUE-LANGABOU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-D00-003
+afdb,TG,Transport and corridors,10294092,1999,Loan,P.T.R/ Projert de Réhabilitation de la route Lome-Notse,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-D00-010
+afdb,TG,Transport and corridors,27646820,2010,Grant,Togo - Aflao - Sanve Condji - Benin Border Road Rehabilitation and Modernisation Project: Lome Port Roundabout - Avepozo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-DB0-002
+afdb,TG,Transport and corridors,5484625,1977,Loan,CHEMIN DE FER CIMAO,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-DC0-001
+afdb,TG,Water and sanitation,1364905,1999,Grant,ETUDE ASSAINIS.LOME & AEP 20 CENTRES,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-EA0-001
+afdb,TG,Water and sanitation,1331628,2009,Grant,SYSTÈME INTÉGRÉ D'INFORMATION SUR L'EAU,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-EAZ-001
+afdb,TG,Water and sanitation,1365049,2022,Grant,Togo - Promotion of sanitation in semi-urban centers,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-EB0-003
+afdb,TG,Water and sanitation,1128862,2013,Grant,Togo - Projet « Des toilettes pour tous à Sokodé par la valorisation des boues de vidange et le microcrédit »,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-EBZ-001
+afdb,TG,Energy and climate,2935604,1974,Loan,Togo - Electricity Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-F00-001
+afdb,TG,Energy and climate,12366723,2019,Loan,Togo - Project to Support the Social Component Rural Electrification Programme CIZO (PRAVOST),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-FA0-012
+afdb,TG,Digital and telecoms,13610386,1990,Loan,PROJ. DEV. TELECOMMUNICATIONS,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-GB0-001
+afdb,TG,Financial sector and SMEs,1436626,2016,Grant,Togo - Project to support the financial inclusion of vulnerable women in Togo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-H00-003
+afdb,TG,"Other (social, humanitarian, multi-sector)",15150863,2014,Loan,Togo - Kara and Lomé Markets Reconstruction and Traders Support Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-I00-004
+afdb,TG,"Other (social, humanitarian, multi-sector)",748872,2013,Grant,Togo - Aide d’urgence au Programme d’actions pour atténuer les effets de l’incendie des marchés de Lomé et de Kara,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-I00-005
+afdb,TG,"Other (social, humanitarian, multi-sector)",18494788,2023,Grant,Togo - Project to Support Young and Women Entrepreneurs in Job-Creating Value Chains,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-I00-008
+afdb,TG,"Other (social, humanitarian, multi-sector)",859143,2026,Grant,Togo – Aide d’urgence aux populations touchées par la crise humanitaire dans le nord du pays,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-I00-009
+afdb,TG,Education and skills,397000,1992,Loan,Togo - Education and Vocational Training Development Project (Education II),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IA0-001
+afdb,TG,Education and skills,5789106,1978,Loan,EDUCATION,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IA0-002
+afdb,TG,Health,258854,1992,Loan,RENFORCEMENT PHARMACIE CENTRALE,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IB0-001
+afdb,TG,Health,7069340,1978,Loan,PROJ. SANTE - CONST. C.H.U LOME,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IB0-002
+afdb,TG,Health,2300938,1997,Grant,Togo - Etude Préparatoire d'un projet dans le secteur de la population,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IC0-001
+afdb,TG,Governance and budget support,265356,2012,Grant,Togo - Capacity Building Project for the Ministry of Women's Promotion,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-ID0-001
+afdb,TG,"Other (social, humanitarian, multi-sector)",811640,2012,Grant,Togo - Community self development and self employment project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IZ0-001
+afdb,TG,"Other (social, humanitarian, multi-sector)",18507176,2015,Grant,Togo - Projet d’Appui à l’Employabilité et à l’Insertion des Jeunes dans les Secteurs Porteurs (PAEIJ-SP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IZ0-002
+afdb,TG,"Other (social, humanitarian, multi-sector)",1234165,2023,Grant,Togo - Project to strengthen social cohesion in Togo,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-IZ0-004
+afdb,TG,"Other (social, humanitarian, multi-sector)",4603366,2023,Loan,Togo - Assistance technique pour les études de faisabilité du projet de construction des 20.000 logements à coût abordable,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-J00-001
+afdb,TG,Governance and budget support,88702,1991,Grant,Togo - Ministry of Planning Institutional Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-001
+afdb,TG,Governance and budget support,24443692,1997,Loan,3Þ PROG. AJUST. STRUCTUREL-PASIII,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-002
+afdb,TG,Governance and budget support,15235488,1988,Loan,PROG. AJUST. STRUCTUREL PHASE I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-004
+afdb,TG,Governance and budget support,11466667,2009,Grant,Togo - Programme d’appui aux réformes et à la gouvernance (PARG),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-005
+afdb,TG,Governance and budget support,2844052,2006,Grant,Togo - Institutional Capacity Building Support Project (PARCI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-006
+afdb,TG,Governance and budget support,10370833,2010,Grant,Togo - Project to Build Capacity in Economic and Financial Governance (PARCI-2),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-008
+afdb,TG,Governance and budget support,22878836,2011,Grant,Togo - Programme d’appui aux réformes et à la gouvernance Phase II (PARG-2),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-009
+afdb,TG,Governance and budget support,1244380,2019,Grant,Togo - Project to support the implementation of Togo's national development plan 2018-2022,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-014
+afdb,TG,Governance and budget support,1199640,2020,Grant,Togo - Facilité d'appui aux investissements agricoles des jeunes (FAIAJ),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-K00-015
+afdb,TG,Governance and budget support,384371,1992,Loan,2Þ PROG. AJUST. STRUCTUREL,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KA0-001
+afdb,TG,Governance and budget support,11458237,2017,Loan,Togo - Governance and Agribusiness Promotion Support Programme (PAGPA),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KA0-002
+afdb,TG,Governance and budget support,6112896,2024,Loan,Togo - Agribusiness and Public Finance Support Programme - Phase I (PAAFIP-I),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KA0-004
+afdb,TG,"Other (social, humanitarian, multi-sector)",712672,2012,Grant,Togo - Projet d'Assistance Technique et Renforcement des capacités  du Ministère  des Travaux Publics,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KE0-001
+afdb,TG,Governance and budget support,533106,2011,Grant,RENFORCEMENT DES CAPACITES EN PLANIFICATION STRATEGIQUE ET SUIVI-EVALUATION DE LA SRP,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-003
+afdb,TG,Governance and budget support,548506,2012,Grant,Togo - Institutional Audits for six Ministries,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-005
+afdb,TG,Governance and budget support,717545,2013,Grant,Togo - Projet complémentaire au programme d'action ciblée multi-sectorielle et de renforcement des capacités institutionnelles,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-006
+afdb,TG,Governance and budget support,6486334,2014,Grant,Togo - Projet d’appui à la mobilisation des ressources et au renforcement des capacités institutionnelles (PAMOCI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-007
+afdb,TG,Governance and budget support,21136886,2016,Loan,Togo - Projet d’appui à la gouvernance fiscale,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-008
+afdb,TG,Governance and budget support,12913731,2022,Grant,Togo - Governance and Private Sector Development Support Project (PAGDSP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-009
+afdb,TG,Governance and budget support,1229879,2022,Grant,Togo - Projet d'appui à la promotion des investissements et au développement des partenariats privé-public,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KF0-010
+afdb,TG,Governance and budget support,826834,2012,Grant,Togo - Elaboration du Doc Complet du Document de stratégie de réduction de la pauvreté (DSRP) II,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KZ0-001
+afdb,TG,Governance and budget support,23992794,2020,Loan,Togo - Multi-Country (Benin-Togo-Guinea) COVID-19 Response Support Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-TG-KZ0-002
+ifc,BF,"Other (social, humanitarian, multi-sector)",961119,2015,Loan,Marina Mkt BKF 2,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34527
+ifc,BF,Transport and corridors,21025752,2015,Equity,Yaramoko Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36754
+ifc,BF,Digital and telecoms,10570080,2022,Loan,Windiga BF Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36857
+ifc,BF,Agriculture and food systems,12439769,2020,Loan,RFF ACEP Burkina SL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-40839
+ifc,BF,Education and skills,175150690,2019,Loan,GWFP SOFITEX 5,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-42144
+ifc,BF,Education and skills,183294480,2020,Loan,GWFP Sofitex2019,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-43468
+ifc,BF,Education and skills,165327460,2021,Loan,GWFP Sofitex2020,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-44974
+ifc,BF,Industry and trade,8507720,2023,Loan,Sodigaz Burkina,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45082
+ifc,BF,Agriculture and food systems,20036148,2026,Loan,MFP-SME Vista BF SL & RSFs,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-48122
+ifc,BF,"Other (social, humanitarian, multi-sector)",1938281,2005,Loan,Hotel Independance,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-23959
+ifc,BF,Agriculture and food systems,4530147,2007,Loan,AMSME BACB Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25414
+ifc,BF,Agriculture and food systems,428636,2013,Equity,Banque de l'habitat du Burkina Faso,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25491
+ifc,BF,"Other (social, humanitarian, multi-sector)",27066338,2008,Equity,Onatel S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-26231
+ifc,BF,"Other (social, humanitarian, multi-sector)",1141606,2009,Equity,Gryphon Minerals Inc,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-27193
+ifc,BF,"Other (social, humanitarian, multi-sector)",9751304,2010,Equity,Kiaka Gold Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-29063
+ifc,BF,Agriculture and food systems,458328,1997,Equity,Ecobank - Burkina Faso,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7830
+ifc,BF,Agriculture and food systems,677312,1998,Equity,Société Generale de Banques au Burkina,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8255
+ifc,BF,"Other (social, humanitarian, multi-sector)",330720,1999,Unknown,AEF Societe de Transports et de Commerce Bogoya et Freres (STCBF),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8764
+ifc,BJ,Agriculture and food systems,21732774,2017,Unknown,RSF Benin Tourism,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-38159
+ifc,BJ,Digital and telecoms,,2025,Loan,Benin Solar 50MW IPP,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-43792
+ifc,BJ,Agriculture and food systems,,2022,Unknown,SLGP RSF NSIA Benin,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45333
+ifc,BJ,"Other (social, humanitarian, multi-sector)",20416546,2026,Loan,Benin Terminal,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-48522
+ifc,BJ,"Other (social, humanitarian, multi-sector)",1972060,2001,Unknown,FINADEV MICROFINANCE BANK,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-10071
+ifc,BJ,"Other (social, humanitarian, multi-sector)",164626,2001,Unknown,AEF Vision +,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9413
+ifc,CI,Digital and telecoms,99608920,2014,Loan,Ciprel IV Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-31833
+ifc,CI,"Other (social, humanitarian, multi-sector)",5377342,2013,Loan,IAS Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-32061
+ifc,CI,Agriculture and food systems,17479276,2013,Unknown,SIB RSF Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33230
+ifc,CI,Agriculture and food systems,,2014,Loan,Bridge Bank Group Cote d'Ivoire,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33491
+ifc,CI,Agriculture and food systems,73327304,2014,Unknown,GTST SIR Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33538
+ifc,CI,Transport and corridors,,2015,Unknown,Yaoure Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34822
+ifc,CI,Agriculture and food systems,7810962,2018,Loan,Agro CI S.A,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36031
+ifc,CI,Agriculture and food systems,29819150,2015,Unknown,SGBCI RSF Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36037
+ifc,CI,Agriculture and food systems,3666764,2015,Unknown,SIB Cargill RSF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36149
+ifc,CI,Education and skills,5415125,2016,Unknown,Barry Callebaut Cote d'Ivoire RSF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-36210
+ifc,CI,Agriculture and food systems,4542292,2016,Loan,MicroCred CI SL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-37772
+ifc,CI,Industry and trade,14900501,2016,Loan,SIMPA CI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-38053
+ifc,CI,Digital and telecoms,123375510,2021,Loan,FCS RE CIPREL V,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-39096
+ifc,CI,Digital and telecoms,93830576,2020,Loan,FCS RE Azito 4,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-39270
+ifc,CI,Agriculture and food systems,31061656,2019,Unknown,SLGP SIB SME RSF II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-41091
+ifc,CI,Agriculture and food systems,27448348,2020,Loan,DCM NSIA ABS,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-42824
+ifc,CI,Agriculture and food systems,24728482,2020,Loan,WCS COVID NSIA,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-44054
+ifc,CI,Education and skills,8837328,2023,Loan,CIDT Expansion,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45030
+ifc,CI,Agriculture and food systems,,2023,Unknown,RSF Orange Bank Africa CI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45349
+ifc,CI,Digital and telecoms,52565952,2023,Loan,DCM PEPT ABS,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46344
+ifc,CI,Agriculture and food systems,,2023,Unknown,CDel SLGP BICICI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46504
+ifc,CI,Agriculture and food systems,152283380,2023,Unknown,BICICI AMEF RSF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46618
+ifc,CI,Agriculture and food systems,,2020,Unknown,AMEF RSF BBGCI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46659
+ifc,CI,Agriculture and food systems,,2023,Unknown,SLGP RSF BBGCI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46662
+ifc,CI,Education and skills,182660290,2023,Loan,Sucden CdI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-47216
+ifc,CI,Agriculture and food systems,,2024,Unknown,RSF SGCI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-47871
+ifc,CI,"Other (social, humanitarian, multi-sector)",1568980,2023,Loan,ANKA Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-47878
+ifc,CI,"Other (social, humanitarian, multi-sector)",15449138,2025,Loan,Duval Saint Paul,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-48975
+ifc,CI,"Other (social, humanitarian, multi-sector)",25787456,2025,Loan,Douja CIV Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49049
+ifc,CI,"Other (social, humanitarian, multi-sector)",,2023,Unknown,Farah Expansion,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49129
+ifc,CI,Agriculture and food systems,29787828,2025,Loan,DCM NSIA ABS 2,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49745
+ifc,CI,Agriculture and food systems,17205794,2026,Loan,MFP-SME BBGCI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49956
+ifc,CI,Education and skills,169306800,2024,Loan,Sucden II Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50076
+ifc,CI,Agriculture and food systems,9226179,2024,Unknown,SLGP RSF SIB III,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50110
+ifc,CI,Digital and telecoms,48611908,2025,Unknown,DCM PEPT ABS II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-51206
+ifc,CI,Education and skills,137809810,2026,Unknown,GCB West Africa,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-51378
+ifc,CI,Education and skills,,2026,Unknown,GTST GCB CDI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-52771
+ifc,CI,"Other (social, humanitarian, multi-sector)",1264946,2000,Loan,AEF SIMMEQ Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-10043
+ifc,CI,Digital and telecoms,96342400,2013,Loan,Azito Phase 3,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-26619
+ifc,CI,"Other (social, humanitarian, multi-sector)",688129,2012,Equity,Advans CI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-28189
+ifc,CI,Agriculture and food systems,16338684,2012,Unknown,BICICI RSF Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-31076
+ifc,CI,"Other (social, humanitarian, multi-sector)",5180291,2011,Equity,Samapleu Nickel,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-31223
+ifc,CI,"Other (social, humanitarian, multi-sector)",8516549,2012,Loan,SIPRA CI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-31422
+ifc,CI,"Other (social, humanitarian, multi-sector)",11486252,2012,Equity,Rialto Energy,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-31509
+ifc,CI,"Other (social, humanitarian, multi-sector)",6023610,2015,Loan,COMPAGNIE HOTELIERE DE LA LAGUNE S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-31761
+ifc,CI,"Other (social, humanitarian, multi-sector)",206644,1996,Equity,Bereby-Finances,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-3402
+ifc,CI,Agriculture and food systems,2814514,1999,Unknown,BANK OF AFRICA - COTE D'IVOIRE (BoA-CI),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-4939
+ifc,CI,"Other (social, humanitarian, multi-sector)",326524,1996,Equity,UNION AFRICAINE - IARD- COTE D'IVOIRE,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-4940
+ifc,CI,"Other (social, humanitarian, multi-sector)",169451,1996,Loan,AEF Petro Ivoire S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7438
+ifc,CI,"Other (social, humanitarian, multi-sector)",398541,1997,Equity,MULTI-PRODUITS S.A. (multi-company project with Sodiro #7773),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7584
+ifc,CI,"Other (social, humanitarian, multi-sector)",3299360,1997,Unknown,Cosmivoire S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7638
+ifc,CI,"Other (social, humanitarian, multi-sector)",3064694,1999,Loan,Tropical Rubber,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8161
+ifc,CI,"Other (social, humanitarian, multi-sector)",3388080,2002,Loan,Societe Hoteliere De La Lagune(SHL),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8208
+ifc,CI,"Other (social, humanitarian, multi-sector)",48420,2000,Equity,AEF Société Africaine de Bourse,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8254
+ifc,CI,Digital and telecoms,72866850,1999,Loan,Azito Power Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8503
+ifc,CI,"Other (social, humanitarian, multi-sector)",3053620,2002,Unknown,PETRO IVOIRE  II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8656
+ifc,CI,"Other (social, humanitarian, multi-sector)",1088130,1999,Loan,AEF DROP-IVOIRE,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9114
+ifc,CI,Agriculture and food systems,4124584,1999,Loan,BACI Revolving Line,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9407
+ifc,CI,"Other (social, humanitarian, multi-sector)",5810346,2000,Loan,Societe des Caoutchoucs de Grand Bereby,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9552
+ifc,GW,Agriculture and food systems,362955,2000,Equity,Banco de Africa Occidental,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8384
+ifc,ML,Agriculture and food systems,3692086,2015,Loan,MC Mali Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34765
+ifc,ML,Digital and telecoms,,2017,Loan,Segou Solaire,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-35853
+ifc,ML,Agriculture and food systems,1092922,2020,Loan,CEDIAM Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-37932
+ifc,ML,Agriculture and food systems,13145324,2019,Loan,Gaselia Group,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-40016
+ifc,ML,Agriculture and food systems,1318917,2021,Loan,FCS RE MALI SHI,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-41588
+ifc,ML,Industry and trade,4638256,2020,Loan,CCM Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-42410
+ifc,ML,Agriculture and food systems,6047837,2026,Loan,Mbouna Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-44642
+ifc,ML,Industry and trade,,2024,Loan,Yara Oil SA,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46103
+ifc,ML,Agriculture and food systems,2008418,2025,Loan,SOMABIS SARL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46236
+ifc,ML,"Other (social, humanitarian, multi-sector)",5042880,2025,Loan,Azalai Mezz,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49019
+ifc,ML,Governance and budget support,68585496,2026,Loan,Orange Mali S.A,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49673
+ifc,ML,Agriculture and food systems,34387104,2025,Loan,MFP-SME BNDA,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49922
+ifc,ML,Agriculture and food systems,,2026,Loan,SDN Flour Mill,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-51269
+ifc,ML,Agriculture and food systems,2598075,2026,Loan,MFP-BOP BBML,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-53433
+ifc,ML,"Other (social, humanitarian, multi-sector)",32950000,2001,Loan,Graphique Industrie,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-10504
+ifc,ML,"Other (social, humanitarian, multi-sector)",32950000,2002,Loan,PAL SANKE Transport,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-11027
+ifc,ML,"Other (social, humanitarian, multi-sector)",1440643,2003,Loan,Grand Hotel de Bamako,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-11693
+ifc,ML,"Other (social, humanitarian, multi-sector)",4121997,2008,Unknown,"Bank of Africa, Mali RSF",https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25857
+ifc,ML,"Other (social, humanitarian, multi-sector)",9417813,2009,Loan,Groupe AMI Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25896
+ifc,ML,"Other (social, humanitarian, multi-sector)",5251026,2010,Unknown,IDA IFC EBMali,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-26680
+ifc,ML,"Other (social, humanitarian, multi-sector)",7548872,2010,Loan,Graphique Industrie S.A,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-28319
+ifc,ML,"Other (social, humanitarian, multi-sector)",14098308,2010,Loan,GRIMAS Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-29470
+ifc,ML,"Other (social, humanitarian, multi-sector)",2652790,1995,Loan,THE SADIOLA HILL GOLD PROJECT,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-4360
+ifc,ML,"Other (social, humanitarian, multi-sector)",1223299,1997,Loan,AEF Groupement des Grands Garages de Bamako (GGG S.A.),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7176
+ifc,ML,"Other (social, humanitarian, multi-sector)",17190000,1997,Loan,Societe Des Mines de Syama S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7975
+ifc,ML,"Other (social, humanitarian, multi-sector)",335730,1999,Unknown,SEF Timbuktu Trading and Transport,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8195
+ifc,ML,"Other (social, humanitarian, multi-sector)",3032016,1998,Loan,SEF Grand Hotel II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8302
+ifc,ML,"Other (social, humanitarian, multi-sector)",446748,2003,Unknown,SEF Societe Industrielle d'Emballage et de Conditionnement,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8474
+ifc,ML,"Other (social, humanitarian, multi-sector)",386649,2001,Unknown,SEF IMPRIM COLOR,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9412
+ifc,ML,"Other (social, humanitarian, multi-sector)",32950000,2000,Loan,Hotel Le Rabelais,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9672
+ifc,SN,"Other (social, humanitarian, multi-sector)",28563608,2016,Loan,SENAC 2 Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33098
+ifc,SN,"Other (social, humanitarian, multi-sector)",34733988,2015,Loan,Tobene Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33841
+ifc,SN,Agriculture and food systems,5038170,2014,Loan,"Societe Industrielle Agroalimentaire S.A.(""SIAGRO"")",https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33844
+ifc,SN,Digital and telecoms,8378717,2015,Unknown,Cap des Biches,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-35175
+ifc,SN,Digital and telecoms,8919493,2017,Loan,Tobene IPP Phase 2,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-37808
+ifc,SN,Digital and telecoms,3614321,2017,Unknown,CG CdB II Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-38113
+ifc,SN,Industry and trade,4996743,2018,Loan,Polykrome SA,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-38748
+ifc,SN,Digital and telecoms,,2020,Loan,SS Senegal Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-38959
+ifc,SN,Agriculture and food systems,2970146,2017,Loan,Societe Industrielle Agro-Alimentaire S.A,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-39269
+ifc,SN,Agriculture and food systems,3045696,2017,Loan,ACEP Senegal SL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-39371
+ifc,SN,Agriculture and food systems,10002761,2020,Loan,Sosagrin-IBS,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-40131
+ifc,SN,Education and skills,9800760,2023,Loan,Senegal Societe de Transformation des Legumes,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-40942
+ifc,SN,Industry and trade,126174790,2023,Loan,Ceramic Tile AF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-42507
+ifc,SN,Agriculture and food systems,,2023,Loan,BHS Senior Loan,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-42808
+ifc,SN,Agriculture and food systems,12439769,2020,Loan,RFF ACEP Senegal SL II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-43641
+ifc,SN,Agriculture and food systems,9279940,2022,Loan,Industrie des Boissons du Senegal,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45637
+ifc,SN,"Other (social, humanitarian, multi-sector)",25787456,2024,Loan,MADIBA Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46231
+ifc,SN,Governance and budget support,75773800,2024,Loan,Sonatel Senegal,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46485
+ifc,SN,Industry and trade,122017550,2022,Loan,Sococim Low Carbon Cement,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46721
+ifc,SN,Agriculture and food systems,6937329,2023,Loan,SOCIETE INDUSTRIELLE AGRO ALIMENTAIRE S.A. 3,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-46764
+ifc,SN,"Other (social, humanitarian, multi-sector)",49326632,2025,Loan,Summa Constr.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-47254
+ifc,SN,Agriculture and food systems,,2025,Unknown,PAMECAS Investment,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49038
+ifc,SN,Education and skills,5037377,2025,Loan,COUVOIR AMAR,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49731
+ifc,SN,"Other (social, humanitarian, multi-sector)",24148062,2025,Loan,EDK Expansion,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50059
+ifc,SN,Agriculture and food systems,34385080,2025,Loan,MFP-SME BIS,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50240
+ifc,SN,Industry and trade,302677900,2025,Loan,Sococim Low Carbon Cement II,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50290
+ifc,SN,Agriculture and food systems,8204253,2024,Unknown,DCM BAOBAB SN Bond,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50300
+ifc,SN,Digital and telecoms,,2026,Unknown,CdB Gas Convers.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50638
+ifc,SN,"Other (social, humanitarian, multi-sector)",23761426,2025,Loan,CarMed Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-50682
+ifc,SN,"Other (social, humanitarian, multi-sector)",8567415,2025,Equity,Kera Health Platform-Seed,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-51405
+ifc,SN,Agriculture and food systems,51695736,2026,Loan,MFP-SME SGSN SL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-52315
+ifc,SN,Agriculture and food systems,,2026,Unknown,MFP SME CBI SN,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-52785
+ifc,SN,"Other (social, humanitarian, multi-sector)",1148536,2002,Loan,SEF Royal Saly,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-10034
+ifc,SN,Digital and telecoms,16789100,2006,Loan,Kounoune Power S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-22410
+ifc,SN,"Other (social, humanitarian, multi-sector)",19333828,2008,Loan,Vicat-SOCOCIM,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25363
+ifc,SN,"Other (social, humanitarian, multi-sector)",,2007,Unknown,IDA IFC BICIS,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25652
+ifc,SN,"Other (social, humanitarian, multi-sector)",8785763,2009,Loan,Teylium Chain Hotel,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-26071
+ifc,SN,"Other (social, humanitarian, multi-sector)",7940658,2010,Loan,MicroCred Senegal,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-26565
+ifc,SN,"Other (social, humanitarian, multi-sector)",9502637,2011,Loan,St. Louis Finances S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-27102
+ifc,SN,"Other (social, humanitarian, multi-sector)",,2008,Unknown,SME GEM Senegal,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-27226
+ifc,SN,"Other (social, humanitarian, multi-sector)",548294,2011,Equity,Compagnie Marocco Senegalaise d' Electricite/St. Louis SAU,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-27790
+ifc,SN,"Other (social, humanitarian, multi-sector)",23202698,2011,Loan,Societe Eiffage de la Nouvelle Autoroute Concedee,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-29008
+ifc,SN,"Other (social, humanitarian, multi-sector)",556064,2011,Equity,Comasel Louga,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-30094
+ifc,SN,"Other (social, humanitarian, multi-sector)",11099903,2012,Loan,Patisen Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-30929
+ifc,SN,"Other (social, humanitarian, multi-sector)",44092,1994,Loan,SOGECA Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-3915
+ifc,SN,"Other (social, humanitarian, multi-sector)",101937,1996,Loan,AEF Societe d'Exploitation des Ressources Thonieres (SERT S.A.),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7175
+ifc,SN,Digital and telecoms,30193856,1998,Loan,GTI Dakar 50 MW BOOT Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-7821
+ifc,SN,"Other (social, humanitarian, multi-sector)",2995071,1997,Loan,SEF Nouvelles Brasseries Africaines (NBA SA),https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8131
+ifc,SN,"Other (social, humanitarian, multi-sector)",723680,1998,Loan,SEF Senegal Tanneries S.A.,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8427
+ifc,SN,"Other (social, humanitarian, multi-sector)",19150018,2001,Loan,CIMENTS DU SAHEL,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8657
+ifc,SN,"Other (social, humanitarian, multi-sector)",442250,2001,Unknown,SEF Fanaicha,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8816
+ifc,TG,Industry and trade,8195423,2023,Loan,"Zener SA, Togo",https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-43339
+ifc,TG,Governance and budget support,55124932,2024,Loan,Axian Togo Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-44666
+ifc,TG,"Other (social, humanitarian, multi-sector)",141927100,2022,Loan,Gozem Vehicle Financing Platform,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-45714
+ifc,TG,Agriculture and food systems,6902556,2024,Loan,Star Garments Group Togo CMT Expansion,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-48019
+ifc,TG,Agriculture and food systems,12974933,2026,Loan,MFP-SME ALT Debt,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-49245
+ifc,TG,"Other (social, humanitarian, multi-sector)",1147358,2009,Loan,AEF Societe Transam-P Sarl,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-25198
+ifc,TG,Digital and telecoms,10318840,2010,Loan,CG Togo Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-27849
+ifc,TG,"Other (social, humanitarian, multi-sector)",80775210,2012,Loan,Togo LCT Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-29197
+ifc,TG,"Other (social, humanitarian, multi-sector)",5592864,2000,Loan,West African Cement,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-8962
