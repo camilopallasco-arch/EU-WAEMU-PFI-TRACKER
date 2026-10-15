@@ -2,12 +2,12 @@
 
 Run everything:      python tracker.py
 Run some steps only: python tracker.py eib normalize build
-Steps: reference iati proparco bio wp eib normalize build
+Steps: reference iati proparco bio wp eib cofides noneu normalize build
 """
 import os, sys, csv, json, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parent
 os.chdir(ROOT)
-for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "ref", "data", "site"]:
+for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "ref", "data", "site"]:
     (ROOT / _d).mkdir(parents=True, exist_ok=True)
 
 def step_reference():
@@ -41,6 +41,7 @@ def step_iati():
      "NL-KVK-83517626":"Invest International", "NL-KVK-61172863":"DGGF Lokaal MKB",
      "DE-1":"BMZ (filtered to KfW later)",
      "XI-IATI-EC_INTPA":"European Commission DG INTPA",
+     "XM-DAC-46002":"African Development Bank Group (non-EU comparison)", "XM-DAC-903":"IFC (non-EU comparison)",
     }
     def main():
       out = pathlib.Path("raw/iati")
@@ -198,6 +199,57 @@ def step_eib():
     json.dump(list(out.values()), open("raw/eib/loans.json", "w"), ensure_ascii=False)
     print(len(out), "unique EIB projects")
 
+def step_cofides():
+    """COFIDES (Spain): project list filtered by WAEMU country (plain HTML, no JavaScript needed)."""
+    import re, json, html as H, urllib.request, pathlib, time
+    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
+    pathlib.Path("raw/cofides").mkdir(parents=True, exist_ok=True)
+    out = []
+    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG"]:
+        url = f"https://www.cofides.es/en/projects?field_direccion_country_code={cc}&field_sector_target_id=All"
+        s = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90).read().decode("utf-8", "replace")
+        t = H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", "\n", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
+        i, j = t.find("Textile - Footwear Transport"), t.find("Paseo de la Castellana")
+        block = t[i + 28:j] if i > 0 and j > i else ""
+        for m in re.finditer(r"(.+?) Activity: (.+?) Sector: (.+?) Instrument: (.+?) Country: (.+?)(?= [A-Z0-9][^:]{2,80} Activity:|$)", block.strip()):
+            out.append({"cc": cc, "name": m.group(1).strip(), "activity": m.group(2).strip(), "sector": m.group(3).strip(),
+                        "instrument": m.group(4).strip(), "country": m.group(5).strip(), "url": url})
+        time.sleep(0.5)
+    json.dump(out, open("raw/cofides/projects.json", "w"), ensure_ascii=False, indent=0)
+    print(len(out), "COFIDES projects in WAEMU")
+
+def step_noneu():
+    """Non-EU comparison layer: World Bank (IBRD/IDA) projects API and AIIB project list.
+    AfDB (incl. African Development Fund) and IFC come through the IATI step."""
+    import json, re, time, urllib.request, pathlib
+    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
+    pathlib.Path("raw/nonEU").mkdir(parents=True, exist_ok=True)
+    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120).read()
+    wb = []
+    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG"]:
+        start = 0
+        while True:
+            d = json.loads(get("https://search.worldbank.org/api/v2/projects?format=json&countrycode_exact=" + cc +
+                               f"&rows=200&os={start}&fl=id,project_name,totalamt,boardapprovaldate,sector1,mjsector1Name,status,url,lendinginstr"))
+            rows = list((d.get("projects") or {}).values())
+            for r in rows:
+                r["cc"] = cc
+            wb += rows
+            start += 200
+            if start >= int(d.get("total", 0)) or not rows:
+                break
+            time.sleep(0.3)
+    json.dump(wb, open("raw/nonEU/worldbank.json", "w"), ensure_ascii=False)
+    js = get("https://www.aiib.org/en/projects/list/.content/all-projects-data.js").decode("utf-8", "replace")
+    aiib = []
+    for m in re.finditer(r"\{[^{}]*\"economy\"[^{}]*\}", js):
+        try:
+            aiib.append(json.loads(m.group(0)))
+        except ValueError:
+            pass
+    json.dump(aiib, open("raw/nonEU/aiib.json", "w"), ensure_ascii=False)
+    print(len(wb), "World Bank projects;", len(aiib), "AIIB projects (all countries)")
+
 def step_normalize():
     """Normalise all raw sources into the tracker data model.
 
@@ -348,6 +400,17 @@ def step_normalize():
         ("eib", "European Investment Bank (EIB)", "EU", "EU institution", "EIB Group", "Luxembourg", 49.627, 6.155, "https://www.eib.org", "automated"),
         ("ebrd", "European Bank for Reconstruction and Development (EBRD)", "INT", "Multilateral", "", "London", 51.507, -0.128, "https://www.ebrd.com", "automated"),
     ]
+    # Coverage status after the round-2 research (automated feed, curated from public sources, programme level only, or checked with nothing found)
+    COVERAGE = {"swedfund": "curated", "cofides": "automated", "oeeb": "checked: no WAEMU deals found", "sace": "curated", "credendo": "curated",
+                "eifo": "curated", "bpifrance-ae": "curated", "cdp": "curated", "cesce": "programme level", "sofid": "programme level",
+                "simest": "programme level", "bpifrance": "programme level"}
+    INST = [i[:9] + (COVERAGE.get(i[0], i[9]),) for i in INST]
+    INST += [  # non-EU comparison layer: shown only in the overlap analysis, never added to European totals
+        ("worldbank", "World Bank (IBRD/IDA)", "NONEU", "Non-EU", "World Bank Group", "Washington", 38.899, -77.042, "https://projects.worldbank.org", "automated"),
+        ("ifc", "International Finance Corporation (IFC)", "NONEU", "Non-EU", "World Bank Group", "Washington", 38.902, -77.044, "https://disclosures.ifc.org", "automated"),
+        ("afdb", "African Development Bank Group (incl. African Development Fund)", "NONEU", "Non-EU", "AfDB Group", "Abidjan", 5.320, -4.020, "https://www.afdb.org", "automated"),
+        ("aiib", "Asian Infrastructure Investment Bank (AIIB)", "NONEU", "Non-EU", "", "Beijing", 39.990, 116.390, "https://www.aiib.org", "automated"),
+    ]
     INST_FIELDS = ["institution_id", "name", "member_state", "type", "parent_group", "hq_city", "hq_lat", "hq_lon", "website", "coverage"]
 
     # ---------------------------------------------------------------- collectors
@@ -398,7 +461,8 @@ def step_normalize():
     # ---- IATI (AFD, KfW via BMZ, FMO, EIB, EBRD, Atradius DSB, Invest International, DGGF)
     IATI_INST = {"FR-3": "afd", "NL-KVK-27078545": "fmo", "XM-DAC-918-3": "eib", "XI-IATI-EBRD": "ebrd",
                  "NL-KVK-33226495": "atradius-dsb", "NL-KVK-83517626": "invest-intl",
-                 "NL-KVK-61172863": "dggf", "DE-1": "kfw-db", "XI-IATI-EC_INTPA": "eu-intpa"}
+                 "NL-KVK-61172863": "dggf", "DE-1": "kfw-db", "XI-IATI-EC_INTPA": "eu-intpa",
+                 "XM-DAC-46002": "afdb", "XM-DAC-903": "ifc"}
     amounts = {}
     for r in json.load(open(RAW / "iati_amounts.json")):
         amounts[r["aid"]] = r
@@ -686,6 +750,104 @@ def step_normalize():
             sector_detail=sector, status="Signed", date=year, amount=None, shares={c: None for c in cc_list},
             method="single_country" if len(cc_list) == 1 else "equal_split_estimate", note=note)
 
+    # ---- COFIDES (Spain), from its filtered project list
+    cof_file = RAW / "cofides" / "projects.json"
+    if cof_file.exists():
+        seen_cof = set()
+        for r in json.load(open(cof_file, encoding="utf-8")):
+            ccs = countries_in(r["country"]) or [r["cc"]]
+            key = r["name"]
+            if key in seen_cof:
+                continue
+            seen_cof.add(key)
+            add("cofides", "cofides-web", re.sub(r"[^a-z0-9]+", "-", key.lower())[:50], r["url"], key, desc=r["activity"], client=key,
+                instrument=instrument_from(r["instrument"]), sector_broad=broad_sector(r["sector"] + " " + r["activity"]),
+                sector_detail=r["sector"], status="Signed", shares={c: None for c in ccs},
+                method="single_country" if len(ccs) == 1 else "equal_split_estimate", note="Amount not published by COFIDES.")
+
+    # ---- More curated deals from public sources (round 2). Amounts as published; None when not published.
+    CURATED_DEALS_2 = [
+        # inst, id, title, countries, year, instrument, sector, client, amount, currency, source, note
+        ("swedfund", "cofina-2024", "Loan to COFINA for MSME and women-entrepreneur finance in Côte d'Ivoire and Senegal", "CI SN", "2024", "Loan",
+         "Financial inclusion SME", "Compagnie Financière Africaine (COFINA)", 20e6, "EUR",
+         "https://www.mynewsdesk.com/swedfund/pressreleases/closing-msme-finance-gap-in-cote-divoire-and-senegal-3354367", "Split equally between the two countries."),
+        ("swedfund", "bbm-2024", "Loan to Teyliom Finance for Bridge Bank Microfinance, Côte d'Ivoire", "CI", "2024", "Loan",
+         "Microfinance SME", "Teyliom Finance / Bridge Bank Microfinance", 5e6, "USD",
+         "https://www.avca.africa/news-insights/member-news/swedfunds-investment-fuels-financial-inclusion-in-west-africa/", "Co-investment with BluePeak (USD 25m in total)."),
+        ("bpifrance-ae", "air-senegal-2019", "Export credit guarantee for Airbus aircraft delivered to Air Sénégal", "SN", "2019", "Guarantee",
+         "Air transport", "Air Sénégal", None, "EUR", "https://www.bpifrance.fr/download/media-file/69978", "Amount not published in the source."),
+        ("sace", "benin-push-2024", "Guarantee on a €120m financing for Benin's Ministry of Finance (Push Strategy)", "BJ", "2024", "Guarantee",
+         "Budget public finance", "Ministry of Finance of Benin", 120e6, "EUR",
+         "https://www.teleborsa.it/News/2024/07/24/sace-prima-operazione-di-push-strategy-in-benin-garanzia-su-finanziamento-da-120-milioni-di-euro-83.html", "Amount is the guaranteed financing."),
+        ("sace", "togo-agri-machinery", "Guarantee on a €78.3m financing for Italian agricultural machinery (€100m contract)", "TG", "", "Guarantee",
+         "Agriculture equipment", "Togolese buyer", 78.3e6, "EUR",
+         "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", "Under the Mattei Plan; date not stated in the source."),
+        ("cdp", "ci-agropole-north", "Co-financing of an agropole in northern Côte d'Ivoire", "CI", "2026", "Loan",
+         "Agriculture agro-industry", "Government of Côte d'Ivoire", None, "EUR",
+         "https://news.abidjan.net/articles/749230/financement-du-developpement-la-cassa-depositi-e-prestiti-ouvre-un-bureau-a-abidjan", "Amount and instrument not published; CDP opened an Abidjan office in 2026."),
+        ("eifo", "taiba-ndiaye-2018", "Guarantee on a €140m export loan for the Taiba N'Diaye wind farm (Vestas turbines)", "SN", "2018", "Guarantee",
+         "Wind energy", "Parc Eolien Taiba N'Diaye (Lekela)", 140e6, "EUR",
+         "https://www.nsenergybusiness.com/projects/taiba-ndiaye-wind-farm-senegal/", "Guaranteed by EKF, now EIFO."),
+        ("credendo", "cotonou-coast-2018", "Insurance of a €43.5m financing for coastal protection works in Cotonou", "BJ", "2018", "Guarantee",
+         "Coastal protection climate adaptation", "Republic of Benin", 43.5e6, "EUR",
+         "https://iciec.isdb.org/wp-content/uploads/2020/12/2018-en.pdf", "Listed in ICIEC's 2018 annual report with Credendo as client."),
+    ]
+    for inst, rid, title, ccs, year, instrument, sector, client, amount, cur, src, note in CURATED_DEALS_2:
+        cc_list = ccs.split()
+        add(inst, "curated", rid, src, title, client=client, instrument=instrument, sector_broad=broad_sector(sector), sector_detail=sector,
+            status="Signed", date=year, amount=amount, currency=cur, shares={c: None for c in cc_list},
+            method="single_country" if len(cc_list) == 1 else "equal_split_estimate", note=note,
+            basis="published in press release" if amount else None)
+
+    # ---- World Bank (IBRD/IDA): non-EU comparison layer
+    wb_file = RAW / "nonEU" / "worldbank.json"
+    if wb_file.exists():
+        seen_wb = set()
+        for r in json.load(open(wb_file, encoding="utf-8")):
+            if r.get("id") in seen_wb or r.get("cc") not in COUNTRIES:
+                continue
+            seen_wb.add(r["id"])
+            amt = float(re.sub(r"[^0-9.]", "", r.get("totalamt") or "") or 0) or None
+            date = (r.get("boardapprovaldate") or "")[:7]
+            sect = r.get("sector1") if isinstance(r.get("sector1"), str) else (r.get("sector1") or {}).get("Name", "")
+            if isinstance(sect, str) and sect.startswith("{"):
+                m = re.search(r"'Name': '([^']*)'", sect); sect = m.group(1) if m else ""
+            add("worldbank", "wb-api", r["id"], r.get("url") or f"https://projects.worldbank.org/en/projects-operations/project-detail/{r['id']}",
+                r.get("project_name") or r["id"], instrument="Loan", sector_broad=broad_sector(f"{sect} {r.get('project_name', '')}"),
+                sector_detail=sect, status=r.get("status") or "", date=date, amount=amt, currency="USD", shares={r["cc"]: None},
+                method="single_country", note="IBRD/IDA commitment in USD converted with ECB rates.")
+
+    # ---- AIIB: non-EU comparison layer
+    aiib_file = RAW / "nonEU" / "aiib.json"
+    if aiib_file.exists():
+        for r in json.load(open(aiib_file, encoding="utf-8")):
+            ccs = countries_in(r.get("economy", ""))
+            if not ccs:
+                continue
+            money = r.get("approved_funding") or r.get("committed_funding") or r.get("proposed_funding") or ""
+            m = re.search(r"(USD|EUR)\s*([\d.,]+)\s*(million|billion)", money, re.I)
+            amt = float(m.group(2).replace(",", "")) * (1e9 if m.group(3).lower() == "billion" else 1e6) if m else None
+            add("aiib", "aiib-web", r.get("path", r.get("name"))[-60:], "https://www.aiib.org" + r.get("path", ""), r.get("name", ""),
+                instrument="Loan", sector_broad=broad_sector(r.get("sector", "") + " " + r.get("name", "")), sector_detail=r.get("sector", ""),
+                status=r.get("status", ""), date=r.get("date") if (r.get("date") or "").isdigit() else "", amount=amt,
+                currency=(m.group(1).upper() if m else "USD"), shares={c: None for c in ccs},
+                method="single_country" if len(ccs) == 1 else "equal_split_estimate", note=f"AIIB status: {r.get('status', '')}.")
+
+    # ---- Separate the non-EU comparison layer from European data
+    NONEU = {i[0] for i in INST if i[3] == "Non-EU"}
+    comp_inv = {v["investment_id"]: v for v in investments if v["institution_id"] in NONEU}
+    # IFC Global Trade Finance Program records carry the worldwide programme limit, not a country amount: left out
+    comparators = [a for a in allocations if a["institution_id"] in NONEU
+                   and not (a["institution_id"] == "ifc" and comp_inv[a["investment_id"]]["title"].upper().startswith("GTFP"))]
+    investments[:] = [v for v in investments if v["institution_id"] not in NONEU]
+    allocations[:] = [a for a in allocations if a["institution_id"] not in NONEU]
+    with open(OUT / "comparators.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["institution_id", "country", "sector_broad", "amount_attributed_eur", "year", "instrument", "title", "source_url"])
+        for a in comparators:
+            v = comp_inv[a["investment_id"]]
+            w.writerow([a["institution_id"], a["country"], v["sector_broad"], a["amount_attributed_eur"], v["year"], v["instrument"], v["title"], v["source_url"]])
+
     # ---------------------------------------------------------------- write tables
     def write(name, rows, fields):
         with open(OUT / f"{name}.csv", "w", newline="", encoding="utf-8") as fh:
@@ -814,6 +976,14 @@ def step_normalize():
         P("nat-bpifrance-ae", "Bpifrance Assurance Export – export credit and investment insurance", NAT, "CI SN", "bpifrance-ae", "Export credit insurance, guarantees and foreign investment insurance for French companies on behalf of the French state; deals are not published individually.", "https://www.bpifrance.fr/nos-actualites/bpifrance-en-afrique-25-ans-dengagement-pour-des-partenariats-economiques-durables-et-une-co-industrialisation-ambitieuse", note="Countries shown are those Bpifrance names as its West African hubs; coverage extends further."),
         P("nat-pl-fwe", "Government programme 'Financial Support for Exports' (BGK and KUKE)", NAT, "CI SN", "bgk kuke", "Polish state programme financing and insuring export contracts on higher-risk markets; BGK names Côte d'Ivoire and Senegal among its African markets.", "https://polskieradio24.pl/artykul/3177646,polscy-przedsiebiorcy-podbijaja-swiatowe-rynki-bgk-umozliwia-im-bezpieczny-start-za-granica", note="Deal-level amounts are not published."),
         P("nat-bgk-africa-limit", "BGK Africa export financing limit to 2030", NAT, "CI", "bgk kuke", "Credit, guarantee and letter-of-credit limit of PLN 4bn (about USD 1.1bn) for Polish firms exporting to and investing in seven African countries, including Côte d'Ivoire.", "https://www.wnp.pl/rynki/bgk-przeznaczy-miliardy-zlotych-na-wsparcie-polskich-firm-w-afryce,999155.html", period="to 2030", note="The limit covers seven countries (also Angola, Morocco, South Africa, Tanzania, Kenya, Rwanda), so no WAEMU amount is shown."),
+        P("nat-cwa", "G20 Compact with Africa (initiated by Germany)", NAT, "BJ BF CI SN TG", "DE kfw-db deg", "G20 initiative launched under Germany's 2017 presidency to coordinate reforms and attract private investment; Germany backs it with KfW and DEG instruments.", "https://www.compactwithafrica.org/en/programs/g20-compact-with-africa", period="2017–"),
+        P("nat-africaconnect", "AfricaConnect (DEG, BMZ Development Investment Fund)", NAT, "BJ BF CI SN TG", "deg", "Loans of €0.75–4m with risk sharing for European companies investing in Africa, focused on Compact with Africa countries.", "https://www.bmz.de/resource/blob/39670/factsheet-africaconnect-en.pdf", period="2019–"),
+        P("nat-mattei", "Italy's Mattei Plan", NAT, "CI BJ TG", "IT cdp simest sace", "Italy's Africa strategy, delivered through CDP (a €500m Africa facility), SIMEST (€200m 'Misura Africa') and SACE guarantees.", "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", period="2024–", note="Countries shown are those with documented operations; the plan covers more."),
+        P("nat-cesce-ci", "CESCE cover ceiling for the Ivorian public sector", NAT, "CI", "cesce", "Spanish state risk committee ceiling for new medium- and long-term operations of Spanish firms with Ivorian public buyers.", "https://www.monedaunica.net/2018/06/cesce-amplia-la-cobertura-en-costa-de-marfil-y-turkmenistan/", amount=100e6, period="2018–", note="A cover limit, not money spent."),
+        P("nat-finexpo", "Belgian Finexpo mixed credits (with Credendo)", NAT, "CI", "credendo BE", "Belgian state-supported mixed credits for projects with Belgian suppliers.", "https://credendo.com/sites/default/files/media/files/2021-03/annualreports2017.pdf"),
+        P("nat-c2d", "Debt-for-development swaps (C2D) with Côte d'Ivoire", NAT, "CI", "afd ES", "Côte d'Ivoire's debt payments to France and Spain are returned as financing for poverty-reduction projects.", "https://www.cesce.es/documents/20122/0/INFORME+COSTA+DE+MARFIL+-+22+septiembre+2021_compressed.pdf/da7a101b-6d0e-f02a-dbd8-073b8d128721?t=1633361771235"),
+        P("nat-bpifrance-ebid", "Bpifrance and EBID export finance cooperation", NAT, "BJ BF CI GW ML NE SN TG", "bpifrance bpifrance-ae", "Joint identification and financing of public and private buyers of French exports, backed by state export guarantees.", "https://presse.bpifrance.fr/bpifrance-et-la-bidc-banque-dinvestissement-et-de-developpement-de-la-cedeao-renforcent-leur-cooperation-en-faveur-du-developpement-des-exportations-francaises-en-afrique/", period="2024–"),
+        P("nat-sofid", "SOFID investments in Portuguese-speaking Africa", NAT, "GW", "sofid", "Portugal's DFI focuses on Portuguese-speaking countries and lists Guinea-Bissau among countries with approved projects.", "https://pipelineroad.com/directory/sofid", note="Individual deals are not published."),
         P("nat-bpifrance-acc", "Bpifrance Africa Accelerator", NAT, "SN CI", "bpifrance", "Support programme for French SMEs expanding in Africa, including business missions to Dakar.", "https://presse.bpifrance.fr/bpifrance-accompagne-la-deuxieme-promotion-de-laccelerateur-afrique-a-dakar-pour-prospecter-le-marche-senegalais/?lang=fra", note="Business support, not a financing commitment."),
     ]
     manual_prog = OUT / "programmes_manual.csv"
@@ -824,7 +994,7 @@ def step_normalize():
                                     r.get("description", ""), r.get("source_url", ""), float(r["amount_eur"]) if (r.get("amount_eur") or "").replace(".", "", 1).isdigit() else None,
                                     r.get("period", ""), r.get("note", "")))
     PROGRAMMES = [p for p in PROGRAMMES if any(c in COUNTRIES for c in p["countries"])]
-    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade']}
+    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs']}
     for _p in PROGRAMMES:  # sector tags for the overlap analysis; manual programmes are tagged from their text
         _p["sectors"] = PROG_SECTORS.get(_p["programme_id"]) or [broad_sector(_p["name"] + " " + _p["description"])]
     with open(OUT / "programmes.csv", "w", newline="", encoding="utf-8") as fh:
@@ -838,6 +1008,9 @@ def step_normalize():
               "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3]} for k, v in COUNTRIES.items()},
               "institutions": inst_rows,
               "sectors": SECTOR_LIST, "peg_year": 1999,
+              "comparators": [{"i": a["institution_id"], "c": a["country"], "s": comp_inv[a["investment_id"]]["sector_broad"],
+                               "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
+                              for a in comparators if a["amount_attributed_eur"]],
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
                                                    "instrument", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
                                                    "source_url", "note", "multi_country")} for inv in investments],
@@ -868,7 +1041,7 @@ def step_build():
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
 
-FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib"]
+FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib", "cofides", "noneu"]
 
 def main(steps):
     inv = ROOT / "data" / "investments.csv"
@@ -917,7 +1090,7 @@ TEMPLATE = r'''<!doctype html>
   --accent:#40e8ff; --focus:#40e8ff; --chip:#0a1c26;
   --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --border:#5d93a6; --waemu-line:#ffbf5c;
   --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff;
-  --k-tei:#4fa8ff; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
+  --t-non:#c3ccd1; --k-tei:#4fa8ff; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
   color-scheme:dark;
@@ -1145,9 +1318,11 @@ const KINDS = [["Team Europe Initiative","Team Europe Initiative","--k-tei"], ["
   ["EU country envelope","EU country envelope","--k-env"], ["Energy transition partnership","Energy transition partnership","--k-part"],
   ["National programme","National programme","--k-nat"]];
 const MS = {FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",FI:"Finland",DK:"Denmark",SE:"Sweden",
-  AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",PL:"Poland",EU:"EU institution",INT:"International (EBRD)"};
+  AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",PL:"Poland",EU:"EU institution",INT:"International (EBRD)",NONEU:"Non-EU"};
 const SHORT = {"eu-intpa":"European Commission",afd:"AFD",proparco:"Proparco","kfw-db":"KfW",deg:"DEG",fmo:"FMO","invest-intl":"Invest International",
-  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD",bgk:"BGK",kuke:"KUKE"};
+  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD",bgk:"BGK",kuke:"KUKE",cofides:"COFIDES",swedfund:"Swedfund",
+  sace:"SACE",cdp:"CDP",eifo:"EIFO",credendo:"Credendo","bpifrance-ae":"Bpifrance Assurance Export",worldbank:"World Bank",ifc:"IFC",
+  afdb:"AfDB Group",aiib:"AIIB"};
 // Official capitals: arcs end here
 const CAPITALS = {BJ:["Porto-Novo",6.497,2.605],BF:["Ouagadougou",12.371,-1.520],CI:["Yamoussoukro",6.827,-5.289],GW:["Bissau",11.864,-15.598],
   ML:["Bamako",12.639,-8.003],NE:["Niamey",13.512,2.112],SN:["Dakar",14.716,-17.467],TG:["Lomé",6.131,1.222]};
@@ -1242,10 +1417,17 @@ document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleS
   document.getElementById("r-total").textContent = fmt(peg);
   document.getElementById("r-und").textContent = und ? `plus ${fmt(und)} in undated deals` : "";
 })();
-document.getElementById("sources").textContent = "(Data: IATI via d-portal, EIB, Proparco, BIO, DEG, Finnfund, IFU, ECB exchange rates, curated public sources)";
+document.getElementById("sources").textContent = "(Data: IATI via d-portal, EIB, Proparco, BIO, DEG, Finnfund, IFU, COFIDES, World Bank, AIIB, ECB exchange rates, curated public sources)";
 document.getElementById("f-est").onchange = e => { state.est = e.target.checked; update(false); };
-document.getElementById("gaps").textContent = "Not yet covered (no machine-readable disclosure found): " +
-  DATA.institutions.filter(i => !withData.has(i.institution_id)).map(i => i.name).join(", ") + ".";
+(() => {
+  const eu = DATA.institutions.filter(i => i.type !== "Non-EU");
+  const grp = c => eu.filter(i => i.coverage === c && !withData.has(i.institution_id)).map(i => SHORT[i.institution_id] || i.name).join(", ");
+  const parts = [["Programme level only (no deal-level data published)", grp("programme level")],
+                 ["Checked, no WAEMU deals found", grp("checked: no WAEMU deals found")],
+                 ["Not yet found in public sources", grp("manual")]].filter(x => x[1]);
+  document.getElementById("gaps").textContent = parts.map(([l, v]) => `${l}: ${v}.`).join(" ") +
+    " Non-EU actors (World Bank, IFC, African Development Bank Group including the African Development Fund, AIIB) appear only in the overlap analysis and are never added to European totals.";
+})();
 function drawLegend() {
   const list = state.view === "prog" ? KINDS : TYPES;
   document.getElementById("legend").innerHTML = list.map(([,l,v]) => `<span><i style="color:var(${v})"></i>${l}</span>`).join("") +
@@ -1651,6 +1833,21 @@ function renderAnalysis(rows) {
   }
   const ccOpts = `<option value="">All countries</option>` + Object.entries(DATA.countries).map(([cc, c]) => `<option value="${cc}"${state.ovCC === cc ? " selected" : ""}>${esc(c.name)}</option>`).join("");
   const secOpts = sectorList.map(s => `<option${s === state.ovSector ? " selected" : ""}>${esc(s)}</option>`).join("");
+  if (state.ovMode === "non") {
+    const m = new Map(), isNon = new Set();
+    for (const [a, inv] of rows) {
+      if (inv.sector_broad !== state.ovSector || (state.ovCC && a.country !== state.ovCC)) continue;
+      const v = valueOf(a, inv); if (!v) continue; m.set(inv.institution_id, (m.get(inv.institution_id) || 0) + v);
+    }
+    for (const c of (DATA.comparators || [])) {
+      if (c.s !== state.ovSector || (state.ovCC && c.c !== state.ovCC) || !state.cc.has(c.c)) continue;
+      if (state.yr && !(c.y && +c.y >= +state.yr)) continue;
+      if (state.ins && c.n !== state.ins) continue;
+      m.set(c.i, (m.get(c.i) || 0) + c.v); isNon.add(c.i);
+    }
+    ov = [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({label: SHORT[k] || INST[k].name, v,
+      color: isNon.has(k) ? css("--t-non") : css(typeVar[INST[k].type]), extra: isNon.has(k) ? "Non-EU actor" : ""}));
+  }
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, dis]) => `<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key] === v}"${dis ? " disabled title=\"Arrives with the next data update\"" : ""}>${l}</button>`).join("")}</div>`;
   document.getElementById("list").innerHTML = `<div class="ana">
     <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the eight WAEMU countries, ranked.</p>
@@ -1660,8 +1857,8 @@ function renderAnalysis(rows) {
       ${bars(rank(sectors), () => css("--accent"))}</section>
     <section><h3>Recipient countries by capital</h3>
       ${bars(rank(ctry).map(([k, v]) => [k, v, DATA.countries[k] ? DATA.countries[k].name : k]), () => css("--waemu-line"))}</section>
-    <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.</p>
-      ${seg("ovMode", [["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "Non-EU actors", true]])}
+    <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
+      ${seg("ovMode", [["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
       <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select><select id="ov-sec" aria-label="Sector">${secOpts}</select></div>
       ${columns(ov, unit)}</section>
   </div>`;
