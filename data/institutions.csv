@@ -17,7 +17,7 @@ sofid,SOFID,PT,DFI,,Lisbon,38.722,-9.139,https://www.sofid.pt,not yet covered
 cdp,Cassa Depositi e Prestiti (CDP),IT,NPB,CDP Group,Rome,41.9,12.48,https://www.cdp.it,manual
 bpifrance,Bpifrance,FR,NPB,,Paris,48.88,2.33,https://www.bpifrance.fr,manual
 ico,Instituto de Crédito Oficial (ICO),ES,NPB,,Madrid,40.41,-3.69,https://www.ico.es,manual
-bgk,Bank Gospodarstwa Krajowego (BGK),PL,NPB,,Warsaw,52.23,21.012,https://www.bgk.pl,manual
+bgk,Bank Gospodarstwa Krajowego (BGK),PL,NPB,,Warsaw,52.23,21.012,https://www.bgk.pl,curated
 atradius-dsb,Atradius Dutch State Business,NL,ECA,Atradius,Amsterdam,52.34,4.87,https://atradiusdutchstatebusiness.nl,automated
 allianz-trade-de,Allianz Trade (Euler Hermes) for the German Federal Government,DE,ECA,,Hamburg,53.551,9.994,https://www.exportkreditgarantien.de,manual
 bpifrance-ae,Bpifrance Assurance Export,FR,ECA,Bpifrance,Paris,48.89,2.3,https://www.bpifrance.fr,manual
@@ -28,7 +28,7 @@ ekn,EKN – Swedish Export Credit Agency,SE,ECA,,Stockholm,59.34,18.05,https://w
 eifo,EIFO – Export and Investment Fund of Denmark,DK,ECA,,Copenhagen,55.69,12.59,https://www.eifo.dk,manual
 finnvera,Finnvera,FI,ECA,,Helsinki,60.18,24.95,https://www.finnvera.fi,manual
 oekb,OeKB – Oesterreichische Kontrollbank,AT,ECA,OeKB Group,Vienna,48.215,16.365,https://www.oekb.at,manual
-kuke,KUKE – Export Credit Insurance Corporation,PL,ECA,,Warsaw,52.24,21.0,https://www.kuke.com.pl,manual
+kuke,KUKE – Export Credit Insurance Corporation,PL,ECA,,Warsaw,52.24,21.0,https://www.kuke.com.pl,curated
 eu-intpa,"European Commission – DG International Partnerships (NDICI-Global Europe, EDF)",EU,EU institution,European Union,Brussels,50.843,4.382,https://international-partnerships.ec.europa.eu,automated
 eib,European Investment Bank (EIB),EU,EU institution,EIB Group,Luxembourg,49.627,6.155,https://www.eib.org,automated
 ebrd,European Bank for Reconstruction and Development (EBRD),INT,Multilateral,,London,51.507,-0.128,https://www.ebrd.com,automated
