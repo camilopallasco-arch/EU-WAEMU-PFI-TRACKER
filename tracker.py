@@ -34,7 +34,7 @@ def step_reference():
 def step_iati():
     """Fetch full IATI XML (via d-portal, no API key) for target publishers x WAEMU countries."""
     import urllib.request, urllib.parse, pathlib, time
-    WAEMU = ["BJ","BF","CI","GW","ML","NE","SN","TG"]
+    WAEMU = ["BJ","BF","CI","GW","ML","NE","SN","TG","CM","CF","TD","CG","GQ","GA"]  # WAEMU + CEMAC (Franc Zone, without the Comoros)
     PUBLISHERS = {
      "FR-3":"AFD group", "NL-KVK-27078545":"FMO", "XM-DAC-918-3":"EIB",
      "XI-IATI-EBRD":"EBRD", "NL-KVK-33226495":"Atradius DSB",
@@ -91,7 +91,7 @@ def step_proparco():
     print(p,"pages",len(out),"projects")
     """Fetch Proparco detail pages for WAEMU-related (or possibly truncated) cards and extract labelled fields."""
     import json,re,urllib.request,time,html as H
-    W=["Benin","Burkina Faso","Côte d'Ivoire","Guinea-Bissau","Mali","Niger","Senegal","Togo"]
+    W=["Benin","Burkina Faso","Côte d'Ivoire","Guinea-Bissau","Mali","Niger","Senegal","Togo","Cameroon","Central African Republic","Chad","Congo","Equatorial Guinea","Gabon"]
     LABELS=["Financing tool","Financing amount (Euro)","Financing details","Customer","Type of customer",
             "Country of headquarters","Project number","Environmental and social ranking"]
     UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
@@ -123,7 +123,8 @@ def step_bio():
     """BIO (Belgium): list investments per WAEMU country via the site's filter, then read each detail page."""
     import re,json,time,urllib.request,urllib.parse,html as H
     UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    C={"BJ":359,"BF":371,"CI":390,"GW":259517,"ML":473,"NE":497,"SN":530,"TG":558}
+    C={"BJ":359,"BF":371,"CI":390,"GW":259517,"ML":473,"NE":497,"SN":530,"TG":558,
+       "CM":374,"CF":259502,"TD":259511,"CG":259513}  # BIO has no filter for Equatorial Guinea or Gabon
     def get(u): return urllib.request.urlopen(urllib.request.Request(urllib.parse.quote(u,safe=":/?=&%[]"),headers=UA),timeout=60).read().decode("utf-8","replace")
     def clean(s): return H.unescape(re.sub(r"\s+"," ",re.sub("<[^>]+>"," ",s))).strip()
     links={}
@@ -148,7 +149,9 @@ def step_wp():
     import json,urllib.request,re,unicodedata,pathlib
     UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
     WAEMU={"BJ":["benin","bénin"],"BF":["burkina"],"CI":["ivoire","divoire","ivory","elfenben\\w*"],"GW":["bissau"],
-           "ML":["mali"],"NE":["niger"],"SN":["senegal","sénégal"],"TG":["togo"]}
+           "ML":["mali"],"NE":["niger"],"SN":["senegal","sénégal"],"TG":["togo"],
+           "CM":["cameroon","cameroun","kamerun"],"CF":["central african"],"TD":["chad","tchad"],"GQ":["equatorial guinea"],"GA":["gabon"],
+           "CG":["republic of congo","congo-brazzaville","congo brazzaville"]}
     SITES={"finnfund":("https://www.finnfund.fi","venture","country"),
            "ifu":("https://impactfund.dk","investment","region")}
     def g(u):
@@ -162,6 +165,8 @@ def step_wp():
             p+=1
     def match(name):
         n=unicodedata.normalize("NFKD",name.lower())
+        if "democratic" in n or "demokratiske" in n:
+            return []  # never the DR Congo
         return [cc for cc,keys in WAEMU.items() if any(re.search(r"\b"+k+r"\b",n) for k in keys)]
     for key,(base,ptype,tax) in SITES.items():
         T=terms(base,tax); tid={t["id"]:t["name"] for t in T}
@@ -184,7 +189,7 @@ def step_eib():
             "&sortDir=desc&itemPerPage=100&pageable=true&language=EN&defaultLanguage=EN&orCountries=true")
     pathlib.Path("raw/eib").mkdir(parents=True, exist_ok=True)
     out = {}
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG"]:
+    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
         page = 0
         while True:
             r = urllib.request.Request(f"{BASE}&countries={cc}&pageNumber={page}", headers=UA)
@@ -205,7 +210,7 @@ def step_cofides():
     UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
     pathlib.Path("raw/cofides").mkdir(parents=True, exist_ok=True)
     out = []
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG"]:
+    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
         url = f"https://www.cofides.es/en/projects?field_direccion_country_code={cc}&field_sector_target_id=All"
         s = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90).read().decode("utf-8", "replace")
         t = H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", "\n", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
@@ -226,7 +231,7 @@ def step_noneu():
     pathlib.Path("raw/nonEU").mkdir(parents=True, exist_ok=True)
     def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120).read()
     wb = []
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG"]:
+    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
         start = 0
         while True:
             d = json.loads(get("https://search.worldbank.org/api/v2/projects?format=json&countrycode_exact=" + cc +
@@ -266,30 +271,47 @@ def step_normalize():
     TODAY = datetime.date.today().isoformat()
 
     # ---------------------------------------------------------------- reference data
-    COUNTRIES = {  # WAEMU member states, approximate geographic centroids
+    COUNTRIES = {  # Franc Zone countries covered: WAEMU (West) and CEMAC (Central); approximate geographic centroids
         "BJ": ("BEN", "Benin", 9.31, 2.32), "BF": ("BFA", "Burkina Faso", 12.24, -1.56),
         "CI": ("CIV", "Côte d'Ivoire", 7.54, -5.55), "GW": ("GNB", "Guinea-Bissau", 11.80, -15.18),
         "ML": ("MLI", "Mali", 17.57, -4.00), "NE": ("NER", "Niger", 17.61, 8.08),
         "SN": ("SEN", "Senegal", 14.50, -14.45), "TG": ("TGO", "Togo", 8.62, 0.82),
+        "CM": ("CMR", "Cameroon", 6.00, 12.35), "CF": ("CAF", "Central African Republic", 6.61, 20.94),
+        "TD": ("TCD", "Chad", 15.45, 18.73), "CG": ("COG", "Republic of the Congo", -0.66, 15.20),
+        "GQ": ("GNQ", "Equatorial Guinea", 1.60, 10.40), "GA": ("GAB", "Gabon", -0.80, 11.61),
     }
-    NAME_TO_CC = {
-        "benin": "BJ", "bénin": "BJ", "burkina faso": "BF", "burkina": "BF", "cote d'ivoire": "CI",
-        "côte d'ivoire": "CI", "côte d’ivoire": "CI", "ivory coast": "CI", "cote d’ivoire": "CI",
-        "guinea-bissau": "GW", "guinea bissau": "GW", "mali": "ML", "niger": "NE", "senegal": "SN",
-        "sénégal": "SN", "togo": "TG",
-    }
-    CC_PATTERN = re.compile(r"\b(benin|bénin|burkina faso|c[oô]te d[’'`]?\s?ivoire|ivory coast|guinea[- ]bissau|"
-                            r"mali|niger|s[eé]n[eé]gal|togo)\b", re.I)
+    UNION = {cc: ("WAEMU" if cc in ("BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG") else "CEMAC") for cc in COUNTRIES}
+    _NAMES = [
+        ("BJ", r"b[eé]nin"), ("BF", r"burkina(?: faso)?"),
+        ("CI", r"c[oô]te d[’'`]?\s?ivoire|ivory coast|costa de marfil|costa d.avorio|elfenbenskysten"),
+        ("GW", r"guin(?:ea|[eé]e?)[- ]bissau"), ("ML", r"mali"), ("NE", r"niger"), ("SN", r"s[eé]n[eé]gal"), ("TG", r"togo"),
+        ("CM", r"cameroon|cameroun|camer[uú]n|kamerun"),
+        ("CF", r"central african rep(?:ublic|\.)?|centrafri(?:que|caine)|rep[uú]blica centroafricana"),
+        ("TD", r"chad|tchad|ciad"),
+        ("GQ", r"equatorial guinea|guin[eé]e [eé]quatoriale|guinea ecuatorial|guinea equatoriale"),
+        ("GA", r"gab[oó]n"),
+        ("CG", r"congo"),
+    ]
+    CC_PATTERN = re.compile(r"\b(" + "|".join(f"(?P<{cc}>{rx})" for cc, rx in _NAMES) + r")\b", re.I)
+    _NOT_ROC_BEFORE = re.compile(r"(democratic|dem\.|d\.r\.|\bdr\b|\brd\b|\brdc\b|d[eé]mocratique|bassin du|basin|river|fleuve)"
+                                 r"[\s,]*(republic|rep\.?)?[\s,]*(of)?[\s,]*(the)?[\s,]*(du)?[\s,]*$", re.I)
+    _NOT_ROC_AFTER = re.compile(r"^[\s,(-]*(kinshasa|dem\b|dem\.|democratic|basin|river|drc)", re.I)
 
     def countries_in(text):
-        """Return WAEMU ISO2 codes mentioned in free text (ignores 'Nigeria', 'Somalia')."""
+        """Return Franc Zone ISO2 codes mentioned in free text.
+        Ignores Nigeria, Somalia, Guinea (Conakry); 'Congo' counts only for the Republic of the Congo (never the DRC,
+        the Congo Basin or the Congo River); 'Chad' is not counted when it means Lake Chad."""
+        text = text or ""
         found = []
-        for m in CC_PATTERN.finditer(text or ""):
-            k = m.group(1).lower().replace("`", "'").replace("’", "'")
-            k = re.sub(r"c[oô]te d'?\s?ivoire", "côte d'ivoire", k)
-            k = k.replace("guinea bissau", "guinea-bissau").replace("sénégal", "senegal").replace("senégal", "senegal")
-            cc = NAME_TO_CC.get(k) or NAME_TO_CC.get(unicodedata.normalize("NFKD", k).encode("ascii", "ignore").decode())
-            if cc and cc not in found:
+        for m in CC_PATTERN.finditer(text):
+            cc = next(k for k, v in m.groupdict().items() if v)
+            before = text[max(0, m.start() - 45):m.start()]
+            after = text[m.end():m.end() + 25]
+            if cc == "CG" and (_NOT_ROC_BEFORE.search(before) or _NOT_ROC_AFTER.search(after)):
+                continue
+            if cc == "TD" and re.search(r"(lake|lac)\s*$", before, re.I):
+                continue
+            if cc not in found:
                 found.append(cc)
         return found
 
@@ -601,6 +623,7 @@ def step_normalize():
                 note="Signed amount as allocated to this country by the EIB. Instrument inferred: fund investments shown as equity, everything else as loans.")
 
     # ---- Proparco
+    _proparco_ids = set()
     for p in json.load(open(RAW / "proparco" / "projects.json")):
         f = p.get("fields", {})
         ctext = f.get("Countries_full") or p.get("countries") or ""
@@ -616,6 +639,9 @@ def step_normalize():
         multi = len([c for c in ctext.split(",") if c.strip()]) > 1
         method = "single_country" if not multi else "equal_split_estimate"
         rec = f.get("Project number") or p["url"].rsplit("/", 1)[-1]
+        if rec in _proparco_ids:  # Proparco sometimes reuses a project number for a renewal: keep both deals
+            rec = rec + "-" + p["url"].rstrip("/").rsplit("/", 1)[-1][:40]
+        _proparco_ids.add(rec)
         add("proparco", "proparco-web", rec, p["url"], p["title"], client=f.get("Customer", ""),
             client_domicile=f.get("Country of headquarters", ""),
             instrument=instrument_from(f.get("Financing tool", "")), sector_broad=broad_sector(" ".join(p["tags"])),
@@ -859,8 +885,8 @@ def step_normalize():
     write("institutions", inst_rows, INST_FIELDS)
     write("investments", investments, list(investments[0].keys()))
     write("investment_countries", allocations, list(allocations[0].keys()))
-    write("countries", [{"iso2": k, "iso3": v[0], "name": v[1], "lat": v[2], "lon": v[3]} for k, v in COUNTRIES.items()],
-          ["iso2", "iso3", "name", "lat", "lon"])
+    write("countries", [{"iso2": k, "iso3": v[0], "name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()],
+          ["iso2", "iso3", "name", "lat", "lon", "union"])
     counts = {}
     for inv in investments:
         counts[inv["source_id"]] = counts.get(inv["source_id"], 0) + 1
@@ -898,7 +924,8 @@ def step_normalize():
     TE_COUNTRY = {  # Team Europe members per country, as listed on the European Commission's country pages
         "CI": "EU EIB BE FI FR DE IT ES NL", "SN": "EU EIB AT BE CZ FI FR DE GR HU IE IT LU NL PL PT RO ES",
         "BJ": "EU EIB BE FR DE LU NL", "BF": "EU EIB BE NL DE IT", "ML": "EU DE BE ES IT NL",
-        "NE": "EU FR DE BE ES IT LU NL", "TG": "EU FR DE", "GW": "EU EIB FR PT ES"}
+        "NE": "EU FR DE BE ES IT LU NL", "TG": "EU FR DE", "GW": "EU EIB FR PT ES",
+        "CM": "EU EIB BE FR DE IT ES", "CF": "EU BE ES FR DE", "TD": "EU EIB FR DE IT NL ES", "CG": "EU FR DE", "GA": "EU FR"}
     EC = "https://international-partnerships.ec.europa.eu/countries/"
     TRACKER_FR = "https://capacity4dev.europa.eu/resources/team-europe-tracker/team-europe-actors/france/tei_en"
     TRACKER_EU = "https://capacity4dev.europa.eu/resources/team-europe-tracker/team-europe-actors/eu/tei_en"
@@ -931,14 +958,28 @@ def step_normalize():
         P("tei-tg-agri", "Togo – Sustainable agribusiness", TEI, "TG", TE_COUNTRY["TG"], "Pineapple, cashew and soya value chains, smallholder productivity and women's entrepreneurship.", TRACKER_FR, note=MEMBERS_NOTE),
         P("tei-tg-energy", "Togo – Sustainable energy and digitalisation", TEI, "TG", TE_COUNTRY["TG"], "Renewable electricity distribution for over a million people and digital entrepreneurship.", TRACKER_FR, note=MEMBERS_NOTE),
         P("tei-gw-education", "Guinea-Bissau – Education and training for an inclusive, green transition", TEI, "GW", "EU PT", "Reform of primary and higher education, teacher and student mobility, scientific research.", "https://capacity4dev.europa.eu/resources/team-europe-tracker/partner-countries/guinea-bissau/guinea-bissau-education-and-training-towards-inclusive-and-green-transition_en"),
+        # CEMAC country Team Europe Initiatives
+        P("tei-cm-north", "Cameroon – Green Deal and resilience in North Cameroon", TEI, "CM", TE_COUNTRY["CM"], "Agri-food systems, rural livelihoods, natural resources, local governance and stability in Cameroon's three northern regions.", "https://capacity4dev.europa.eu/resources/team-europe-tracker/partner-countries/cameroon/tei_en", note=MEMBERS_NOTE),
+        P("tei-cf-court", "Central African Republic – Special Criminal Court", TEI, "CF", "EU BE ES FR DE", "Support for the court trying serious international crimes, with resources and expertise for its independent operation.", EC + "central-african-republic_en"),
+        P("tei-cg-forests", "Republic of the Congo – Congo Basin forests and sustainable development", TEI, "CG", "EU FR DE", "Preserving the Congo Basin's forests and moving the economy away from oil towards a green, diversified path.", EC + "congo_en", note="Name describes the initiative as presented by the Commission."),
         # Regional Team Europe Initiatives covering WAEMU countries
         P("tei-atlantic", "Migration – Atlantic and Western Mediterranean routes", TEI, "SN BF CI ML NE", "EU BE CZ DK FR DE IT NL ES", "Regional migration and mobility initiative; also covers Algeria, Mauritania, Morocco, The Gambia, Ghana, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", amount=908e6, period="2022–", note="€908m mobilised at launch across all 12 partner countries, not only WAEMU."),
         P("tei-centralmed", "Migration – Central Mediterranean route", TEI, "BF NE CI", "EU AT BE DE CZ DK FR IT MT NL ES", "Regional migration initiative; also covers Chad, Egypt, Libya, Ethiopia, Eritrea, Somalia, Sudan, Tunisia, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", period="2022–"),
         P("tei-iyba", "Investing in Young Businesses in Africa (IYBA)", TEI, "BJ SN TG BF ML NE", "EU EIB FR DE BE NL", "Finance and technical support for start-ups and small businesses; Benin was the pilot country (launched in Cotonou, March 2024).", "https://international-partnerships.ec.europa.eu/policies/global-gateway/investing-young-businesses-africa_en", period="2021–", note="Country list per the Commission; participants are the core members named in public communication and may be incomplete."),
-        P("tei-opvet", "Opportunity-driven skills and vocational training in Africa (OP-VET)", TEI, "BJ BF ML NE TG CI GW SN", "EU", "Aligning vocational training with jobs created by public and private investment.", "https://capacity4dev.europa.eu/countries/nigeria/projects_en", period="2024–"),
+        P("tei-opvet", "Opportunity-driven skills and vocational training in Africa (OP-VET)", TEI, "BJ BF ML NE TG CI GW SN TD", "EU", "Aligning vocational training with jobs created by public and private investment.", "https://capacity4dev.europa.eu/countries/nigeria/projects_en", period="2024–"),
         P("tei-mav", "Manufacturing and access to vaccines, medicines and health technologies (MAV+)", TEI, "SN", "EU EIB FR DE BE", "Continental initiative; in Senegal it backs the MADIBA vaccine plant at Institut Pasteur de Dakar and the national pharmaceutical plan.", EC + "senegal_en", note="Participants named are the most visible members; the full list is not openly published."),
-        P("tei-water", "Transboundary water management in Africa", TEI, "SN ML NE BJ BF CI TG", "EU", "Senegal, Gambia, Niger and Volta basins among those targeted.", "https://capacity4dev.europa.eu/groups/public-water_and_sanitation/info/team-europe-initiative-transboundary-water-management-africa_en", period="2022–"),
+        P("tei-water", "Transboundary water management in Africa", TEI, "SN ML NE BJ BF CI TG CM TD", "EU", "Senegal, Gambia, Niger and Volta basins among those targeted.", "https://capacity4dev.europa.eu/groups/public-water_and_sanitation/info/team-europe-initiative-transboundary-water-management-africa_en", period="2022–"),
         # Global Gateway flagships
+        P("gg-cm-nachtigal", "Nachtigal hydropower (420 MW) and Cameroon–Chad interconnection", GG, "CM TD", "EU EIB", "Exporting electricity from the Nachtigal plant to Chad through a new interconnection; support also for the 500 MW Kikot dam.", EC + "cameroon_en"),
+        P("gg-cm-logone", "Logone River bridge (Cameroon–Chad)", GG, "CM TD", "EU", "Bridge linking Cameroon and Chad on the Douala–N'Djamena corridor.", EC + "cameroon_en"),
+        P("gg-cm-transcam", "TRANSCAM 2 railway rehabilitation (Belabo–Ngaoundéré)", GG, "CM", "EU EIB afd", "Railway on the Douala–N'Djamena corridor, with planned extensions to Chad; €243m blended scheme including €23.6m of EU grant.", "https://international-partnerships.ec.europa.eu/system/files/2023-10/GG_Factsheet_Africa_Strategic%20Corridors.pdf", amount=243e6, note="Total blended financing, not EU money alone."),
+        P("gg-td-road", "Chad–Cameroon road corridor rehabilitation", GG, "TD", "EU EIB", "229 km road on the corridor giving Chad access to the port of Douala.", "https://www.eib.org/en/press/all/2023-154-global-gateway-l-equipe-europe-finance-a-hauteur-de-176-2meur-le-projet-de-corridor-routier-entre-le-tchad-et-le-cameroun", amount=176.2e6, period="2023"),
+        P("gg-corr-libreville-ndjamena", "Strategic corridor Libreville/Kribi/Douala–N'Djamena", GG, "GA GQ CM TD", "EU EIB afd", "Central African transport corridor; also covers São Tomé and Príncipe.", CORR),
+        P("gg-corr-douala-kampala", "Strategic corridor Douala/Kribi–Kampala", GG, "CM CF", "EU", "Corridor linking Cameroon's ports to the Central African Republic, DR Congo and Uganda.", CORR),
+        P("gg-ga-transgabonais", "Transgabonais railway rehabilitation", GG, "GA", "EU", "Connecting production areas with Libreville's economic zones and sawmills.", EC + "gabon_en", amount=30e6),
+        P("gg-cf-backbone", "Central Africa Backbone fibre network (CAR)", GG, "CF", "EU", "Extension of the fibre-optic network.", EC + "central-african-republic_en"),
+        P("gg-cg-forest", "EU–Republic of the Congo Forest Partnership", GG, "CG", "EU", "Partnership on forest protection and the forest economy (memorandum signed 2022).", EC + "congo_en", period="2022–"),
+        P("gg-ga-forest", "EU–Gabon Forest Partnership", GG, "GA", "EU", "Biodiversity protection with benefits for local populations, protected areas and certified forest concessions.", EC + "gabon_en"),
         P("gg-sn-hann", "Hann Bay depollution, Dakar", GG, "SN", "EU EIB afd", "Cleaning up Dakar's Hann Bay and its industrial and household wastewater.", EC + "senegal_en"),
         P("gg-sn-brt", "Dakar Bus Rapid Transit and bus network", GG, "SN", "EU EIB", "Construction of the BRT line and restructuring of Dakar's public bus network.", GG_INFO),
         P("gg-sn-ziguinchor", "Port of Ziguinchor upgrade (Casamance)", GG, "SN", "EU", "Upgrade and operation of the port of Ziguinchor.", GG_INFO),
@@ -969,6 +1010,11 @@ def step_normalize():
         P("env-ml", "EU bilateral envelope – Mali", ENV, "ML", "EU", "Grant funding around green growth and youth; from 2025 Mali draws on funds for central Sahel countries in complex settings.", EC + "mali_en", amount=151e6, period="2021–2024"),
         P("env-ne", "EU bilateral envelope – Niger", ENV, "NE", "EU", "Governance, education and vocational training, growth and the green economy.", EC + "niger_en", amount=382.34e6, period="2021–2024"),
         P("env-tg", "EU bilateral envelope – Togo", ENV, "TG", "EU", "Agribusiness, energy, digital and governance.", EC + "togo_en", amount=201e6, period="2021–2027"),
+        P("env-cm", "EU bilateral envelope – Cameroon", ENV, "CM", "EU", "NDICI-Global Europe grant funding for the partnership.", EC + "cameroon_en", amount=244e6, period="2021–2027"),
+        P("env-cf", "EU bilateral envelope – Central African Republic", ENV, "CF", "EU", "Peace and security, education and health, agriculture and governance.", EC + "central-african-republic_en", amount=204e6, period="2021–2024"),
+        P("env-td", "EU bilateral envelope – Chad", ENV, "TD", "EU", "Corridor investments, rural electrification, value chains and vocational training.", EC + "chad_en", amount=280e6, period="2021–2024"),
+        P("env-cg", "EU bilateral envelope – Republic of the Congo", ENV, "CG", "EU", "Green, digital and diversified economy.", EC + "congo_en", amount=110e6, period="2021–2027"),
+        P("env-ga", "EU bilateral envelope – Gabon", ENV, "GA", "EU", "Green transition, sustainable growth and governance.", EC + "gabon_en", amount=11e6, period="2021–2027", note="Amount as stated on the Commission's Gabon page."),
         P("env-gw", "EU bilateral envelope – Guinea-Bissau", ENV, "GW", "EU", "Health, education and training, economic diversification and governance.", EC + "guinea-bissau_en", amount=155e6, period="2021–2027"),
         # National programmes without deal-level disclosure
         P("nat-choose-africa-2", "Choose Africa 2 (AFD Group and Bpifrance)", NAT, "BJ CI SN TG", "afd proparco bpifrance", "Financing and support for African start-ups and small businesses, plus help for states to build public banks for entrepreneurs.", "https://www.afd.fr/fr/actualites/choose-africa-2-le-soutien-lentrepreneuriat-africain-monte-en-regime", period="2023–2027"),
@@ -978,7 +1024,7 @@ def step_normalize():
         P("nat-bgk-africa-limit", "BGK Africa export financing limit to 2030", NAT, "CI", "bgk kuke", "Credit, guarantee and letter-of-credit limit of PLN 4bn (about USD 1.1bn) for Polish firms exporting to and investing in seven African countries, including Côte d'Ivoire.", "https://www.wnp.pl/rynki/bgk-przeznaczy-miliardy-zlotych-na-wsparcie-polskich-firm-w-afryce,999155.html", period="to 2030", note="The limit covers seven countries (also Angola, Morocco, South Africa, Tanzania, Kenya, Rwanda), so no WAEMU amount is shown."),
         P("nat-cwa", "G20 Compact with Africa (initiated by Germany)", NAT, "BJ BF CI SN TG", "DE kfw-db deg", "G20 initiative launched under Germany's 2017 presidency to coordinate reforms and attract private investment; Germany backs it with KfW and DEG instruments.", "https://www.compactwithafrica.org/en/programs/g20-compact-with-africa", period="2017–"),
         P("nat-africaconnect", "AfricaConnect (DEG, BMZ Development Investment Fund)", NAT, "BJ BF CI SN TG", "deg", "Loans of €0.75–4m with risk sharing for European companies investing in Africa, focused on Compact with Africa countries.", "https://www.bmz.de/resource/blob/39670/factsheet-africaconnect-en.pdf", period="2019–"),
-        P("nat-mattei", "Italy's Mattei Plan", NAT, "CI BJ TG", "IT cdp simest sace", "Italy's Africa strategy, delivered through CDP (a €500m Africa facility), SIMEST (€200m 'Misura Africa') and SACE guarantees.", "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", period="2024–", note="Countries shown are those with documented operations; the plan covers more."),
+        P("nat-mattei", "Italy's Mattei Plan", NAT, "CI BJ TG CG GA", "IT cdp simest sace", "Italy's Africa strategy, delivered through CDP (a €500m Africa facility), SIMEST (€200m 'Misura Africa') and SACE guarantees.", "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", period="2024–", note="Côte d'Ivoire and the Republic of the Congo are original priority countries; Gabon joined in 2026; Benin and Togo have documented SACE operations."),
         P("nat-cesce-ci", "CESCE cover ceiling for the Ivorian public sector", NAT, "CI", "cesce", "Spanish state risk committee ceiling for new medium- and long-term operations of Spanish firms with Ivorian public buyers.", "https://www.monedaunica.net/2018/06/cesce-amplia-la-cobertura-en-costa-de-marfil-y-turkmenistan/", amount=100e6, period="2018–", note="A cover limit, not money spent."),
         P("nat-finexpo", "Belgian Finexpo mixed credits (with Credendo)", NAT, "CI", "credendo BE", "Belgian state-supported mixed credits for projects with Belgian suppliers.", "https://credendo.com/sites/default/files/media/files/2021-03/annualreports2017.pdf"),
         P("nat-c2d", "Debt-for-development swaps (C2D) with Côte d'Ivoire", NAT, "CI", "afd ES", "Côte d'Ivoire's debt payments to France and Spain are returned as financing for poverty-reduction projects.", "https://www.cesce.es/documents/20122/0/INFORME+COSTA+DE+MARFIL+-+22+septiembre+2021_compressed.pdf/da7a101b-6d0e-f02a-dbd8-073b8d128721?t=1633361771235"),
@@ -994,7 +1040,7 @@ def step_normalize():
                                     r.get("description", ""), r.get("source_url", ""), float(r["amount_eur"]) if (r.get("amount_eur") or "").replace(".", "", 1).isdigit() else None,
                                     r.get("period", ""), r.get("note", "")))
     PROGRAMMES = [p for p in PROGRAMMES if any(c in COUNTRIES for c in p["countries"])]
-    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs']}
+    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs'], 'tei-cm-north': ['Agriculture and food systems', 'Energy and climate', 'Governance and budget support'], 'tei-cf-court': ['Governance and budget support'], 'tei-cg-forests': ['Energy and climate'], 'gg-cm-nachtigal': ['Energy and climate'], 'gg-cm-logone': ['Transport and corridors'], 'gg-cm-transcam': ['Transport and corridors'], 'gg-td-road': ['Transport and corridors'], 'gg-corr-libreville-ndjamena': ['Transport and corridors'], 'gg-corr-douala-kampala': ['Transport and corridors'], 'gg-ga-transgabonais': ['Transport and corridors'], 'gg-cf-backbone': ['Digital and telecoms'], 'gg-cg-forest': ['Energy and climate'], 'gg-ga-forest': ['Energy and climate'], 'env-cm': ['Other (social, humanitarian, multi-sector)'], 'env-cf': ['Other (social, humanitarian, multi-sector)'], 'env-td': ['Other (social, humanitarian, multi-sector)'], 'env-cg': ['Other (social, humanitarian, multi-sector)'], 'env-ga': ['Other (social, humanitarian, multi-sector)']}
     for _p in PROGRAMMES:  # sector tags for the overlap analysis; manual programmes are tagged from their text
         _p["sectors"] = PROG_SECTORS.get(_p["programme_id"]) or [broad_sector(_p["name"] + " " + _p["description"])]
     with open(OUT / "programmes.csv", "w", newline="", encoding="utf-8") as fh:
@@ -1005,7 +1051,7 @@ def step_normalize():
 
     # compact bundle for the website
     bundle = {"generated": TODAY, "programmes": PROGRAMMES,
-              "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3]} for k, v in COUNTRIES.items()},
+              "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()},
               "institutions": inst_rows,
               "sectors": SECTOR_LIST, "peg_year": 1999,
               "comparators": [{"i": a["institution_id"], "c": a["country"], "s": comp_inv[a["investment_id"]]["sector_broad"],
@@ -1088,7 +1134,7 @@ TEMPLATE = r'''<!doctype html>
   --bg:#040a0f; --bg2:#071219; --panel:rgba(7,18,26,.9); --panel-solid:#08151d;
   --ink:#d9f4ff; --muted:#8db1c0; --dim:#56798a; --line:#163746; --line-hi:#2a6a80;
   --accent:#40e8ff; --focus:#40e8ff; --chip:#0a1c26;
-  --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --border:#5d93a6; --waemu-line:#ffbf5c;
+  --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --land-cemac:#55271c; --border:#5d93a6; --waemu-line:#ffbf5c; --cemac-line:#ff9a7a;
   --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff;
   --t-non:#c3ccd1; --k-tei:#4fa8ff; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -1125,6 +1171,8 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
   background:rgba(4,12,17,.72);padding:10px 12px;border:1px solid var(--line)}
 .legend span{display:flex;align-items:center;gap:9px}
 .legend i{width:22px;height:0;border-top:2px dotted;display:inline-block}
+.legend .fz{margin-top:2px}
+.legend i.box{width:14px;height:10px;border:1.5px solid;border-top-width:1.5px}
 .legend small{color:var(--dim);font-family:var(--mono);font-size:11px}
 .bracket::before,.bracket::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--accent);pointer-events:none}
 .bracket::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
@@ -1154,6 +1202,9 @@ aside{background:var(--panel);border-left:1px solid var(--line);display:flex;fle
 .searchbox::after{content:"";position:absolute;left:20px;top:50%;width:6px;height:1.5px;margin-top:3px;background:var(--muted);transform:rotate(45deg)}
 .searchbox input:focus{border-color:var(--accent)}
 .searchbox input::placeholder{color:var(--dim)}
+.unionhead{display:flex;align-items:center;gap:8px;margin:6px 0 4px;font-size:12.5px;color:var(--muted)}
+.unionhead b{font-weight:600;color:var(--ink)}
+.unionhead .clear{margin-left:auto;font-size:12px}
 .estbox{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted)}
 .reset{appearance:none;width:100%;padding:10px 12px;cursor:pointer;font:600 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;
   color:#ffe9eb;background:linear-gradient(#7a1622,#5a0f19);border:1px solid #d9455a;outline:1px solid rgba(217,69,90,.35);outline-offset:3px;
@@ -1226,6 +1277,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .flatmap .land{fill:var(--land);stroke:var(--border);stroke-width:.6px;vector-effect:non-scaling-stroke}
 .flatmap .land.eu{fill:var(--land-eu)}
 .flatmap .land.waemu{fill:var(--land-waemu);stroke:var(--waemu-line);stroke-width:1.2px;cursor:pointer}
+.flatmap .land.cemac{fill:var(--land-cemac);stroke:var(--cemac-line);stroke-width:1.2px;cursor:pointer}
 .flatmap .arc{fill:none;stroke-linecap:round;stroke-dasharray:0 7;vector-effect:non-scaling-stroke;opacity:.9;cursor:pointer;animation:flow 14s linear infinite}
 .flatmap .arc.sparse{stroke-dasharray:0 13;animation-duration:26s}
 .flatmap .cname{fill:#ffe2b0;font:600 13px var(--sans);text-anchor:middle;paint-order:stroke;stroke:#000;stroke-width:3px;pointer-events:none}
@@ -1255,11 +1307,11 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="hud title" style="position:absolute">
       <p class="code">Franc Zone tracker</p>
       <h1>European Public Investment in the Franc Zone</h1>
-      <p>Where EU institutions and member states' development banks, DFIs, promotional banks and export credit agencies invest in the Franc Zone, starting with the eight WAEMU countries, and the Team Europe programmes they run there. Click a line, a country or a capital.</p>
+      <p>Where EU institutions and member states' development banks, DFIs, promotional banks and export credit agencies invest in the Franc Zone's 14 countries (WAEMU in West Africa, CEMAC in Central Africa), and the Team Europe programmes they run there. Click a line, a country or a capital.</p>
     </div>
     <div class="hud readout bracket" aria-hidden="true">
       <div>Records: <b id="r-rec"></b></div>
-      <div class="r-total">Total: <b id="r-total"></b> since implementation of XOF–Euro peg</div>
+      <div class="r-total">Total: <b id="r-total"></b> since implementation of XOF/XAF–Euro peg</div>
       <div class="r-small" id="r-und"></div>
       <div class="r-small">Data sync <span id="r-sync"></span></div>
     </div>
@@ -1286,7 +1338,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
         <div class="group"><h2>Programme kind</h2><div class="chips" id="f-kind"></div></div>
         <div class="group" style="margin-top:12px"><h2><label for="f-part">Participant</label></h2><select id="f-part"></select></div>
       </div>
-      <div class="group"><h2>Recipient country</h2><div class="chips" id="f-cc"></div></div>
+      <div class="group"><h2>Recipient country</h2><div id="f-cc"></div></div>
       <div class="group"><h2><label for="f-cap">Jump to a capital</label></h2><select id="f-cap"></select></div>
       <div class="row2" id="inv-filters-2">
         <div class="group"><h2><label for="f-ins">Instrument</label></h2><select id="f-ins"></select></div>
@@ -1304,7 +1356,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="list" id="list"></div>
     <div class="foot">
       <details><summary>About the data</summary>
-        <p>Coverage currently covers the eight WAEMU countries; the Central African (CEMAC) countries and the Comoros will follow. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
+        <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
         <p id="gaps"></p>
       </details>
     </div>
@@ -1333,8 +1385,14 @@ const SHORT = {"eu-intpa":"European Commission",afd:"AFD",proparco:"Proparco","k
   afdb:"AfDB Group",aiib:"AIIB"};
 // Official capitals: arcs end here
 const CAPITALS = {BJ:["Porto-Novo",6.497,2.605],BF:["Ouagadougou",12.371,-1.520],CI:["Yamoussoukro",6.827,-5.289],GW:["Bissau",11.864,-15.598],
-  ML:["Bamako",12.639,-8.003],NE:["Niamey",13.512,2.112],SN:["Dakar",14.716,-17.467],TG:["Lomé",6.131,1.222]};
-const WAEMU_NUM = {"204":"BJ","854":"BF","384":"CI","624":"GW","466":"ML","562":"NE","686":"SN","768":"TG"};
+  ML:["Bamako",12.639,-8.003],NE:["Niamey",13.512,2.112],SN:["Dakar",14.716,-17.467],TG:["Lomé",6.131,1.222],
+  CM:["Yaoundé",3.848,11.502],CF:["Bangui",4.394,18.558],TD:["N'Djamena",12.134,15.056],CG:["Brazzaville",-4.263,15.242],
+  GQ:["Malabo",3.755,8.774],GA:["Libreville",0.416,9.467]};
+// Franc Zone countries by numeric ISO code (shapes on the map); the union decides the colour
+const WAEMU_NUM = {"204":"BJ","854":"BF","384":"CI","624":"GW","466":"ML","562":"NE","686":"SN","768":"TG",
+  "120":"CM","140":"CF","148":"TD","178":"CG","226":"GQ","266":"GA"};
+const unionOf = cc => (DATA.countries[cc] && DATA.countries[cc].union) || "WAEMU";
+const fzVar = (cc, kind) => unionOf(cc) === "CEMAC" ? (kind === "line" ? "--cemac-line" : "--land-cemac") : (kind === "line" ? "--waemu-line" : "--land-waemu");
 const EU_NUM = new Set(["040","056","100","191","196","203","208","233","246","250","276","300","348","372","380","428","440","442","470","528","616","620","642","703","705","724","752"]);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const typeVar = Object.fromEntries(TYPES.map(t => [t[0], t[2]]));
@@ -1374,11 +1432,27 @@ function chipGroup(el, list, set) {
 chipGroup(document.getElementById("f-type"), TYPES, state.types);
 chipGroup(document.getElementById("f-kind"), KINDS, state.kinds);
 const fCC = document.getElementById("f-cc");
-Object.entries(DATA.countries).forEach(([cc,c]) => {
-  const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed","true"); b.textContent = c.name;
-  b.onclick = () => { state.cc.has(cc) ? state.cc.delete(cc) : state.cc.add(cc); b.setAttribute("aria-pressed", state.cc.has(cc)); state.focus = null; update(); };
-  fCC.append(b);
-});
+for (const un of ["WAEMU", "CEMAC"]) {
+  const members = Object.entries(DATA.countries).filter(([cc]) => unionOf(cc) === un);
+  if (!members.length) continue;
+  const head = document.createElement("div"); head.className = "unionhead";
+  head.innerHTML = `<span class="sw" style="background:var(${un === "CEMAC" ? "--cemac-line" : "--waemu-line"})"></span><b>${un}</b>`;
+  const tog = document.createElement("button"); tog.type = "button"; tog.className = "clear"; tog.textContent = "All / none";
+  tog.onclick = () => {
+    const allOn = members.every(([cc]) => state.cc.has(cc));
+    members.forEach(([cc]) => allOn ? state.cc.delete(cc) : state.cc.add(cc));
+    fCC.querySelectorAll(`.chip[data-union="${un}"]`).forEach(c => c.setAttribute("aria-pressed", state.cc.has(c.dataset.cc)));
+    state.focus = null; update();
+  };
+  head.append(tog); fCC.append(head);
+  const row = document.createElement("div"); row.className = "chips"; fCC.append(row);
+  members.forEach(([cc, c]) => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.dataset.cc = cc; b.dataset.union = un;
+    b.setAttribute("aria-pressed", "true"); b.textContent = c.name;
+    b.onclick = () => { state.cc.has(cc) ? state.cc.delete(cc) : state.cc.add(cc); b.setAttribute("aria-pressed", state.cc.has(cc)); state.focus = null; update(); };
+    row.append(b);
+  });
+}
 function opts(el, list, all) { el.innerHTML = `<option value="">${all}</option>` + list.map(([v,l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(""); }
 const covered = DATA.institutions.filter(i => withData.has(i.institution_id));
 opts(document.getElementById("f-ms"), [...new Set(covered.map(i => i.member_state))].map(m => [m, MS[m] || m]), "All");
@@ -1447,6 +1521,7 @@ document.getElementById("f-est").onchange = e => { state.est = e.target.checked;
 function drawLegend() {
   const list = state.view === "prog" ? KINDS : TYPES;
   document.getElementById("legend").innerHTML = list.map(([,l,v]) => `<span><i style="color:var(${v})"></i>${l}</span>`).join("") +
+    `<span class="fz"><i class="box" style="background:var(--land-waemu);border-color:var(--waemu-line)"></i>WAEMU <i class="box" style="background:var(--land-cemac);border-color:var(--cemac-line);margin-left:10px"></i>CEMAC</span>` +
     `<small>${state.view !== "prog" ? "Line weight grows with the amount invested" : "Lines link participants to the countries a programme covers"}</small>`;
 }
 drawLegend();
@@ -1531,7 +1606,7 @@ function makeGlobe() {
     .htmlLat("lat").htmlLng("lng").htmlAltitude(0.012).htmlElement(pinElement)
     .htmlElementVisibilityModifier((elm, visible) => { elm.style.opacity = visible ? 1 : 0; elm.style.pointerEvents = visible ? "auto" : "none"; })
     .labelLat("lat").labelLng("lng").labelText("name").labelSize(1.15).labelDotRadius(0).labelAltitude(0.014).labelResolution(2);
-  globe.pointOfView(el.clientWidth < 600 ? {lat: 26, lng: -3, altitude: 2.5} : {lat: 28, lng: -2, altitude: 1.75}, 0);
+  globe.pointOfView(el.clientWidth < 600 ? {lat: 20, lng: 4, altitude: 2.6} : {lat: 22, lng: 3, altitude: 1.9}, 0);
   const ctl = globe.controls(); ctl.autoRotate = false; ctl.enableDamping = true;
   const ro = new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight)); ro.observe(el);
   let growing = !reduceMotion && !grownOnce, lastArcs = null;
@@ -1562,8 +1637,8 @@ function makeGlobe() {
       const mat = globe.globeMaterial(); mat.color.set(css("--ocean"));
       if (mat.emissive) { mat.emissive.set("#031820"); mat.emissiveIntensity = 0.3; }
       globe.atmosphereColor(css("--accent"));
-      globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css("--land-waemu") : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
-        .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css("--waemu-line") : css("--border"));
+      globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css(fzVar(WAEMU_NUM[f.id], "fill")) : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
+        .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css(fzVar(WAEMU_NUM[f.id], "line")) : css("--border"));
       globe.labelColor(() => "#ffe2b0");
     },
     focusOn(lat, lng) { globe.pointOfView({lat, lng, altitude: 0.9}, reduceMotion ? 0 : 1200); },
@@ -1608,7 +1683,7 @@ function makeFlat() {
     const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
     const path = document.createElementNS(NS, "path");
     path.setAttribute("d", polys.map(p => p.map(ring).join("")).join(""));
-    path.setAttribute("class", WAEMU_NUM[f.id] ? "land waemu" : EU_NUM.has(f.id) ? "land eu" : "land");
+    path.setAttribute("class", WAEMU_NUM[f.id] ? "land " + unionOf(WAEMU_NUM[f.id]).toLowerCase() : EU_NUM.has(f.id) ? "land eu" : "land");
     const t = document.createElementNS(NS, "title"); t.textContent = WAEMU_NUM[f.id] ? ccName(WAEMU_NUM[f.id]) : f.properties.name; path.append(t);
     if (WAEMU_NUM[f.id]) path.addEventListener("click", () => { state.focus = {cc: WAEMU_NUM[f.id]}; update(); });
     gLand.append(path);
@@ -1711,10 +1786,12 @@ function arcClick(d) { state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.i
 function styleArcs(arcs, sparse) { R.arcs(arcs, sparse); }
 function setPins(origins) {
   const dests = Object.entries(CAPITALS).filter(([cc]) => state.cc.has(cc)).map(([cc,[city,lat,lng]]) => ({
-    lat, lng, dest:true, color: css("--waemu-line"), text: "", title: `${city}, ${ccName(cc)}`,
+    lat, lng, dest:true, color: css(fzVar(cc, "line")), text: "", title: `${city}, ${ccName(cc)}`,
     onclick: () => { state.focus = {cc}; update(); }}));
   R.pins(origins, dests);
-  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name: c.name, lat: c.lat, lng: c.lon})));
+  const MAPNAME = {CF: "Central African Rep.", CG: "Rep. of Congo", GQ: "Eq. Guinea"};  // shorter names on the map only
+  const LABELPOS = {GQ: [1.0, 6.4], GA: [-2.6, 11.0], CG: [1.2, 16.6]};  // keep small neighbours' labels apart
+  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name: MAPNAME[cc] || c.name, lat: (LABELPOS[cc] || [c.lat])[0], lng: (LABELPOS[cc] || [0, c.lon])[1]})));
 }
 
 // ---------- investments view
@@ -1887,13 +1964,13 @@ function renderAnalysis(rows) {
   }
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, dis]) => `<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key] === v}"${dis ? " disabled title=\"Arrives with the next data update\"" : ""}>${l}</button>`).join("")}</div>`;
   document.getElementById("list").innerHTML = `<div class="ana">
-    <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the eight WAEMU countries, ranked.</p>
+    <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the Franc Zone countries in your selection, ranked.</p>
       ${seg("donorBy", [["inst", "Institutions"], ["ms", "Member states"]])}
       ${bars(donorItems, k => k === "Others" ? css("--dim") : state.donorBy === "inst" ? css(typeVar[INST[k].type]) : css("--accent"))}</section>
     <section><h3>Sectors by investment</h3><p class="hint">Ten sectors aligned with the EU's Global Gateway priorities.</p>
       ${bars(rank(sectors), () => css("--accent"))}</section>
     <section><h3>Recipient countries by capital</h3>
-      ${bars(rank(ctry).map(([k, v]) => [k, v, DATA.countries[k] ? DATA.countries[k].name : k]), () => css("--waemu-line"))}</section>
+      ${bars(rank(ctry).map(([k, v]) => [k, v, DATA.countries[k] ? DATA.countries[k].name : k]), k => css(fzVar(k, "line")))}</section>
     <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
       ${seg("ovMode", [["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
       <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select><select id="ov-sec" aria-label="Sector">${secOpts}</select></div>
