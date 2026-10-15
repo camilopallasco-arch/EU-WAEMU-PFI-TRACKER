@@ -1,9 +1,15 @@
-iso2,iso3,name,lat,lon
-BJ,BEN,Benin,9.31,2.32
-BF,BFA,Burkina Faso,12.24,-1.56
-CI,CIV,Côte d'Ivoire,7.54,-5.55
-GW,GNB,Guinea-Bissau,11.8,-15.18
-ML,MLI,Mali,17.57,-4.0
-NE,NER,Niger,17.61,8.08
-SN,SEN,Senegal,14.5,-14.45
-TG,TGO,Togo,8.62,0.82
+iso2,iso3,name,lat,lon,union
+BJ,BEN,Benin,9.31,2.32,WAEMU
+BF,BFA,Burkina Faso,12.24,-1.56,WAEMU
+CI,CIV,Côte d'Ivoire,7.54,-5.55,WAEMU
+GW,GNB,Guinea-Bissau,11.8,-15.18,WAEMU
+ML,MLI,Mali,17.57,-4.0,WAEMU
+NE,NER,Niger,17.61,8.08,WAEMU
+SN,SEN,Senegal,14.5,-14.45,WAEMU
+TG,TGO,Togo,8.62,0.82,WAEMU
+CM,CMR,Cameroon,6.0,12.35,CEMAC
+CF,CAF,Central African Republic,6.61,20.94,CEMAC
+TD,TCD,Chad,15.45,18.73,CEMAC
+CG,COG,Republic of the Congo,-0.66,15.2,CEMAC
+GQ,GNQ,Equatorial Guinea,1.6,10.4,CEMAC
+GA,GAB,Gabon,-0.8,11.61,CEMAC

@@ -7,7 +7,16 @@
 ],
 "year": "2024",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 20000000"
+"amount_raw": "Financing amount : € 20000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "20000000",
+"Financing details": "XAF 13,119,140,000 guarantee",
+"Customer": "SGBC",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Cameroon",
+"Project number": "CCM1826"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-renewable-energy-development-turkey",
@@ -28,7 +37,17 @@
 ],
 "year": "2024",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 13000000"
+"amount_raw": "Financing amount : € 13000000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "13000000",
+"Financing details": "EUR 13m loan",
+"Customer": "Cadyst Farming S.A",
+"Type of customer": "Company",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1141",
+"Environmental and social ranking": "B+"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/ncba-debt-2024",
@@ -108,7 +127,17 @@
 ],
 "year": "2024",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 961496"
+"amount_raw": "Financing amount : € 961496",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "961496",
+"Financing details": "XAF 630,700,000 loan",
+"Customer": "Express Union Tchad",
+"Type of customer": "Company",
+"Country of headquarters": "Chad",
+"Project number": "PTD1028",
+"Environmental and social ranking": "IF-C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/qmc-telecom",
@@ -385,7 +414,17 @@
 ],
 "year": "2024",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 20000000"
+"amount_raw": "Financing amount : € 20000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "20000000",
+"Financing details": "EUR 20m Guarantee",
+"Customer": "AFRILAND FIRST BANK",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1136",
+"Environmental and social ranking": "IF-C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-microfinance-sector-cote-divoire",
@@ -1467,7 +1506,17 @@
 ],
 "year": "2016",
 "countries": "Democratic Republic of Congo, Multi-country Africa",
-"amount_raw": "Financing amount : € 4550000"
+"amount_raw": "Financing amount : € 4550000",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "4550000",
+"Financing details": "USD 5m Equity investment",
+"Customer": "AFRICAN RIVERS FUND",
+"Type of customer": "Company",
+"Country of headquarters": "Mauritius",
+"Project number": "IZZ1044",
+"Environmental and social ranking": "A"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/armstrong",
@@ -1549,7 +1598,15 @@
 ],
 "year": "2005",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 5000000"
+"amount_raw": "Financing amount : € 5000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "5000000",
+"Financing details": "Guarantee given of EUR 5m",
+"Customer": "STE ORGAN.MANAG.DEVEL.INDUST.ALIMENTAIRE AGRICOLE",
+"Type of customer": "Company",
+"Project number": "PTD1012"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/diamond-trust-bank",
@@ -2319,7 +2376,16 @@
 ],
 "year": "2016",
 "countries": "Multi-country Global, Uganda, Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 10000000"
+"amount_raw": "Financing amount : € 10000000",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "10000000",
+"Financing details": "EUR 10m Equity Investment",
+"Customer": "Fonds Franco-Africain",
+"Type of customer": "Company",
+"Project number": "PZZ1325",
+"Environmental and social ranking": "B"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/fhp-fund-ii",
@@ -2512,7 +2578,16 @@
 ],
 "year": "2016",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 315258"
+"amount_raw": "Financing amount : € 315258",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "315258",
+"Financing details": "USD 350,000 Equity investment",
+"Customer": "BAOBAB RDC (ex OXUS RD CONGO)",
+"Type of customer": "Microfinance",
+"Project number": "ICD1003",
+"Environmental and social ranking": "IF-C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/palm-ci",
@@ -2693,7 +2768,17 @@
 ],
 "year": "2016",
 "countries": "Gabon",
-"amount_raw": "Financing amount : € 32500000"
+"amount_raw": "Financing amount : € 32500000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "32500000",
+"Financing details": "EUR 32.5m loan",
+"Customer": "Société d'exploitation du Transgabonais",
+"Type of customer": "Company",
+"Country of headquarters": "Senegal",
+"Project number": "PGA1070",
+"Environmental and social ranking": "A"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/sg-bf-2016",
@@ -3079,7 +3164,17 @@
 ],
 "year": "2017",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 2999998"
+"amount_raw": "Financing amount : € 2999998",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "2999998",
+"Financing details": "Loan of 1 967 870 000 FR BEAC",
+"Customer": "ACEP CAMEROUN S.A.",
+"Type of customer": "Microfinance",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1124",
+"Environmental and social ranking": "IF-C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/voltaliarasolar",
@@ -3775,7 +3870,17 @@
 ],
 "year": "2018",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 16810000"
+"amount_raw": "Financing amount : € 16810000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "16810000",
+"Financing details": "EUR 16.81m guarantee (i.e. a guarantee of 45% of the total amount of the senior loan)",
+"Customer": "SOCIETE HYGIENE ET SALUBRITE DU CAMEROUN",
+"Type of customer": "Company",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1123",
+"Environmental and social ranking": "B+"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/appui-uib-pme",
@@ -3886,7 +3991,17 @@
 ],
 "year": "2018",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 60000000"
+"amount_raw": "Financing amount : € 60000000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "60000000",
+"Financing details": "Loan of EUR 60m",
+"Customer": "Nachtigal Hydro Power Company",
+"Type of customer": "Company",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1121",
+"Environmental and social ranking": "A Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/mcb-bank-ltd-2018",
@@ -5130,7 +5245,17 @@
 ],
 "year": "2020",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 15000000"
+"amount_raw": "Financing amount : € 15000000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "15000000",
+"Financing details": "EUR 15m loan",
+"Customer": "DOUALA RETAIL AND CONVENTION CENTER",
+"Type of customer": "Investment fund",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1125",
+"Environmental and social ranking": "B+ Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/cofina-cote-divoire",
@@ -5754,7 +5879,17 @@
 ],
 "year": "2021",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 1000000"
+"amount_raw": "Financing amount : € 1000000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "1000000",
+"Financing details": "EUR 1m Loan",
+"Customer": "Congo Energy Solution Limited",
+"Type of customer": "Company",
+"Country of headquarters": "Mauritius",
+"Project number": "PCD1023",
+"Environmental and social ranking": "B+ Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/mef-iv",
@@ -5774,7 +5909,17 @@
 ],
 "year": "2020",
 "countries": "Gabon",
-"amount_raw": "Financing amount : € 23500000"
+"amount_raw": "Financing amount : € 23500000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "23500000",
+"Financing details": "EUR 23.5m loan",
+"Customer": "Ciments de l'Afrique Gabon SA",
+"Type of customer": "Company",
+"Country of headquarters": "Gabon",
+"Project number": "PGA1075",
+"Environmental and social ranking": "A"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/siph",
@@ -5845,7 +5990,17 @@
 ],
 "year": "2020",
 "countries": "Gabon",
-"amount_raw": "Financing amount : € 44700000"
+"amount_raw": "Financing amount : € 44700000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "44700000",
+"Financing details": "EUR 44.7m loan",
+"Customer": "SOCIETE D'EXPLOITATION DU TRANSGABONAIS",
+"Type of customer": "Company",
+"Country of headquarters": "Gabon",
+"Project number": "PGA1074",
+"Environmental and social ranking": "A"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-waste-management-casablanca-arma",
@@ -5985,7 +6140,17 @@
 ],
 "year": "2021",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 150000"
+"amount_raw": "Financing amount : € 150000",
+"fields": {
+"Financing tool": "Grant",
+"Financing amount (Euro)": "150000",
+"Financing details": "EUR 100,000 Grant",
+"Customer": "STE PROMO. & PARTICIP. POUR COOP.ECONOMIQUE FRANCE",
+"Type of customer": "Company",
+"Country of headquarters": "France",
+"Project number": "PCM1132",
+"Environmental and social ranking": "C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-growth-vitalis-and-facilitating-access-affordable-medicines-latin-america",
@@ -6058,7 +6223,17 @@
 ],
 "year": "2021",
 "countries": "Multi-country Global, Cameroon, Liberia, Democratic Republic of Congo, Zambia",
-"amount_raw": "Financing amount : € 8000000"
+"amount_raw": "Financing amount : € 8000000",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "8000000",
+"Financing details": "EUR 8m Equity Investment",
+"Customer": "Africa Mobile Network",
+"Type of customer": "Company",
+"Country of headquarters": "United Kingdom",
+"Project number": "PZZ1566",
+"Environmental and social ranking": "B+"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/investment-araf-finance-innovative-solutions-smallholders-sub-saharan-africa",
@@ -6089,7 +6264,17 @@
 ],
 "year": "2021",
 "countries": "Angola, Cameroon, Kenya, Malawi, Multi-country Africa",
-"amount_raw": "Financing amount : € 15000000"
+"amount_raw": "Financing amount : € 15000000",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "15000000",
+"Financing details": "EUR 15m Equity Investment",
+"Customer": "Africa Renewable Energy Fund II",
+"Type of customer": "Investment fund",
+"Country of headquarters": "Luxembourg",
+"Project number": "PZZ1503",
+"Environmental and social ranking": "IF-A Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/biovea-africas-first-biomass-power-plant-grid-injection",
@@ -6161,7 +6346,17 @@
 ],
 "year": "2021",
 "countries": "Cameroon, Multi-country Africa",
-"amount_raw": "Financing amount : € 33750000"
+"amount_raw": "Financing amount : € 33750000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "33750000",
+"Financing details": "EUR 33,750,000 loan",
+"Customer": "Societe civile immobiliere Cocoma / SOCIETE HOTELIERE DE LA LAGUNE/ Compagnie Hoteliere du Plateau /Societe Hoteliere de l'Autoroute / Societe Proprietaire de l'Hotel de l'Union /SOCIETE PIERRE LOTI SA / STE DE L'HOTEL DU BOULEVARD ROUME / SOCIETE ABIDJAN",
+"Type of customer": "Investment fund",
+"Country of headquarters": "Côte d'Ivoire",
+"Project number": "PZZ1507",
+"Environmental and social ranking": "B"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/gpp-euriz-sg-mozambique",
@@ -6530,7 +6725,16 @@
 ],
 "year": "2021",
 "countries": "Congo",
-"amount_raw": "Financing amount : € 1997082,13"
+"amount_raw": "Financing amount : € 1997082,13",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "1997082,13",
+"Financing details": "XAF 1.310bn guarantee covering a loan portfolio of about FCFA 1.6bn (about EUR 2.5m)",
+"Customer": "SG CONGO",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Congo",
+"Project number": "CCG1184"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/gp-car-sgc",
@@ -6540,7 +6744,16 @@
 ],
 "year": "2020",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 4992705,31"
+"amount_raw": "Financing amount : € 4992705,31",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "4992705,31",
+"Financing details": "XAF 3.275bn guarantee covering a loan portfolio of about XAF 4.1bn (about EUR 6.2m)",
+"Customer": "SGC",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Cameroon",
+"Project number": "CCM1708"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/gp-car-sgbf",
@@ -7025,7 +7238,17 @@
 ],
 "year": "2021",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 9300000"
+"amount_raw": "Financing amount : € 9300000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "9300000",
+"Financing details": "EUR 9.3m loan",
+"Customer": "Djermaya CDEN Energy",
+"Type of customer": "Company",
+"Country of headquarters": "Chad",
+"Project number": "PTD1024",
+"Environmental and social ranking": "IF-A Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/norfund-and-deg-proparco-helping-ecobank-group-address-effects-crisis",
@@ -7056,7 +7279,17 @@
 ],
 "year": "2021",
 "countries": "Angola, Uganda, Democratic Republic of Congo, Multi-country Africa",
-"amount_raw": "Financing amount : € 8846739"
+"amount_raw": "Financing amount : € 8846739",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "8846739",
+"Financing details": "USD 10m Equity Investment",
+"Customer": "African Rivers Fund III",
+"Type of customer": "Investment fund",
+"Country of headquarters": "Mauritius",
+"Project number": "IZZ1085",
+"Environmental and social ranking": "IF-B"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/turkey-financing-green-leasing-projects",
@@ -7134,7 +7367,17 @@
 ],
 "year": "2022",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 15000000"
+"amount_raw": "Financing amount : € 15000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "15000000",
+"Financing details": "Guarantees provided by Proparco to the confirming banks that are members of the program for documentary credits issued by AfrilandI. Maximum envelope of EUR 15m.",
+"Customer": "AFRILAND FIRST BANK",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Cameroon",
+"Project number": "PCM1136",
+"Environmental and social ranking": "IF-C"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/bci-guinee-trade-finance",
@@ -7192,7 +7435,16 @@
 ],
 "year": "2022",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 13000000"
+"amount_raw": "Financing amount : € 13000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "13000000",
+"Financing details": "USD 14,709,500 guarantee",
+"Customer": "EQUITY BANK RDC",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Democratic Republic of Congo",
+"Project number": "CCD1169"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/banco-promerica-guatemala-2022",
@@ -7297,7 +7549,16 @@
 ],
 "year": "2022",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 25500"
+"amount_raw": "Financing amount : € 25500",
+"fields": {
+"Financing tool": "Grant",
+"Financing amount (Euro)": "25500",
+"Financing details": "EUR 25,500 grant",
+"Customer": "Congo Energy Solution Limited",
+"Type of customer": "Company",
+"Country of headquarters": "Mauritius",
+"Project number": "PCD1028"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/sahyadri",
@@ -8390,7 +8651,17 @@
 ],
 "year": "2023",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 1500000"
+"amount_raw": "Financing amount : € 1500000",
+"fields": {
+"Financing tool": "Loan",
+"Financing amount (Euro)": "1500000",
+"Financing details": "EUR 1.5m loan",
+"Customer": "ZIZ SA",
+"Type of customer": "Company",
+"Country of headquarters": "Chad",
+"Project number": "PTD1027",
+"Environmental and social ranking": "IF-B"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/tamweelcom",
@@ -8787,7 +9058,15 @@
 ],
 "year": "2022",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 3000000"
+"amount_raw": "Financing amount : € 3000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "3000000",
+"Financing details": "XAF 1,967,871,000 guarantee",
+"Customer": "SGC",
+"Type of customer": "Financial institution",
+"Project number": "CCM1708"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-smes-chad-societe-generale",
@@ -8797,7 +9076,15 @@
 ],
 "year": "2022",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 500000"
+"amount_raw": "Financing amount : € 500000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "500000",
+"Financing details": "XAF 327,978,500 guarantee",
+"Customer": "SGT",
+"Type of customer": "Financial institution",
+"Project number": "CTD1258"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-smes-chad-societe-generale-0",
@@ -8807,7 +9094,15 @@
 ],
 "year": "2022",
 "countries": "Chad",
-"amount_raw": "Financing amount : € 1500000"
+"amount_raw": "Financing amount : € 1500000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "1500000",
+"Financing details": "XAF 983,935,500 guarantee",
+"Customer": "SGT",
+"Type of customer": "Financial institution",
+"Project number": "CTD1259"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-smes-cameroon-societe-generale-cameroon",
@@ -8817,7 +9112,15 @@
 ],
 "year": "2022",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 5000000"
+"amount_raw": "Financing amount : € 5000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "5000000",
+"Financing details": "XAF 3,279,785,000 guarantee",
+"Customer": "SGC",
+"Type of customer": "Financial institution",
+"Project number": "CCM1762"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/meeting-financing-needs-smes-affected-covid-19-crisis",
@@ -8881,7 +9184,15 @@
 ],
 "year": "2021",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 2500000"
+"amount_raw": "Financing amount : € 2500000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "2500000",
+"Financing details": "USD 2,827,500 guarantee",
+"Customer": "ADVANS RDC",
+"Type of customer": "Financial institution",
+"Project number": "CCI1156"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/promoting-financial-inclusion-entrepreneurs-and-self-employed-cote-divoire",
@@ -8927,7 +9238,15 @@
 ],
 "year": "2021",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 2000000"
+"amount_raw": "Financing amount : € 2000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "2000000",
+"Financing details": "XAF 1,311,914,000 guarantee",
+"Customer": "ADVANS CAMEROUN",
+"Type of customer": "Financial institution",
+"Project number": "CCM1745"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/gp-car-ecb",
@@ -8985,7 +9304,15 @@
 ],
 "year": "2021",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 5000000"
+"amount_raw": "Financing amount : € 5000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "5000000",
+"Financing details": "XAF 3,279,785,000 guarantee",
+"Customer": "SGBC",
+"Type of customer": "Financial institution",
+"Project number": "CCM1736"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/scaling-societe-generale-cameroons-sme-financing",
@@ -8995,7 +9322,15 @@
 ],
 "year": "2021",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 15000000"
+"amount_raw": "Financing amount : € 15000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "15000000",
+"Financing details": "XAF 9,839,355,000.00 guarantee",
+"Customer": "SGBC",
+"Type of customer": "Financial institution",
+"Project number": "CCM1735"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/supporting-ivorian-msmes-affected-covid-19-crisis-nsia-banque",
@@ -9437,7 +9772,16 @@
 ],
 "year": "2023",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 10000000"
+"amount_raw": "Financing amount : € 10000000",
+"fields": {
+"Financing tool": "Guarantee , EURIZ guarantee",
+"Financing amount (Euro)": "10000000",
+"Financing details": "Guarantee of USD 10,814,000",
+"Customer": "EQUITY BCDC",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Democratic Republic of Congo",
+"Project number": "CCD1188"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/almouneer-bridge-da",
@@ -9718,7 +10062,16 @@
 ],
 "year": "2024",
 "countries": "Cameroon",
-"amount_raw": "Financing amount : € 2000000"
+"amount_raw": "Financing amount : € 2000000",
+"fields": {
+"Financing tool": "Guarantee",
+"Financing amount (Euro)": "2000000",
+"Financing details": "XAF 1,311,914,000 guarantee",
+"Customer": "Advans Cameroun",
+"Type of customer": "Financial institution",
+"Country of headquarters": "Cameroon",
+"Project number": "CCM1833"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/nuru-series-b",
@@ -9729,7 +10082,17 @@
 ],
 "year": "2023",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 500000"
+"amount_raw": "Financing amount : € 500000",
+"fields": {
+"Financing tool": "Equity investment",
+"Financing amount (Euro)": "500000",
+"Financing details": "USD 500,000 Equity Investment",
+"Customer": "Congo Energy Solution Limited",
+"Type of customer": "Company",
+"Country of headquarters": "Mauritius",
+"Project number": "PCD1027",
+"Environmental and social ranking": "B+ Climate co-benefits Project with climate co-benefits"
+}
 },
 {
 "url": "https://www.proparco.fr/en/projects/financing-climate-change-mitigation-projects",
@@ -9790,7 +10153,16 @@
 ],
 "year": "2023",
 "countries": "Democratic Republic of Congo",
-"amount_raw": "Financing amount : € 400000"
+"amount_raw": "Financing amount : € 400000",
+"fields": {
+"Financing tool": "Grant",
+"Financing amount (Euro)": "400000",
+"Financing details": "EUR 400,000 grant",
+"Customer": "Qualagric ASBL",
+"Type of customer": "Company",
+"Country of headquarters": "Democratic Republic of Congo",
+"Project number": "PCD1041"
+}
 },
 {
 "url": "https://www.proparco.fr/en/carte-des-projets/banco-daycoval",

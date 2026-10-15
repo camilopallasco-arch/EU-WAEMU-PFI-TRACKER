@@ -1,7 +1,7 @@
 source_id,name,url,method,terms,last_retrieved,records
-iati,"IATI via d-portal.org (European Commission DG INTPA, AFD, KfW/BMZ, FMO, EBRD, Atradius DSB, Invest International, DGGF)",https://d-portal.org,api,IATI data is published under open licences (mostly CC BY / ODbL),2026-10-15,2067
-eib-api,EIB signed loans (JSON API behind eib.org/en/projects/loans),https://www.eib.org/en/projects/loans/index,api,Public website; cite the EIB,2026-10-15,226
-proparco-web,Proparco project list and project pages,https://www.proparco.fr/en/projects/list,scrape,Public website; cite Proparco,2026-10-15,136
+iati,"IATI via d-portal.org (European Commission DG INTPA, AFD, KfW/BMZ, FMO, EBRD, Atradius DSB, Invest International, DGGF)",https://d-portal.org,api,IATI data is published under open licences (mostly CC BY / ODbL),2026-10-15,2852
+eib-api,EIB signed loans (JSON API behind eib.org/en/projects/loans),https://www.eib.org/en/projects/loans/index,api,Public website; cite the EIB,2026-10-15,332
+proparco-web,Proparco project list and project pages,https://www.proparco.fr/en/projects/list,scrape,Public website; cite Proparco,2026-10-15,167
 bio-web,BIO investment portfolio pages,https://www.bio-invest.be/en/investments,scrape,Public website; cite BIO,2026-10-15,71
 deg-csv,DEG investments database (CSV export),https://deginvest-investments.de/deginvest.csv,csv,Public download; cite DEG,2026-10-15,15
 finnfund-wp,Finnfund investments (WordPress REST API),https://www.finnfund.fi/en/investments/,api,Public website; cite Finnfund,2026-10-15,3
