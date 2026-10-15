@@ -1147,6 +1147,13 @@ aside{background:var(--panel);border-left:1px solid var(--line);display:flex;fle
 .filterbox summary{cursor:pointer;padding:8px 10px;font:600 13px var(--sans);color:var(--ink);list-style-position:inside}
 .filterbox summary span{color:var(--accent);font-weight:500}
 .filtergrid{display:grid;gap:12px;padding:4px 10px 12px}
+.searchbox input{width:100%;font:500 14px var(--sans);color:var(--ink);background:var(--chip);border:1px solid var(--line-hi);padding:8px 10px 8px 32px;
+  background-image:linear-gradient(transparent,transparent);outline:none}
+.searchbox{position:relative}
+.searchbox::before{content:"";position:absolute;left:11px;top:50%;width:9px;height:9px;margin-top:-7px;border:1.5px solid var(--muted);border-radius:50%}
+.searchbox::after{content:"";position:absolute;left:20px;top:50%;width:6px;height:1.5px;margin-top:3px;background:var(--muted);transform:rotate(45deg)}
+.searchbox input:focus{border-color:var(--accent)}
+.searchbox input::placeholder{color:var(--dim)}
 .estbox{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted)}
 .reset{appearance:none;width:100%;padding:10px 12px;cursor:pointer;font:600 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;
   color:#ffe9eb;background:linear-gradient(#7a1622,#5a0f19);border:1px solid #d9455a;outline:1px solid rgba(217,69,90,.35);outline-offset:3px;
@@ -1288,6 +1295,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
       <label class="estbox" id="est-wrap" hidden><input type="checkbox" id="f-est" checked> Include estimated amounts (equal splits of multi-country deals, published amount bands)</label>
       </div></details>
       <button type="button" class="reset" id="reset">Reset all filters</button>
+      <div class="searchbox"><input type="search" id="q" placeholder="Search deals by name, client or institution" aria-label="Search deals" autocomplete="off"></div>
     </div>
     <div class="summary" aria-live="polite">
       <div class="sel"><strong id="s-total">–</strong></div>
@@ -1346,7 +1354,13 @@ const ccName = cc => DATA.countries[cc].name;
 
 const state = {view:"inv", types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
   cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40,
-  est:true, donorBy:"inst", ovMode:"eu", ovCC:"", ovSector:""};
+  est:true, donorBy:"inst", ovMode:"eu", ovCC:"", ovSector:"", q:""};
+const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+let qTimer = null;
+document.getElementById("q").addEventListener("input", e => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { state.q = norm(e.target.value.trim()); state.focus = null; update(); }, 200);
+});
 
 // ---------- controls
 function chipGroup(el, list, set) {
@@ -1390,11 +1404,13 @@ document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
   document.getElementById("inv-filters-2").hidden = state.view === "prog";
   document.getElementById("prog-filters").hidden = state.view !== "prog";
   document.getElementById("est-wrap").hidden = state.view !== "ana";
+  document.getElementById("q").placeholder = state.view === "prog" ? "Search programmes by name, goal or participant" : "Search deals by name, client or institution";
   drawLegend(); update();
 });
 document.getElementById("reset").onclick = () => {
   Object.assign(state, {types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
-    cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, est:true});
+    cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, est:true, q:""});
+  document.getElementById("q").value = "";
   document.getElementById("f-est").checked = true;
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","true"));
   ["f-ms","f-inst","f-ins","f-yr","f-part"].forEach(id => document.getElementById(id).value = "");
@@ -1454,7 +1470,26 @@ drawLegend();
 
 // ---------- map renderers: a 3D globe where the device can draw it, a flat 2D map otherwise
 const el = document.getElementById("globe");
-const features = topojson.feature(WORLD, WORLD.objects.countries).features.filter(f => f.id !== "010");
+const features = (() => {
+  // The base map (Natural Earth via world-atlas) draws Crimea inside Russia. Crimea is Ukrainian territory:
+  // remove it from Russia's shape and merge it into Ukraine's, so it shows within Ukraine's internationally recognised borders.
+  let ukraine = null;
+  try {
+    const g = WORLD.objects.countries.geometries, ru = g.find(x => x.id === "643"), ua = g.find(x => x.id === "804");
+    if (ru && ua && ru.type === "MultiPolygon") {
+      const ring = p => topojson.feature(WORLD, {type: "Polygon", arcs: p}).geometry.coordinates[0];
+      const i = ru.arcs.findIndex(p => ring(p).every(q => q[0] > 32 && q[0] < 37 && q[1] > 44 && q[1] < 46.5));
+      if (i >= 0) {
+        const crimea = ru.arcs[i];
+        ru.arcs = ru.arcs.filter((_, k) => k !== i);
+        ukraine = topojson.merge(WORLD, [ua, {type: "Polygon", arcs: crimea}]);
+      }
+    }
+  } catch (e) { ukraine = null; }
+  const fs = topojson.feature(WORLD, WORLD.objects.countries).features.filter(f => f.id !== "010");
+  if (ukraine) fs.forEach(f => { if (f.id === "804") f.geometry = ukraine; });
+  return fs;
+})();
 let pinHover = false;
 const seedOf = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 997; return h / 997; };
 const cur = {textContent: ""};  // cursor readout removed
@@ -1690,6 +1725,7 @@ function passInv(inv) {
   if (state.inst && inv.institution_id !== state.inst) return false;
   if (state.ins && inv.instrument !== state.ins) return false;
   if (state.yr && !(inv.year && +inv.year >= +state.yr)) return false;
+  if (state.q && !norm(inv.title + " " + inv.client + " " + (SHORT[inv.institution_id] || "") + " " + ins.name).includes(state.q)) return false;
   return true;
 }
 function filtered() {
@@ -1738,7 +1774,8 @@ function renderDeals(rows) {
   const instN = new Set(rows.map(([,inv]) => inv.institution_id));
   document.getElementById("s-total").textContent = deals.size.toLocaleString("en") + " deal" + (deals.size === 1 ? "" : "s");
   let scope = "";
-  if (state.focus) scope = " Showing " + [state.focus.inst ? (SHORT[state.focus.inst] || INST[state.focus.inst].name) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
+  if (state.q) scope += ` Matching "${document.getElementById("q").value.trim()}".`;
+  if (state.focus) scope += " Showing " + [state.focus.inst ? (SHORT[state.focus.inst] || INST[state.focus.inst].name) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
   const unk = rows.filter(([a]) => a.amount_attributed_eur == null).length;
   document.getElementById("s-text").textContent = `${fmt(total)} from ${instN.size} institution${instN.size === 1 ? "" : "s"} in this selection.` + scope +
     (unk ? ` ${unk.toLocaleString("en")} allocations have no disclosed or attributable amount.` : "");
@@ -1752,7 +1789,7 @@ function renderDeals(rows) {
   }
   const list = [...byDeal.values()].sort((x,y) => (y.sum || y.inv.amount_eur || 0) - (x.sum || x.inv.amount_eur || 0));
   const box = document.getElementById("list");
-  if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters. Widen the year range or turn an institution type back on.</p>`; return; }
+  if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters${state.q ? " and search" : ""}. Try another search term, widen the year range or turn an institution type back on.</p>`; return; }
   box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg}) => {
     const ins = INST[inv.institution_id];
     const amount = sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
@@ -1872,7 +1909,8 @@ function progFiltered() {
   return PROG.filter(p => state.kinds.has(p.kind)
     && p.countries.some(c => state.cc.has(c) && (!state.focus || !state.focus.cc || c === state.focus.cc))
     && (!state.part || p.participants.includes(state.part))
-    && (!state.focus || !state.focus.part || p.participants.includes(state.focus.part)));
+    && (!state.focus || !state.focus.part || p.participants.includes(state.focus.part))
+    && (!state.q || norm(p.name + " " + p.description + " " + p.participants.map(partName).join(" ")).includes(state.q)));
 }
 function updateProgrammes() {
   const progs = progFiltered();
@@ -1897,7 +1935,7 @@ function updateProgrammes() {
   if (state.focus) scope = " Showing " + [state.focus.part ? partName(state.focus.part) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
   document.getElementById("s-text").textContent = `${withAmt.length} publish an amount. Programme amounts overlap with the investments view and with each other, so they are not added up.` + scope;
   const box = document.getElementById("list");
-  if (!progs.length) { box.innerHTML = `<p class="deal">No programmes match these filters. Turn a programme kind back on or select more countries.</p>`; return; }
+  if (!progs.length) { box.innerHTML = `<p class="deal">No programmes match these filters${state.q ? " and search" : ""}. Try another search term, turn a programme kind back on or select more countries.</p>`; return; }
   const order = Object.fromEntries(KINDS.map((k,i) => [k[0], i]));
   const list = progs.slice().sort((a,b) => order[a.kind] - order[b.kind] || (b.amount_eur || 0) - (a.amount_eur || 0));
   box.innerHTML = list.slice(0, state.shown).map(p => `<article class="deal">
