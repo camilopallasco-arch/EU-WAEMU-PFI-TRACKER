@@ -1988,6 +1988,7 @@ function makeGlobe() {
       } else {
         globe.arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02).arcDashInitialGap(d => d.seed)
           .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
+                     globe.arcDashLength(sparse ? 0.14 : 0.22).arcDashGap(sparse ? 0.2 : 0.12).arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 70000 : 45000));  // calmer: long slow strands
       }
     },
     pins(origins, dests) {
