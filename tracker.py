@@ -2,12 +2,12 @@
 
 Run everything:      python tracker.py
 Run some steps only: python tracker.py eib normalize build
-Steps: reference iati proparco bio wp eib cofides noneu oeeb normalize build
+Steps: reference iati iati_regional proparco bio wp eib cofides noneu oeeb normalize build
 """
 import os, sys, csv, json, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parent
 os.chdir(ROOT)
-for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "ref", "data", "site"]:
+for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "raw/iati_regional", "ref", "data", "site"]:
     (ROOT / _d).mkdir(parents=True, exist_ok=True)
 
 def step_reference():
@@ -203,6 +203,22 @@ def step_eib():
         print(cc, d.get("totalItems"))
     json.dump(list(out.values()), open("raw/eib/loans.json", "w"), ensure_ascii=False)
     print(len(out), "unique EIB projects")
+    # Regional loans: Regional - Africa (A1), West Africa (A2), Central Africa (A4)
+    reg = {}
+    for code in ["A1", "A2", "A4"]:
+        page = 0
+        while True:
+            r = urllib.request.Request(f"{BASE}&countries={code}&pageNumber={page}", headers=UA)
+            d = json.load(urllib.request.urlopen(r, timeout=90))
+            for item in d.get("data") or []:
+                item["_region"] = code
+                reg.setdefault(item["id"], item)
+            if (page + 1) * 100 >= d.get("totalItems", 0):
+                break
+            page += 1
+            time.sleep(0.5)
+    json.dump(list(reg.values()), open("raw/eib/regional.json", "w"), ensure_ascii=False)
+    print(len(reg), "EIB regional African loans")
 
 def step_cofides():
     """COFIDES (Spain): project list filtered by WAEMU country (plain HTML, no JavaScript needed)."""
@@ -285,6 +301,48 @@ def step_oeeb():
     json.dump(out, open("raw/oeeb/projects.json", "w"), ensure_ascii=False, indent=0)
     print(len(links), "OeEB project pages read;", len(out), "mention a Franc Zone country or region")
 
+def step_iati_regional():
+    """IATI regional activities: Africa-wide, Sub-Saharan, West and Central African operations of the same publishers.
+    d-portal cannot filter by region, so each publisher is read page by page and only African regional activities are kept."""
+    import sys, json, time, urllib.request, urllib.parse, pathlib
+    from lxml import etree
+    PUBLISHERS = ["FR-3", "DE-1", "XI-IATI-EC_INTPA", "NL-KVK-27078545", "NL-KVK-83517626", "NL-KVK-61172863", "NL-KVK-33226495", "XI-IATI-EBRD"]
+    AFRICA_REGIONS = {"298": "Africa", "289": "Sub-Saharan Africa", "1030": "West Africa", "1028": "Central Africa"}
+    out_dir = pathlib.Path("raw/iati_regional"); out_dir.mkdir(parents=True, exist_ok=True)
+    PAGE = 500
+    def run(ref, start=0, stop=None, budget=None):
+        t0 = time.time(); off = start; kept = 0
+        f = out_dir / f"{ref}.xml"
+        keep = {}
+        if start and f.exists():
+            for a in etree.parse(str(f)).getroot():
+                keep[a.findtext("iati-identifier")] = a
+        while True:
+            q = urllib.parse.urlencode({"from": "act", "reporting_ref": ref, "limit": PAGE, "offset": off, "orderby": "aid"})
+            data = urllib.request.urlopen(f"https://d-portal.org/q.xml?{q}", timeout=300).read()
+            root = etree.fromstring(data)
+            acts = root.findall(".//iati-activity")
+            for a in acts:
+                regions = [r.get("code") for r in a.findall("recipient-region") if (r.get("vocabulary") in (None, "", "1"))]
+                if any(r in AFRICA_REGIONS for r in regions):
+                    keep[a.findtext("iati-identifier")] = a
+            off += PAGE
+            if len(acts) < PAGE or (stop and off >= stop) or (budget and time.time() - t0 > budget):
+                break
+        root_out = etree.Element("iati-activities")
+        for a in keep.values():
+            root_out.append(a)
+        f.write_bytes(etree.tostring(root_out))
+        done = len(acts) < PAGE
+        print(f"{ref}: read up to offset {off}, {len(keep)} African regional activities kept{'' if done else ' (continue from ' + str(off) + ')'}", flush=True)
+        return off, done
+    ARGS = sys.argv[1:] if sys.argv[0].endswith("fetch_iati_regional.py") else []
+    if ARGS:  # python fetch_iati_regional.py REF START BUDGET_SECONDS (used to resume long downloads)
+        run(ARGS[0], int(ARGS[1]), budget=float(ARGS[2]) if len(ARGS) > 2 else None)
+    else:
+        for ref in PUBLISHERS:
+            run(ref)
+
 def step_normalize():
     """Normalise all raw sources into the tracker data model.
 
@@ -310,7 +368,27 @@ def step_normalize():
         "TD": ("TCD", "Chad", 15.45, 18.73), "CG": ("COG", "Republic of the Congo", -0.66, 15.20),
         "GQ": ("GNQ", "Equatorial Guinea", 1.60, 10.40), "GA": ("GAB", "Gabon", -0.80, 11.61),
     }
-    UNION = {cc: ("WAEMU" if cc in ("BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG") else "CEMAC") for cc in COUNTRIES}
+    # Union-wide operations (through BOAD, BCEAO, BDEAC, BEAC or the union commissions) stay inside the Franc Zone
+    COUNTRIES["XW"] = ("XWA", "WAEMU-wide (regional institutions)", 14.2, -3.6)
+    COUNTRIES["XC"] = ("XCA", "CEMAC-wide (regional institutions)", 2.4, 15.6)
+    UNION = {cc: ("WAEMU" if cc in ("BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "XW") else "CEMAC") for cc in COUNTRIES}
+    REAL_COUNTRIES = [c for c in COUNTRIES if c not in ("XW", "XC")]
+    _WAEMU_WIDE = re.compile(r"\bBOAD\b|Banque Ouest[- ]Africaine de D[eé]veloppement|West African Development Bank|\bBCEAO\b|Banque Centrale des [EÉ]tats de l.Afrique de l.Ouest|"
+                             r"Central Bank of West African States|\bUEMOA\b|\bWAEMU\b|Union [EÉ]conomique et Mon[eé]taire Ouest|West African Economic and Monetary Union|\bBRVM\b", re.I)
+    _CEMAC_WIDE = re.compile(r"\bBDEAC\b|Banque de D[eé]veloppement des [EÉ]tats de l.Afrique Centrale|Development Bank of Central African States|\bBEAC\b|"
+                             r"Banque des [EÉ]tats de l.Afrique Centrale|Bank of Central African States|\bCEMAC\b|Communaut[eé] [EÉ]conomique et Mon[eé]taire de l.Afrique Centrale|\bCOBAC\b", re.I)
+    def union_wide(text):
+        """'XW' or 'XC' when an operation runs through the WAEMU's or CEMAC's own institutions, else None."""
+        w, c = bool(_WAEMU_WIDE.search(text or "")), bool(_CEMAC_WIDE.search(text or ""))
+        return "XW" if w and not c else "XC" if c and not w else None
+    PEG_YEAR = 1999
+    regional = []  # wider regional operations (West/Central/Sub-Saharan/Africa-wide): kept apart, never in Franc Zone totals
+    def add_regional(inst, src, rec_id, url, title, region, *, year="", amount_eur=None, sector_broad="", instrument="Unknown", note=""):
+        if year and str(year)[:4].isdigit() and int(str(year)[:4]) < PEG_YEAR:
+            return
+        regional.append({"investment_id": f"{inst}:{rec_id}", "institution_id": inst, "source_id": src, "region": region, "title": (title or "")[:250],
+                         "year": str(year)[:4], "amount_eur": round(amount_eur) if amount_eur else None, "sector_broad": sector_broad or OTHER_SECTOR,
+                         "instrument": instrument, "source_url": url, "note": note})
     _NAMES = [
         ("BJ", r"b[eé]nin"), ("BF", r"burkina(?: faso)?"),
         ("CI", r"c[oô]te d[’'`]?\s?ivoire|ivory coast|costa de marfil|costa d.avorio|elfenbenskysten"),
@@ -427,7 +505,7 @@ def step_normalize():
         ("dggf", "Dutch Good Growth Fund – Local SME (DGGF)", "NL", "DFI", "Dutch Ministry of Foreign Affairs", "The Hague", 52.070, 4.300, "https://english.dggf.nl", "automated"),
         ("bio", "BIO – Belgian Investment Company for Developing Countries", "BE", "DFI", "", "Brussels", 50.850, 4.352, "https://www.bio-invest.be", "automated"),
         ("finnfund", "Finnfund", "FI", "DFI", "", "Helsinki", 60.170, 24.938, "https://www.finnfund.fi", "automated"),
-        ("ifu", "IFU – Investment Fund for Developing Countries", "DK", "DFI", "", "Copenhagen", 55.676, 12.568, "https://impactfund.dk", "automated"),
+        ("ifu", "Impact Fund Denmark (IFU, formerly Investment Fund for Developing Countries)", "DK", "DFI", "", "Copenhagen", 55.676, 12.568, "https://impactfund.dk", "automated"),
         ("swedfund", "Swedfund", "SE", "DFI", "", "Stockholm", 59.329, 18.069, "https://www.swedfund.se", "not yet covered"),
         ("oeeb", "OeEB – Development Bank of Austria", "AT", "DFI", "OeKB Group", "Vienna", 48.208, 16.374, "https://www.oe-eb.at", "not yet covered"),
         ("cofides", "COFIDES", "ES", "DFI", "", "Madrid", 40.417, -3.704, "https://www.cofides.es", "not yet covered"),
@@ -494,6 +572,8 @@ def step_normalize():
         inv_id = f"{inst}:{rec_id}"
         if date and date[:4].isdigit() and int(date[:4]) > datetime.date.today().year + 3:
             date = ""  # placeholder dates in some IATI files
+        if date and date[:4].isdigit() and int(date[:4]) < PEG_YEAR:
+            return  # the tracker covers operations since the XOF/XAF-euro peg (1 January 1999)
         ym = (date or "")[:7] if re.match(r"\d{4}-\d{2}", date or "") else (f"{date[:4]}-06" if date else None)
         fx_rate = None
         if amount_eur is None and amount is not None:
@@ -648,6 +728,86 @@ def step_normalize():
                       "planned disbursement": "Amount: planned disbursements from the IATI record (no commitment reported).",
                       None: "No amount reported in IATI."}[basis])
 
+    # ---- IATI regional activities (Commission, KfW via BMZ): Africa-wide, Sub-Saharan, West and Central African operations
+    REGION_NAMES = {"1030": "West Africa", "1028": "Central Africa", "289": "Sub-Saharan Africa", "298": "Africa"}
+    reg_dir = RAW / "iati_regional"
+    if reg_dir.exists():
+        reg_files = sorted(reg_dir.glob("*.xml"))
+        reg_acts = []
+        for f in reg_files:
+            try:
+                reg_acts += [(f.stem, a) for a in etree.parse(str(f)).getroot()]
+            except etree.XMLSyntaxError:
+                pass
+        reg_ids = {a.findtext("iati-identifier") for _, a in reg_acts}
+        reg_parents = {a.findtext("iati-identifier") for _, a in reg_acts
+                       if {r.get("ref") for r in a.findall("related-activity") if r.get("type") == "2"} & (reg_ids | _ids)}
+        for ref, a in reg_acts:
+            aid = (a.findtext("iati-identifier") or "").strip()
+            inst = IATI_INST.get(ref)
+            if not inst or aid in reg_parents or aid in seen:
+                continue
+            if any(rc.get("code", "").upper() in COUNTRIES for rc in a.findall("recipient-country")):
+                continue  # already counted through its Franc Zone country shares
+            porgs = a.findall("participating-org")
+            if ref == "DE-1" and not any(p.get("ref") == "XM-DAC-5-2" or "kfw" in (p.findtext("narrative") or "").lower() for p in porgs):
+                continue
+            regs = [(r.get("code"), r.get("percentage")) for r in a.findall("recipient-region") if r.get("code") in REGION_NAMES]
+            pct = sum(float(p) for _, p in regs if p not in (None, "")) or 100.0
+            pct = min(pct, 100.0)
+            cur0 = a.get("default-currency") or "EUR"
+            def _tx(codes):
+                tot = 0.0
+                for t in a.findall("transaction"):
+                    tt = t.find("transaction-type")
+                    if tt is None or tt.get("code") not in codes:
+                        continue
+                    v = t.find("value")
+                    try:
+                        val = float(v.text)
+                    except (TypeError, ValueError, AttributeError):
+                        continue
+                    d = (v.get("value-date") or (t.find("transaction-date").get("iso-date") if t.find("transaction-date") is not None else "") or "")[:7]
+                    eur, _ = to_eur(val, v.get("currency") or cur0, d or None)
+                    tot += eur or 0
+                return tot or None
+            total = _tx({"2", "C"})
+            basis = "commitment"
+            if not total:
+                total, basis = _tx({"3", "4", "D", "E"}), "disbursement"
+            if not total:
+                buds = a.findall("budget"); rev = [b for b in buds if b.get("type") == "2"]
+                tot = 0.0
+                for b in (rev or buds):
+                    v = b.find("value")
+                    try:
+                        eur, _ = to_eur(float(v.text), v.get("currency") or cur0, (v.get("value-date") or "")[:7] or None); tot += eur or 0
+                    except (TypeError, ValueError, AttributeError):
+                        pass
+                total, basis = (tot or None), "budget"
+            amount = total * pct / 100 if total else None
+            title = (a.findtext("title/narrative") or aid).strip()
+            text = title + " " + " ".join(n.text or "" for n in a.findall("description/narrative")) + " " + " ".join(p.findtext("narrative") or "" for p in porgs)
+            dates = {d.get("type"): d.get("iso-date") for d in a.findall("activity-date")}
+            start = dates.get("2") or dates.get("1") or ""
+            sec = a.find("sector[@vocabulary='1']")
+            if sec is None:
+                sec = a.find("sector")
+            dac = sec.get("code") if sec is not None else None
+            fin = a.find("default-finance-type"); fin_code = fin.get("code") if fin is not None else ""
+            uw = union_wide(text)
+            url = f"https://d-portal.org/ctrack.html#view=act&aid={aid}"
+            if uw:
+                add(inst, "iati-regional", aid, url, title, desc=text[:600], instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
+                    sector_broad=broad_sector(dac=dac) if dac else broad_sector(text), sector_detail=SECTORS.get(dac, dac or ""), status="",
+                    date=start, amount_eur=amount, shares={uw: None}, method="single_country", basis=basis if amount else None,
+                    note=f"Regional operation through the {UNION[uw]}'s own institutions; counted {COUNTRIES[uw][1].split(' (')[0]}.")
+            else:
+                region = next((REGION_NAMES[c] for c in ("1030", "1028", "289", "298") if c in dict(regs)), "Africa")
+                add_regional(inst, "iati-regional", aid, url, title, region, year=start[:4], amount_eur=amount,
+                             sector_broad=broad_sector(dac=dac) if dac else broad_sector(text), instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
+                             note=f"Amount: {basis} for the African regional share of the activity.")
+
     # ---- EIB (its own signed-loans API; replaces the smaller IATI feed)
     eib_file = RAW / "eib" / "loans.json"
     if eib_file.exists():
@@ -669,6 +829,31 @@ def step_normalize():
                 method="single_country" if len(ccs) == 1 else "equal_split_estimate",
                 note="Signed amount as allocated to this country by the EIB. Instrument inferred: fund investments shown as equity, everything else as loans.")
 
+    # ---- EIB regional loans (Regional - Africa / West Africa / Central Africa)
+    eib_reg = RAW / "eib" / "regional.json"
+    if eib_reg.exists():
+        EIB_REG = {"A2": "West Africa", "A4": "Central Africa", "A1": "Africa"}
+        for x in json.load(open(eib_reg, encoding="utf-8")):
+            info = x.get("additionalInformation") or []
+            amt = re.sub(r"[^\d]", "", info[0]) if info and isinstance(info[0], str) else ""
+            ts = info[1] if len(info) > 1 and isinstance(info[1], (int, float)) else x.get("startDate")
+            date = datetime.datetime.fromtimestamp(ts / 1000, datetime.UTC).strftime("%Y-%m") if ts else ""
+            sector = ", ".join(t["label"] for t in (x.get("primaryTags") or []) if t.get("subType") == "sectors")
+            title = x.get("title") or x["id"]
+            text = title + " " + (x.get("description") or "")
+            uw = union_wide(text)
+            url = f"https://www.eib.org/en/projects/all/{x['id']}"
+            instr = "Equity" if re.search(r"\bFUND\b", title.upper()) else "Loan"
+            if uw:
+                add("eib", "eib-api", x["id"], url, title, desc=x.get("description") or "", instrument=instr,
+                    sector_broad=broad_sector(sector + " " + title), sector_detail=sector, status="Signed", date=date,
+                    amount=float(amt) if amt else None, currency="EUR", shares={uw: None}, method="single_country",
+                    note=f"EIB regional loan through the {UNION[uw]}'s own institutions; counted {COUNTRIES[uw][1].split(' (')[0]}.")
+            else:
+                add_regional("eib", "eib-api", x["id"], url, title, EIB_REG.get(x.get("_region"), "Africa"), year=date[:4],
+                             amount_eur=float(amt) if amt else None, sector_broad=broad_sector(sector + " " + title), instrument=instr,
+                             note="EIB regional loan; the share reaching Franc Zone countries is not published.")
+
     # ---- Proparco
     _proparco_ids = set()
     for p in json.load(open(RAW / "proparco" / "projects.json")):
@@ -676,7 +861,18 @@ def step_normalize():
         ctext = f.get("Countries_full") or p.get("countries") or ""
         ccs = countries_in(ctext)
         if not ccs:
-            continue
+            if "Multi-country Africa" in ctext:
+                _a = re.sub(r"[^\d.]", "", (f.get("Financing amount (Euro)") or re.sub(r"[^\d.,]", "", p.get("amount_raw") or "")).replace(",", ""))
+                uw = union_wide(p["title"] + " " + " ".join(f.values()))
+                if uw:
+                    ccs = [uw]
+                else:
+                    add_regional("proparco", "proparco-web", f.get("Project number") or p["url"].rsplit("/", 1)[-1], p["url"], p["title"], "Africa",
+                                 year=p.get("year") or "", amount_eur=float(_a) if _a else None, sector_broad=broad_sector(" ".join(p["tags"])),
+                                 instrument=instrument_from(f.get("Financing tool", "")), note="Proparco multi-country Africa operation.")
+                    continue
+            else:
+                continue
         amt = f.get("Financing amount (Euro)") or re.sub(r"[^\d.,]", "", p.get("amount_raw") or "")
         amt = amt.replace(" ", "")
         if "," in amt and "." not in amt:
@@ -736,6 +932,19 @@ def step_normalize():
             shares, method = {c: None for c in direct}, "single_country" if len(direct) == 1 else "equal_split_estimate"
         elif r["Country"].strip().lower() in ("supraregional", "") and mentioned:
             shares, method = {c: None for c in mentioned}, "regional_unallocated"
+        elif r["Country"].strip().lower() in ("supraregional", "") and "africa" in (r["Region"] or "").lower():
+            fm2 = re.match(r"([A-Z]{3})\s*([\d\.]+)", (r["Funding"] or "").strip())
+            sd2 = re.match(r"(\d{2})-(\d{4})", r["Signing Date"] or "")
+            eur2 = to_eur(float(fm2.group(2)), fm2.group(1), f"{sd2.group(2)}-{sd2.group(1)}" if sd2 else None)[0] if fm2 else None
+            uw = union_wide(" ".join(v or "" for v in r.values()))
+            if uw:
+                shares, method = {uw: None}, "single_country"
+            else:
+                add_regional("deg", "deg-csv", f"{i}-{re.sub(r'[^a-z0-9]+', '-', r['Customer Name'].lower())[:40]}", "https://deginvest-investments.de/",
+                             r["Customer Name"], "Sub-Saharan Africa", year=sd2.group(2) if sd2 else "", amount_eur=eur2,
+                             sector_broad=broad_sector(r["Sector"]), instrument=instrument_from(r["Investment Instrument"]),
+                             note="DEG supraregional Sub-Saharan Africa commitment.")
+                continue
         else:
             continue
         fm = re.match(r"([A-Z]{3})\s*([\d\.]+)", (r["Funding"] or "").strip())
@@ -771,7 +980,9 @@ def step_normalize():
             year = next((n for tx, n in terms if tx == "year_category"), "") or p["date"][:4]
             sect = ", ".join(n for tx, n in terms if tx in ("venture_sector", "sector"))
             inst_t = ", ".join(n for tx, n in terms if tx in ("venture_category", "instrument"))
-            add(inst, f"{key}-wp", str(p["id"]), p["link"], title, client=title,
+            # IFU's data feed still returns old addresses that its website now answers with "Page not found": link its live portfolio instead
+            link = "https://impactfund.dk/investment-portfolio/" if key == "ifu" else p["link"]
+            add(inst, f"{key}-wp", str(p["id"]), link, title, client=title,
                 instrument=instrument_from(inst_t + (" fund" if "fund" in inst_t.lower() else "")),
                 sector_broad=broad_sector(sect), sector_detail=sect, status="Signed", date=str(year),
                 amount=float(amt) if amt and amt.isdigit() else None, currency="EUR", basis="band estimate" if (key == "finnfund" and amt and amt.isdigit()) else None,
@@ -900,7 +1111,7 @@ def step_normalize():
             ccs = countries_in(t)
             is_boad = "BOAD" in name or "Ouest Africaine" in name
             if is_boad:
-                ccs = WAEMU_CC
+                ccs = ["XW"]
             if not ccs:
                 continue  # supra-regional facilities that name no Franc Zone country
             m = re.search(r"(?:OeEB project volume|Project volume)\s+(EUR|USD)\s+([\d.,]+)\s*(million|thousand)?", t, re.I)
@@ -910,7 +1121,7 @@ def step_normalize():
             country_field = f.get("Country") or (pc.group(1) if pc else "")
             listed = [x for x in re.split(r",|\band\b", re.sub(r"\(.*?\)", "", country_field)) if x.strip()]
             if is_boad:
-                shares, method, note = {c: None for c in ccs}, "equal_split_estimate", "Credit line to the WAEMU's development bank; split equally across the eight WAEMU countries."
+                shares, method, note = {"XW": None}, "single_country", "Credit line to the WAEMU's development bank; counted WAEMU-wide."
             elif country_field and len(listed) == 1 and len(ccs) == 1:
                 shares, method, note = {ccs[0]: None}, "single_country", ""
             elif country_field:
@@ -1032,8 +1243,8 @@ def step_normalize():
     }
     for _i in INST:  # institutions can also be programme participants (e.g. Bpifrance, AFD)
         PARTICIPANT_PLACES.setdefault(_i[0], (_i[1], _i[6], _i[7]))
-    TE_COUNTRY = {  # Team Europe members per country, as listed on the European Commission's country pages
-        "CI": "EU EIB BE FI FR DE IT ES NL", "SN": "EU EIB AT BE CZ FI FR DE GR HU IE IT LU NL PL PT RO ES",
+    TE_COUNTRY = {  # Team Europe members per country, exactly as named on the European Commission's public country pages
+        "CI": "EU EIB BE FI FR DE IT ES NL", "SN": "EU EIB",  # Senegal page: "the EU, the EIB, and 16 EU Member States" (not named)
         "BJ": "EU EIB BE FR DE LU NL", "BF": "EU EIB BE NL DE IT", "ML": "EU DE BE ES IT NL",
         "NE": "EU FR DE BE ES IT LU NL", "TG": "EU FR DE", "GW": "EU EIB FR PT ES",
         "CM": "EU EIB BE FR DE IT ES", "CF": "EU BE ES FR DE", "TD": "EU EIB FR DE IT NL ES", "CG": "EU FR DE", "GA": "EU FR"}
@@ -1044,7 +1255,10 @@ def step_normalize():
                "?filename=infographics-global-gateway-flagship-projects-2023-2024-eu-africa_en.pdf")
     GG_LIST = "https://www.eacea.ec.europa.eu/document/download/cd93ca39-db48-4334-aebe-8bbe2b82a8df_en?filename=country_regional+GG+flagships.pdf"
     CORR = "https://international-partnerships.ec.europa.eu/policies/global-gateway/transport/eu-africa-strategic-corridors_en"
-    MEMBERS_NOTE = "Participants shown are Team Europe members in the country; the EU does not openly publish membership per initiative."
+    MEMBERS_NOTE = "Participants shown are the Team Europe members the Commission names for the country; membership per initiative is published only behind the Capacity4dev login."
+    SN_NOTE = "The Commission's Senegal page says Team Europe brings together the EU, the EIB and 16 EU member states, without naming them; only the EU and EIB are shown."
+    C4D_NOTE = " Official initiative name as listed in the EU's Team Europe tracker on Capacity4dev, which requires a login; the linked public page describes the country's Team Europe work."
+    MIP = "https://international-partnerships.ec.europa.eu/document/download/b6668f96-ddc3-4750-ab55-9dead1c7e7aa_en?filename=mip-2021-c2021-9242-niger-annex_fr.pdf"
     TEI, GG, ENV, PART, NAT = "Team Europe Initiative", "Global Gateway flagship", "EU country envelope", "Energy transition partnership", "National programme"
     def P(pid, name, kind, countries, participants, desc, source, amount=None, period="", note=""):
         return {"programme_id": pid, "name": name, "kind": kind, "countries": countries.split(),
@@ -1055,31 +1269,31 @@ def step_normalize():
         P("tei-ci-cocoa", "Côte d'Ivoire – Sustainable cocoa", TEI, "CI", TE_COUNTRY["CI"], "Living incomes for farmers, deforestation, child labour and compliance with EU rules in the cocoa value chain.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE),
         P("tei-ci-lowcarbon", "Côte d'Ivoire – Low-carbon transition", TEI, "CI", TE_COUNTRY["CI"], "Renewable power (Boundiali and Sérébou solar plants), the 400 kV eastern backbone line, clean cooking, energy efficiency and cleaner transport.", EC + "cote-divoire_en", note=MEMBERS_NOTE),
         P("tei-ci-peace", "Côte d'Ivoire – Peace, stability and social cohesion", TEI, "CI", TE_COUNTRY["CI"], "Keeping Côte d'Ivoire a pole of stability in West Africa, especially in the northern border regions.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE),
-        P("tei-sn-green", "Senegal – Green economy", TEI, "SN", TE_COUNTRY["SN"], "Green agriculture and sustainable, digital cities.", EC + "senegal_en", note=MEMBERS_NOTE),
-        P("tei-bj-port", "Benin – Investing for a sustainable port", TEI, "BJ", TE_COUNTRY["BJ"], "Port of Cotonou, coastline and the sustainable port economy.", TRACKER_EU, note=MEMBERS_NOTE),
-        P("tei-bj-energy", "Benin – Investing in green energy", TEI, "BJ", "EU FR DE", "Renewables, energy efficiency, access to energy and regional cooperation through the West African Power Pool.", "https://capacity4dev.europa.eu/resources/team-europe-tracker/partner-countries/benin/benin-investing-green-energy_en"),
-        P("tei-bj-jobs", "Benin – Sustainable growth and jobs", TEI, "BJ", "EU BE FR DE NL", "Vocational training, private-sector support in agriculture and digital, and digitisation of public services.", TRACKER_EU),
-        P("tei-bf-greendeal", "Burkina Faso – Green Deal for youth", TEI, "BF", TE_COUNTRY["BF"], "Agri-food value chains, rural electrification, digital skills and secondary cities on the Abidjan–Ouagadougou corridor.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-bf-stability", "Burkina Faso – Inclusion for stability", TEI, "BF", TE_COUNTRY["BF"], "Basic services, social protection and support to displaced people and host communities.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-ml-climate", "Mali – Environment and climate change", TEI, "ML", TE_COUNTRY["ML"], "Natural resource management, climate-resilient agriculture, hydropower and off-grid electrification, the Great Green Wall.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-ml-youth", "Mali – Youth", TEI, "ML", TE_COUNTRY["ML"], "Skills, jobs and entrepreneurship for young people and women.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-ne-futures", "Niger – #NigerGenerationsFutures", TEI, "NE", TE_COUNTRY["NE"], "Education, vocational training and prospects for young people.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-ne-governance", "Niger – Governance, peace and rights", TEI, "NE", TE_COUNTRY["NE"], "Governance, security and human rights.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-tg-decentral", "Togo – Decentralisation and local governance", TEI, "TG", TE_COUNTRY["TG"], "Local authorities, civil society and governance processes.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-tg-agri", "Togo – Sustainable agribusiness", TEI, "TG", TE_COUNTRY["TG"], "Pineapple, cashew and soya value chains, smallholder productivity and women's entrepreneurship.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-tg-energy", "Togo – Sustainable energy and digitalisation", TEI, "TG", TE_COUNTRY["TG"], "Renewable electricity distribution for over a million people and digital entrepreneurship.", TRACKER_FR, note=MEMBERS_NOTE),
-        P("tei-gw-education", "Guinea-Bissau – Education and training for an inclusive, green transition", TEI, "GW", "EU PT", "Reform of primary and higher education, teacher and student mobility, scientific research.", "https://capacity4dev.europa.eu/resources/team-europe-tracker/partner-countries/guinea-bissau/guinea-bissau-education-and-training-towards-inclusive-and-green-transition_en"),
+        P("tei-sn-green", "Senegal – Green economy", TEI, "SN", TE_COUNTRY["SN"], "Green agriculture and sustainable, digital cities.", EC + "senegal_en", note=SN_NOTE),
+        P("tei-bj-port", "Benin – Investing for a sustainable port", TEI, "BJ", TE_COUNTRY["BJ"], "Port of Cotonou, coastline and the sustainable port economy.", EC + "benin_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-bj-energy", "Benin – Investing in green energy", TEI, "BJ", "EU FR DE", "Renewables, energy efficiency, access to energy and regional cooperation through the West African Power Pool.", EC + "benin_en"),
+        P("tei-bj-jobs", "Benin – Sustainable growth and jobs", TEI, "BJ", "EU BE FR DE NL", "Vocational training, private-sector support in agriculture and digital, and digitisation of public services.", EC + "benin_en"),
+        P("tei-bf-greendeal", "Burkina Faso – Green Deal for youth", TEI, "BF", TE_COUNTRY["BF"], "Agri-food value chains, rural electrification, digital skills and secondary cities on the Abidjan–Ouagadougou corridor.", EC + "burkina-faso_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-bf-stability", "Burkina Faso – Inclusion for stability", TEI, "BF", TE_COUNTRY["BF"], "Basic services, social protection and support to displaced people and host communities.", EC + "burkina-faso_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-ml-climate", "Mali – Environment and climate change", TEI, "ML", TE_COUNTRY["ML"], "Natural resource management, climate-resilient agriculture, hydropower and off-grid electrification, the Great Green Wall.", EC + "mali_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-ml-youth", "Mali – Youth", TEI, "ML", TE_COUNTRY["ML"], "Skills, jobs and entrepreneurship for young people and women.", EC + "mali_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-ne-futures", "Niger – #NigerGenerationsFutures", TEI, "NE", TE_COUNTRY["NE"], "Education, vocational training and prospects for young people.", MIP, note=MEMBERS_NOTE),
+        P("tei-ne-governance", "Niger – Governance, peace and rights", TEI, "NE", TE_COUNTRY["NE"], "Governance, security and human rights.", MIP, note=MEMBERS_NOTE),
+        P("tei-tg-decentral", "Togo – Decentralisation and local governance", TEI, "TG", TE_COUNTRY["TG"], "Local authorities, civil society and governance processes.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-tg-agri", "Togo – Sustainable agribusiness", TEI, "TG", TE_COUNTRY["TG"], "Pineapple, cashew and soya value chains, smallholder productivity and women's entrepreneurship.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-tg-energy", "Togo – Sustainable energy and digitalisation", TEI, "TG", TE_COUNTRY["TG"], "Renewable electricity distribution for over a million people and digital entrepreneurship.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
+        P("tei-gw-education", "Guinea-Bissau – Education and training for an inclusive, green transition", TEI, "GW", "EU PT", "Reform of primary and higher education, teacher and student mobility, scientific research.", EC + "guinea-bissau_en"),
         # CEMAC country Team Europe Initiatives
-        P("tei-cm-north", "Cameroon – Green Deal and resilience in North Cameroon", TEI, "CM", TE_COUNTRY["CM"], "Agri-food systems, rural livelihoods, natural resources, local governance and stability in Cameroon's three northern regions.", "https://capacity4dev.europa.eu/resources/team-europe-tracker/partner-countries/cameroon/tei_en", note=MEMBERS_NOTE),
+        P("tei-cm-north", "Cameroon – Green Deal and resilience in North Cameroon", TEI, "CM", TE_COUNTRY["CM"], "Agri-food systems, rural livelihoods, natural resources, local governance and stability in Cameroon's three northern regions.", EC + "cameroon_en", note=MEMBERS_NOTE + C4D_NOTE),
         P("tei-cf-court", "Central African Republic – Special Criminal Court", TEI, "CF", "EU BE ES FR DE", "Support for the court trying serious international crimes, with resources and expertise for its independent operation.", EC + "central-african-republic_en"),
         P("tei-cg-forests", "Republic of the Congo – Congo Basin forests and sustainable development", TEI, "CG", "EU FR DE", "Preserving the Congo Basin's forests and moving the economy away from oil towards a green, diversified path.", EC + "congo_en", note="Name describes the initiative as presented by the Commission."),
         # Regional Team Europe Initiatives covering WAEMU countries
         P("tei-atlantic", "Migration – Atlantic and Western Mediterranean routes", TEI, "SN BF CI ML NE", "EU BE CZ DK FR DE IT NL ES", "Regional migration and mobility initiative; also covers Algeria, Mauritania, Morocco, The Gambia, Ghana, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", amount=908e6, period="2022–", note="€908m mobilised at launch across all 12 partner countries, not only WAEMU."),
         P("tei-centralmed", "Migration – Central Mediterranean route", TEI, "BF NE CI", "EU AT BE DE CZ DK FR IT MT NL ES", "Regional migration initiative; also covers Chad, Egypt, Libya, Ethiopia, Eritrea, Somalia, Sudan, Tunisia, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", period="2022–"),
-        P("tei-iyba", "Investing in Young Businesses in Africa (IYBA)", TEI, "BJ SN TG BF ML NE", "EU EIB FR DE BE NL", "Finance and technical support for start-ups and small businesses; Benin was the pilot country (launched in Cotonou, March 2024).", "https://international-partnerships.ec.europa.eu/policies/global-gateway/investing-young-businesses-africa_en", period="2021–", note="Country list per the Commission; participants are the core members named in public communication and may be incomplete."),
-        P("tei-opvet", "Opportunity-driven skills and vocational training in Africa (OP-VET)", TEI, "BJ BF ML NE TG CI GW SN TD", "EU", "Aligning vocational training with jobs created by public and private investment.", "https://capacity4dev.europa.eu/countries/nigeria/projects_en", period="2024–"),
-        P("tei-mav", "Manufacturing and access to vaccines, medicines and health technologies (MAV+)", TEI, "SN", "EU EIB FR DE BE", "Continental initiative; in Senegal it backs the MADIBA vaccine plant at Institut Pasteur de Dakar and the national pharmaceutical plan.", EC + "senegal_en", note="Participants named are the most visible members; the full list is not openly published."),
-        P("tei-water", "Transboundary water management in Africa", TEI, "SN ML NE BJ BF CI TG CM TD", "EU", "Senegal, Gambia, Niger and Volta basins among those targeted.", "https://capacity4dev.europa.eu/groups/public-water_and_sanitation/info/team-europe-initiative-transboundary-water-management-africa_en", period="2022–"),
+        P("tei-iyba", "Investing in Young Businesses in Africa (IYBA)", TEI, "BJ SN TG BF ML NE", "EU", "Finance and technical support for start-ups and small businesses; Benin was the pilot country (launched in Cotonou, March 2024).", "https://international-partnerships.ec.europa.eu/policies/global-gateway/investing-young-businesses-africa_en", period="2021–", note="Country list per the Commission; member-state participants are not verified, so only the EU is shown."),
+        P("tei-opvet", "Opportunity-driven skills and vocational training in Africa (OP-VET)", TEI, "BJ BF ML NE TG CI GW SN TD", "EU", "Aligning vocational training with jobs created by public and private investment.", "https://capacity4dev.europa.eu/countries/nigeria/projects_en", period="2024–", note="The only source found is a Capacity4dev page that requires a login."),
+        P("tei-mav", "Manufacturing and access to vaccines, medicines and health technologies (MAV+)", TEI, "SN", "EU", "Continental initiative; in Senegal it backs the MADIBA vaccine plant at Institut Pasteur de Dakar and the national pharmaceutical plan.", EC + "senegal_en", note="Member-state participants are not verified, so only the EU is shown."),
+        P("tei-water", "Transboundary water management in Africa", TEI, "SN ML NE BJ BF CI TG CM TD", "EU", "Senegal, Gambia, Niger and Volta basins among those targeted.", "https://sdgs.un.org/partnerships/team-europe-initiative-transboundary-water-management-africa", period="2022–"),
         # Global Gateway flagships
         P("gg-cm-nachtigal", "Nachtigal hydropower (420 MW) and Cameroon–Chad interconnection", GG, "CM TD", "EU EIB", "Exporting electricity from the Nachtigal plant to Chad through a new interconnection; support also for the 500 MW Kikot dam.", EC + "cameroon_en"),
         P("gg-cm-logone", "Logone River bridge (Cameroon–Chad)", GG, "CM TD", "EU", "Bridge linking Cameroon and Chad on the Douala–N'Djamena corridor.", EC + "cameroon_en"),
@@ -1091,7 +1305,7 @@ def step_normalize():
         P("gg-cf-backbone", "Central Africa Backbone fibre network (CAR)", GG, "CF", "EU", "Extension of the fibre-optic network.", EC + "central-african-republic_en"),
         P("gg-cg-forest", "EU–Republic of the Congo Forest Partnership", GG, "CG", "EU", "Partnership on forest protection and the forest economy (memorandum signed 2022).", EC + "congo_en", period="2022–"),
         P("gg-ga-forest", "EU–Gabon Forest Partnership", GG, "GA", "EU", "Biodiversity protection with benefits for local populations, protected areas and certified forest concessions.", EC + "gabon_en"),
-        P("gg-sn-hann", "Hann Bay depollution, Dakar", GG, "SN", "EU EIB afd", "Cleaning up Dakar's Hann Bay and its industrial and household wastewater.", EC + "senegal_en"),
+        P("gg-sn-hann", "Hann Bay depollution, Dakar", GG, "SN", "EU", "Cleaning up Dakar's Hann Bay and its industrial and household wastewater.", EC + "senegal_en"),
         P("gg-sn-brt", "Dakar Bus Rapid Transit and bus network", GG, "SN", "EU EIB", "Construction of the BRT line and restructuring of Dakar's public bus network.", GG_INFO),
         P("gg-sn-ziguinchor", "Port of Ziguinchor upgrade (Casamance)", GG, "SN", "EU", "Upgrade and operation of the port of Ziguinchor.", GG_INFO),
         P("gg-sn-river", "Senegal River Valley development", GG, "SN", "EU", "Resilience and development in the Senegal River Valley, with irrigation (PARIIS) and rural development (PADAER II).", GG_INFO),
@@ -1177,11 +1391,15 @@ def step_normalize():
     if rejected:
         print(f"{len(rejected)} manual row(s) set aside: see data/manual_rejected.csv")
 
+    with open(OUT / "regional_programmes.csv", "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=["investment_id", "institution_id", "source_id", "region", "title", "year", "amount_eur", "sector_broad", "instrument", "source_url", "note"])
+        w.writeheader(); w.writerows(regional)
+
     # compact bundle for the website
     bundle = {"generated": TODAY, "programmes": PROGRAMMES,
               "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()},
               "institutions": inst_rows,
-              "sectors": SECTOR_LIST, "peg_year": 1999,
+              "sectors": SECTOR_LIST, "peg_year": PEG_YEAR, "regional": regional,
               "comparators": [{"i": a["institution_id"], "c": a["country"], "s": comp_inv[a["investment_id"]]["sector_broad"],
                                "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
                               for a in comparators if a["amount_attributed_eur"]],
@@ -1215,7 +1433,7 @@ def step_build():
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
 
-FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb"]
+FETCH_STEPS = ["reference", "iati", "iati_regional", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb"]
 
 def main(steps):
     inv = ROOT / "data" / "investments.csv"
@@ -1313,6 +1531,7 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
 .pin i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);
   box-shadow:0 0 6px 2px var(--c),0 0 16px 4px var(--c)}
 .pin.dest i{left:-3px;top:-3px;width:6px;height:6px;box-shadow:0 0 6px 1px var(--c)}
+.pin.regional i{left:-5px;top:-5px;width:10px;height:10px;border-radius:2px;transform:rotate(45deg);background:transparent;border:2px solid var(--c)}
 .pin::after{content:"";position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);opacity:.0;animation:ping 2.4s ease-out infinite}
 .pin.dest::after{animation-duration:3.6s}
 .pin span{position:absolute;left:12px;top:-8px;font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap;background:rgba(4,12,17,.85);border:1px solid var(--line-hi);padding:3px 6px;opacity:0;pointer-events:none}
@@ -1370,6 +1589,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .more{display:block;margin:12px auto;appearance:none;border:1px solid var(--line-hi);background:transparent;color:var(--accent);font:500 14px var(--sans);padding:6px 14px;cursor:pointer}
 .ana{padding:12px 18px 20px;display:grid;gap:22px}
 .ana h3{margin:0 0 4px;font:600 15px var(--sans)}
+.ana h4.sub{margin:10px 0 4px;font:600 12.5px var(--sans);color:var(--muted)}
 .ana .hint{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
 .ana .seg{display:inline-flex;border:1px solid var(--line);margin-bottom:10px}
 .ana .seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:500 12.5px var(--sans);padding:5px 10px;cursor:pointer}
@@ -1448,6 +1668,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
       <div>Records: <b id="r-rec"></b></div>
       <div class="r-total">Total: <b id="r-total"></b> since implementation of XOF/XAF–Euro peg</div>
       <div class="r-small" id="r-und"></div>
+      <div class="r-small" id="r-reg"></div>
       <div class="r-small">Data sync <span id="r-sync"></span></div>
     </div>
     <div class="hud legend bracket" id="legend" aria-label="Legend"></div>
@@ -1491,7 +1712,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="list" id="list"></div>
     <div class="foot">
       <details><summary>About the data</summary>
-        <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
+        <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999, and the tracker covers operations from that date. Operations through the unions' own institutions (BOAD, BCEAO, the WAEMU Commission; BDEAC, BEAC, the CEMAC Commission) are counted "WAEMU-wide" or "CEMAC-wide". Wider regional programmes (West Africa, Central Africa, Sub-Saharan Africa, Africa-wide) are shown separately in Analysis and never added to Franc Zone totals. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
         <p id="gaps"></p>
       </details>
     </div>
@@ -1524,7 +1745,8 @@ const SHORT = {"eu-intpa":"European Commission",afd:"AFD",proparco:"Proparco","k
 const CAPITALS = {BJ:["Porto-Novo",6.497,2.605],BF:["Ouagadougou",12.371,-1.520],CI:["Yamoussoukro",6.827,-5.289],GW:["Bissau",11.864,-15.598],
   ML:["Bamako",12.639,-8.003],NE:["Niamey",13.512,2.112],SN:["Dakar",14.716,-17.467],TG:["Lomé",6.131,1.222],
   CM:["Yaoundé",3.848,11.502],CF:["Bangui",4.394,18.558],TD:["N'Djamena",12.134,15.056],CG:["Brazzaville",-4.263,15.242],
-  GQ:["Malabo",3.755,8.774],GA:["Libreville",0.416,9.467]};
+  GQ:["Malabo",3.755,8.774],GA:["Libreville",0.416,9.467],
+  XW:["WAEMU-wide",14.2,-3.6],XC:["CEMAC-wide",2.4,15.6]};  // union-wide operations (BOAD, BCEAO, BDEAC, BEAC, union commissions)
 // Franc Zone countries by numeric ISO code (shapes on the map); the union decides the colour
 const WAEMU_NUM = {"204":"BJ","854":"BF","384":"CI","624":"GW","466":"ML","562":"NE","686":"SN","768":"TG",
   "120":"CM","140":"CF","148":"TD","178":"CG","226":"GQ","266":"GA"};
@@ -1643,6 +1865,8 @@ document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleS
   }
   document.getElementById("r-total").textContent = fmt(peg);
   document.getElementById("r-und").textContent = und ? `plus ${fmt(und)} in undated deals` : "";
+  const regTot = (DATA.regional || []).reduce((s, r) => s + (r.amount_eur || 0), 0);
+  document.getElementById("r-reg").textContent = regTot ? `Wider African regional programmes: ${fmt(regTot)} (not in total, see Analysis)` : "";
 })();
 document.getElementById("sources").textContent = "(Data: IATI via d-portal, EIB, Proparco, BIO, DEG, Finnfund, IFU, COFIDES, World Bank, AIIB, ECB exchange rates, curated public sources)";
 document.getElementById("f-est").onchange = e => { state.est = e.target.checked; update(false); };
@@ -1708,10 +1932,12 @@ const cur = {textContent: ""};  // cursor readout removed
 const fmtCoord = c => c ? `${Math.abs(c.lat).toFixed(2)}°${c.lat >= 0 ? "N" : "S"} ${Math.abs(c.lng).toFixed(2)}°${c.lng >= 0 ? "E" : "W"}` : "off map";
 function pinElement(d) {
   const p = document.createElement("div");
-  p.className = "pin" + (d.dest ? " dest" : ""); p.style.setProperty("--c", d.color);
+  p.className = "pin" + (d.dest ? " dest" : "") + (d.regional ? " regional" : ""); p.style.setProperty("--c", d.color);
   p.innerHTML = `<b></b><i></i><span>${esc(d.title)}</span>`;
   p.setAttribute("role", "button"); p.tabIndex = 0; p.setAttribute("aria-label", d.title);
   p.onclick = e => { e.stopPropagation(); d.onclick(); };
+  // the globe also listens for pointer events: keep a pin click from reaching the country shape underneath
+  ["pointerdown", "pointerup", "mousedown", "mouseup", "touchstart", "touchend"].forEach(ev => p.addEventListener(ev, e => e.stopPropagation()));
   p.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.onclick(); } };
   p.onpointerenter = () => (pinHover = true);
   p.onpointerleave = () => (pinHover = false);
@@ -1733,7 +1959,7 @@ function makeGlobe() {
     .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.009 : 0.005).polygonSideColor(() => "rgba(0,0,0,0)").polygonsTransitionDuration(0)
     .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`
       : `<div class="tip">${esc(f.properties.name)}</div>`)
-    .onPolygonClick(f => { if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
+    .onPolygonClick(f => { if (pinHover) return; if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
     .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
     .arcAltitudeAutoScale(0.38)
     .arcLabel(arcTip)
@@ -1923,11 +2149,12 @@ function arcClick(d) { state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.i
 function styleArcs(arcs, sparse) { R.arcs(arcs, sparse); }
 function setPins(origins) {
   const dests = Object.entries(CAPITALS).filter(([cc]) => state.cc.has(cc)).map(([cc,[city,lat,lng]]) => ({
-    lat, lng, dest:true, color: css(fzVar(cc, "line")), text: "", title: `${city}, ${ccName(cc)}`,
+    lat, lng, dest:true, regional: cc === "XW" || cc === "XC", color: css(fzVar(cc, "line")), text: "",
+    title: cc === "XW" || cc === "XC" ? ccName(cc) : `${city}, ${ccName(cc)}`,
     onclick: () => { state.focus = {cc}; update(); }}));
   R.pins(origins, dests);
-  const MAPNAME = {CF: "Central African Rep.", CG: "Rep. of Congo", GQ: "Eq. Guinea"};  // shorter names on the map only
-  const LABELPOS = {GQ: [1.0, 6.4], GA: [-2.6, 11.0], CG: [1.2, 16.6]};  // keep small neighbours' labels apart
+  const MAPNAME = {CF: "Central African Rep.", CG: "Rep. of Congo", GQ: "Eq. Guinea", XW: "WAEMU-wide", XC: "CEMAC-wide"};  // shorter names on the map only
+  const LABELPOS = {GQ: [1.0, 6.4], GA: [-2.6, 11.0], CG: [1.2, 16.6], XW: [15.2, -3.6], XC: [0.6, 17.4]};  // keep small neighbours' labels apart
   R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name: MAPNAME[cc] || c.name, lat: (LABELPOS[cc] || [c.lat])[0], lng: (LABELPOS[cc] || [0, c.lon])[1]})));
 }
 
@@ -2059,6 +2286,18 @@ function stackedColumns(cols) {
     <div class="xlabels sec">${cols.map(c => `<span>${esc(c.label)}</span>`).join("")}</div></div>
     <p class="ylabel">Y axis: euros committed. X axis: sectors. Coloured blocks are the actors investing in each sector; the number on top counts them. Hover a column for details.</p>`;
 }
+function regFiltered() {
+  return (DATA.regional || []).filter(r => {
+    const ins = INST[r.institution_id]; if (!ins) return false;
+    if (!state.types.has(ins.type)) return false;
+    if (state.ms && ins.member_state !== state.ms) return false;
+    if (state.inst && r.institution_id !== state.inst) return false;
+    if (state.ins && r.instrument !== state.ins) return false;
+    if (state.yr && !(r.year && +r.year >= +state.yr)) return false;
+    if (state.q && !norm(r.title + " " + (SHORT[r.institution_id] || "") + " " + ins.name).includes(state.q)) return false;
+    return true;
+  });
+}
 function renderAnalysis(rows) {
   const total = rows.reduce((s, [a, inv]) => s + valueOf(a, inv), 0);
   document.getElementById("s-total").textContent = fmt(total);
@@ -2141,6 +2380,18 @@ function renderAnalysis(rows) {
       ${bars(rank(sectors), () => css("--accent"))}</section>
     <section><h3>Recipient countries by capital</h3>
       ${bars(rank(ctry).map(([k, v]) => [k, v, DATA.countries[k] ? DATA.countries[k].name : k]), k => css(fzVar(k, "line")))}</section>
+    ${(() => {
+      const reg = regFiltered(); if (!reg.length) return "";
+      const byReg = new Map(), bySec = new Map(), byInst = new Map(); let tot = 0;
+      for (const r of reg) { const v = r.amount_eur || 0; tot += v;
+        byReg.set(r.region, (byReg.get(r.region) || 0) + v); bySec.set(r.sector_broad, (bySec.get(r.sector_broad) || 0) + v);
+        byInst.set(r.institution_id, (byInst.get(r.institution_id) || 0) + v); }
+      return `<section><h3>Wider African regional programmes</h3>
+        <p class="hint">${reg.length.toLocaleString("en")} operations, ${fmt(tot)}, covering West Africa, Central Africa, Sub-Saharan Africa or the whole continent. Part of this money reaches Franc Zone countries, but the share is not published, so it is kept out of every Franc Zone total above.</p>
+        <h4 class="sub">By region</h4>${bars(rank(byReg), () => css("--muted"))}
+        <h4 class="sub">By sector</h4>${bars(rank(bySec), () => css("--muted"))}
+        <h4 class="sub">By institution</h4>${bars(rank(byInst, 10).map(([k, v]) => [k, v, k === "Others" ? "Others" : (SHORT[k] || INST[k].name)]), k => k === "Others" ? css("--dim") : css(typeVar[INST[k].type]))}</section>`;
+    })()}
     <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
       ${seg("ovMode", [["sector", "By sector"], ["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
       ${state.ovMode === "sector" ? seg("ovStack", [["inst", "Stack by institution"], ["ms", "Stack by member state"]]) : ""}
