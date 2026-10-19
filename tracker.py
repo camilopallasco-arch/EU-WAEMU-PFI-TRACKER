@@ -2,12 +2,12 @@
 
 Run everything:      python tracker.py
 Run some steps only: python tracker.py eib normalize build
-Steps: reference iati proparco bio wp eib cofides noneu normalize build
+Steps: reference iati proparco bio wp eib cofides noneu oeeb normalize build
 """
 import os, sys, csv, json, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parent
 os.chdir(ROOT)
-for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "ref", "data", "site"]:
+for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "ref", "data", "site"]:
     (ROOT / _d).mkdir(parents=True, exist_ok=True)
 
 def step_reference():
@@ -255,6 +255,36 @@ def step_noneu():
     json.dump(aiib, open("raw/nonEU/aiib.json", "w"), ensure_ascii=False)
     print(len(wb), "World Bank projects;", len(aiib), "AIIB projects (all countries)")
 
+def step_oeeb():
+    """OeEB (Austria): read every project page and keep those that name a Franc Zone country (often regional funds)."""
+    import re, json, time, html as H, urllib.request, pathlib
+    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
+    BASE = "https://oe-eb.at"
+    pathlib.Path("raw/oeeb").mkdir(parents=True, exist_ok=True)
+    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60).read().decode("utf-8", "replace")
+    def text(h): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", h, flags=re.S))))
+    links = sorted(set(re.findall(r'href="(/en/our-projects/projects-at-a-glance/[^"#?]+\.html)"', get(BASE + "/en/our-projects/projects-at-a-glance.html"))))
+    FZ = re.compile(r"Benin|Burkina|C[oô]te d.?Ivoire|Ivory Coast|Guinea-Bissau|\bMali\b|\bNiger\b|Senegal|\bTogo\b|Cameroon|Central African Rep|\bChad\b|Republic of (the )?Congo|Congo-Brazzaville|Equatorial Guinea|\bGabon\b|West Africa|Central Africa|WAEMU|UEMOA|CEMAC", re.I)
+    out = []
+    for l in links:
+        try:
+            t = text(get(BASE + l))
+        except Exception as e:
+            print("skip", l, e); continue
+        i = t.find("Project name"); body = t[max(0, i - 2500):i + 3000] if i > 0 else t[:6000]
+        if not FZ.search(body):
+            continue
+        fields = {}
+        for lab in ["Project name", "Country", "Region", "Sector", "Service", "OeEB project volume", "Fund domicile", "Project partner(s)"]:
+            m = re.search(re.escape(lab) + r" \| (.*?) \|", body) or re.search(re.escape(lab) + r" (.+?)(?= (?:Project name|Country|Region|Sector|Service|OeEB project volume|International climate|Additionality|Fund domicile|Project partner)|$)", body)
+            if m: fields[lab] = m.group(1).strip()[:200]
+        d = re.search(r"In (January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})", body)
+        out.append({"url": BASE + l, "fields": fields, "date": f"{d.group(2)}-{['January','February','March','April','May','June','July','August','September','October','November','December'].index(d.group(1))+1:02d}" if d else "",
+                    "text": body[:2500]})
+        time.sleep(0.2)
+    json.dump(out, open("raw/oeeb/projects.json", "w"), ensure_ascii=False, indent=0)
+    print(len(links), "OeEB project pages read;", len(out), "mention a Franc Zone country or region")
+
 def step_normalize():
     """Normalise all raw sources into the tracker data model.
 
@@ -423,7 +453,7 @@ def step_normalize():
         ("ebrd", "European Bank for Reconstruction and Development (EBRD)", "INT", "Multilateral", "", "London", 51.507, -0.128, "https://www.ebrd.com", "automated"),
     ]
     # Coverage status after the round-2 research (automated feed, curated from public sources, programme level only, or checked with nothing found)
-    COVERAGE = {"swedfund": "curated", "cofides": "automated", "oeeb": "checked: no Franc Zone deals found", "sace": "curated", "credendo": "curated",
+    COVERAGE = {"swedfund": "curated", "cofides": "automated", "oeeb": "automated", "sace": "curated", "credendo": "curated",
                 "eifo": "curated", "bpifrance-ae": "curated", "cdp": "curated", "cesce": "programme level", "sofid": "programme level",
                 "simest": "programme level", "bpifrance": "programme level"}
     INST = [i[:9] + (COVERAGE.get(i[0], i[9]),) for i in INST]
@@ -485,7 +515,7 @@ def step_normalize():
             elif method in ("single_country",):
                 share = 100.0
             elif method == "equal_split_estimate":
-                share = 100.0 / n
+                share = pct if pct is not None else 100.0 / n
             else:
                 share = None  # regional_unallocated
             att = round(amount_eur * share / 100) if (amount_eur is not None and share is not None) else None
@@ -860,6 +890,52 @@ def step_normalize():
             method="single_country" if len(cc_list) == 1 else "equal_split_estimate", note=note,
             basis="published in press release" if amount else None)
 
+    # ---- OeEB (Austria): project pages that name a Franc Zone country
+    oeeb_file = RAW / "oeeb" / "projects.json"
+    if oeeb_file.exists():
+        WAEMU_CC = [c for c in COUNTRIES if UNION[c] == "WAEMU"]
+        for pjt in json.load(open(oeeb_file, encoding="utf-8")):
+            t, f = pjt["text"], pjt["fields"]
+            name = f.get("Project name") or pjt["url"].rsplit("/", 1)[-1]
+            ccs = countries_in(t)
+            is_boad = "BOAD" in name or "Ouest Africaine" in name
+            if is_boad:
+                ccs = WAEMU_CC
+            if not ccs:
+                continue  # supra-regional facilities that name no Franc Zone country
+            m = re.search(r"(?:OeEB project volume|Project volume)\s+(EUR|USD)\s+([\d.,]+)\s*(million|thousand)?", t, re.I)
+            amount = float(m.group(2).replace(",", "")) * {"million": 1e6, "thousand": 1e3}.get((m.group(3) or "").lower(), 1) if m else None
+            cur = m.group(1).upper() if m else "EUR"
+            pc = re.search(r"Project country\s+([A-Z][A-Za-z' -]+?)(?:\s+Project|\s+OeEB|$)", t)
+            country_field = f.get("Country") or (pc.group(1) if pc else "")
+            listed = [x for x in re.split(r",|\band\b", re.sub(r"\(.*?\)", "", country_field)) if x.strip()]
+            if is_boad:
+                shares, method, note = {c: None for c in ccs}, "equal_split_estimate", "Credit line to the WAEMU's development bank; split equally across the eight WAEMU countries."
+            elif country_field and len(listed) == 1 and len(ccs) == 1:
+                shares, method, note = {ccs[0]: None}, "single_country", ""
+            elif country_field:
+                shares, method = {c: 100.0 / len(listed) for c in ccs}, "equal_split_estimate"
+                note = f"OeEB lists {len(listed)} countries ({country_field}); the Franc Zone share is estimated by equal split."
+            else:
+                n_named = len(ccs)
+                for sent in re.split(r"(?<=[.;])\s+", t):  # the sentence that lists the countries: "... in X, Y and Z."
+                    if countries_in(sent):
+                        seg = re.split(r"\bin\s+(?=[A-ZÀ-Ý])", sent)[-1]
+                        seg = re.split(r"\.|;|, as well| as well|\(", seg)[0]
+                        items = [x.strip() for x in re.split(r",|\band\b", seg) if x.strip()[:1].isupper()]
+                        n_named = max(n_named, len(items))
+                        break
+                if n_named and n_named <= 3 and "other countries" not in t and "including countries such as" not in t:
+                    shares, method = {c: 100.0 / n_named for c in ccs}, "equal_split_estimate"
+                    note = f"Operation spans {n_named} named countries; the Franc Zone share is estimated by equal split."
+                else:
+                    shares, method = {c: None for c in ccs}, "regional_unallocated"
+                    note = "Regional or pan-African operation that names Franc Zone countries; amount not allocated to them."
+            add("oeeb", "oeeb-web", pjt["url"].rsplit("/", 1)[-1].replace(".html", ""), pjt["url"], name,
+                desc=t[:400], client=(f.get("Project partner(s)") or name)[:80], instrument=instrument_from(f.get("Service", "")),
+                sector_broad=broad_sector(f.get("Sector", "") + " " + name + " " + t[:600]), sector_detail=f.get("Sector", "")[:80],
+                status="Signed", date=pjt.get("date", ""), amount=amount, currency=cur, shares=shares, method=method, note=note)
+
     # ---- World Bank (IBRD/IDA): non-EU comparison layer
     wb_file = RAW / "nonEU" / "worldbank.json"
     if wb_file.exists():
@@ -1065,6 +1141,10 @@ def step_normalize():
         P("nat-c2d", "Debt-for-development swaps (C2D) with Côte d'Ivoire", NAT, "CI", "afd ES", "Côte d'Ivoire's debt payments to France and Spain are returned as financing for poverty-reduction projects.", "https://www.cesce.es/documents/20122/0/INFORME+COSTA+DE+MARFIL+-+22+septiembre+2021_compressed.pdf/da7a101b-6d0e-f02a-dbd8-073b8d128721?t=1633361771235"),
         P("nat-bpifrance-ebid", "Bpifrance and EBID export finance cooperation", NAT, "BJ BF CI GW ML NE SN TG", "bpifrance bpifrance-ae", "Joint identification and financing of public and private buyers of French exports, backed by state export guarantees.", "https://presse.bpifrance.fr/bpifrance-et-la-bidc-banque-dinvestissement-et-de-developpement-de-la-cedeao-renforcent-leur-cooperation-en-faveur-du-developpement-des-exportations-francaises-en-afrique/", period="2024–"),
         P("nat-sofid", "SOFID investments in Portuguese-speaking Africa", NAT, "GW", "sofid", "Portugal's DFI focuses on Portuguese-speaking countries and lists Guinea-Bissau among countries with approved projects.", "https://pipelineroad.com/directory/sofid", note="Individual deals are not published."),
+        P("nat-lusophone-compact", "Lusophone Compact: Portuguese state guarantee for AfDB private-sector projects", NAT, "GW GQ", "PT",
+          "Portugal guarantees up to €400m of African Development Bank non-sovereign operations in the six Portuguese-speaking African countries, including Guinea-Bissau and Equatorial Guinea.",
+          "https://clubofmozambique.com/news/afdb-and-portugal-sign-eur-400-million-guarantee-agreement-to-underpin-lusophone-compact/",
+          amount=400e6, period="2022–", note="A guarantee cap for six countries (four outside the Franc Zone), not money spent; the guarantor is the Portuguese government."),
         P("nat-bpifrance-acc", "Bpifrance Africa Accelerator", NAT, "SN CI", "bpifrance", "Support programme for French SMEs expanding in Africa, including business missions to Dakar.", "https://presse.bpifrance.fr/bpifrance-accompagne-la-deuxieme-promotion-de-laccelerateur-afrique-a-dakar-pour-prospecter-le-marche-senegalais/?lang=fra", note="Business support, not a financing commitment."),
     ]
     manual_prog = OUT / "programmes_manual.csv"
@@ -1080,7 +1160,7 @@ def step_normalize():
                                     r.get("description", ""), r.get("source_url", ""), float(r["amount_eur"]) if (r.get("amount_eur") or "").replace(".", "", 1).isdigit() else None,
                                     r.get("period", ""), r.get("note", "")))
     PROGRAMMES = [p for p in PROGRAMMES if any(c in COUNTRIES for c in p["countries"])]
-    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs'], 'tei-cm-north': ['Agriculture and food systems', 'Energy and climate', 'Governance and budget support'], 'tei-cf-court': ['Governance and budget support'], 'tei-cg-forests': ['Energy and climate'], 'gg-cm-nachtigal': ['Energy and climate'], 'gg-cm-logone': ['Transport and corridors'], 'gg-cm-transcam': ['Transport and corridors'], 'gg-td-road': ['Transport and corridors'], 'gg-corr-libreville-ndjamena': ['Transport and corridors'], 'gg-corr-douala-kampala': ['Transport and corridors'], 'gg-ga-transgabonais': ['Transport and corridors'], 'gg-cf-backbone': ['Digital and telecoms'], 'gg-cg-forest': ['Energy and climate'], 'gg-ga-forest': ['Energy and climate'], 'env-cm': ['Other (social, humanitarian, multi-sector)'], 'env-cf': ['Other (social, humanitarian, multi-sector)'], 'env-td': ['Other (social, humanitarian, multi-sector)'], 'env-cg': ['Other (social, humanitarian, multi-sector)'], 'env-ga': ['Other (social, humanitarian, multi-sector)']}
+    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs'], 'nat-lusophone-compact': ['Financial sector and SMEs'], 'tei-cm-north': ['Agriculture and food systems', 'Energy and climate', 'Governance and budget support'], 'tei-cf-court': ['Governance and budget support'], 'tei-cg-forests': ['Energy and climate'], 'gg-cm-nachtigal': ['Energy and climate'], 'gg-cm-logone': ['Transport and corridors'], 'gg-cm-transcam': ['Transport and corridors'], 'gg-td-road': ['Transport and corridors'], 'gg-corr-libreville-ndjamena': ['Transport and corridors'], 'gg-corr-douala-kampala': ['Transport and corridors'], 'gg-ga-transgabonais': ['Transport and corridors'], 'gg-cf-backbone': ['Digital and telecoms'], 'gg-cg-forest': ['Energy and climate'], 'gg-ga-forest': ['Energy and climate'], 'env-cm': ['Other (social, humanitarian, multi-sector)'], 'env-cf': ['Other (social, humanitarian, multi-sector)'], 'env-td': ['Other (social, humanitarian, multi-sector)'], 'env-cg': ['Other (social, humanitarian, multi-sector)'], 'env-ga': ['Other (social, humanitarian, multi-sector)']}
     for _p in PROGRAMMES:  # sector tags for the overlap analysis; manual programmes are tagged from their text
         _p["sectors"] = PROG_SECTORS.get(_p["programme_id"]) or [broad_sector(_p["name"] + " " + _p["description"])]
     with open(OUT / "programmes.csv", "w", newline="", encoding="utf-8") as fh:
@@ -1135,7 +1215,7 @@ def step_build():
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
 
-FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib", "cofides", "noneu"]
+FETCH_STEPS = ["reference", "iati", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb"]
 
 def main(steps):
     inv = ROOT / "data" / "investments.csv"
