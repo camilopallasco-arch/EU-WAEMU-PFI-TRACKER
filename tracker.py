@@ -1818,7 +1818,7 @@ opts(document.getElementById("f-ms"), [...new Set(covered.map(i => i.member_stat
 opts(document.getElementById("f-inst"), covered.map(i => [i.institution_id, SHORT[i.institution_id] || i.name]), "All");
 opts(document.getElementById("f-ins"), [...new Set(DATA.investments.map(i => i.instrument))].sort().map(x => [x,x]), "All");
 const years = [...new Set(DATA.investments.map(i => i.year).filter(Boolean))].sort();
-opts(document.getElementById("f-yr"), [2000,2010,2015,2020,2023,2025].filter(y => y >= +years[0]).map(y => [y, String(y)]), "Any year");
+opts(document.getElementById("f-yr"), Array.from({length: new Date().getFullYear() - 1998}, (_, i) => 1999 + i).map(y => [y, String(y)]), "Any year (since 1999)");
 const parts = [...new Set(PROG.flatMap(p => p.participants))].filter(p => PLACES[p]).sort((a,b) => partName(a).localeCompare(partName(b)));
 opts(document.getElementById("f-part"), parts.map(p => [p, partName(p)]), "All");
 opts(document.getElementById("f-cap"), Object.entries(CAPITALS).map(([cc,[city]]) => [cc, `${city}, ${DATA.countries[cc].name}`]), "Choose a capital");
@@ -1863,8 +1863,8 @@ document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleS
     const y = INVY[a.investment_id], v = a.amount_attributed_eur || 0;
     if (!y) und += v; else if (+y >= (DATA.peg_year || 1999)) peg += v;
   }
-  document.getElementById("r-total").textContent = fmt(peg);
-  document.getElementById("r-und").textContent = und ? `plus ${fmt(und)} in undated deals` : "";
+  document.getElementById("r-total").textContent = fmt(peg + und);
+  document.getElementById("r-und").textContent = und ? `includes ${fmt(und)} in deals with no recorded date` : "";
   const regTot = (DATA.regional || []).reduce((s, r) => s + (r.amount_eur || 0), 0);
   document.getElementById("r-reg").textContent = regTot ? `Wider African regional programmes: ${fmt(regTot)} (not in total, see Analysis)` : "";
 })();
@@ -1988,7 +1988,7 @@ function makeGlobe() {
       } else {
         globe.arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02).arcDashInitialGap(d => d.seed)
           .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
-                     globe.arcDashLength(sparse ? 0.14 : 0.22).arcDashGap(sparse ? 0.2 : 0.12).arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 70000 : 45000));  // calmer: long slow strands
+        globe.arcDashLength(sparse ? 0.14 : 0.22).arcDashGap(sparse ? 0.2 : 0.12).arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 70000 : 45000));  // calmer: long slow strands
       }
     },
     pins(origins, dests) {
