@@ -566,7 +566,7 @@ def step_normalize():
 
     def add(inst, src, rec_id, url, title, *, desc="", client="", client_domicile="", instrument="Unknown",
             sector_broad="Other", sector_detail="", status="", date="", amount=None, currency="EUR",
-            amount_eur=None, es="", shares=None, method="", note="", points=None, basis=None):
+            amount_eur=None, es="", shares=None, method="", note="", points=None, basis=None, instrument_detail=""):
         """shares: dict cc -> pct (or None for unknown); method as in the data model."""
         if not shares:
             return
@@ -583,7 +583,7 @@ def step_normalize():
             "investment_id": inv_id, "institution_id": inst, "source_id": src, "source_record_id": rec_id,
             "source_url": url, "title": (title or "").strip()[:250], "description": re.sub(r"\s+", " ", desc or "").strip()[:600],
             "client": client, "client_domicile": client_domicile, "instrument": instrument,
-            "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date,
+            "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date, "instrument_detail": instrument_detail,
             "year": (date or "")[:4], "amount_original": amount, "currency_original": currency,
             "fx_rate_per_eur": fx_rate, "amount_eur": round(amount_eur) if amount_eur is not None else None,
             "amount_basis": basis or ("commitment" if amount_eur is not None else "not disclosed"),
@@ -1148,53 +1148,43 @@ def step_normalize():
                 sector_broad=broad_sector(f.get("Sector", "") + " " + name + " " + t[:600]), sector_detail=f.get("Sector", "")[:80],
                 status="Signed", date=pjt.get("date", ""), amount=amount, currency=cur, shares=shares, method=method, note=note)
 
-    # ---- EU-Africa Infrastructure Trust Fund: grants approved 2007-2022 (cancelled grants left out).
-    # The fund's list has no country column: only grants whose name identifies the place are attributed.
+    # ---- EU-Africa Infrastructure Trust Fund (EU-AITF): every grant whose countries the fund's 2019 annual report lists,
+    # with net approved amounts; grants approved later and cancellations taken from the fund's grant list.
     AITF_SRC = "https://www.eu-africa-infrastructure-tf.net/activities/grant-operations.pdf"
-    AITF_TYPE = {"IG": "Investment grant", "TA": "Technical assistance", "IRS": "Interest rate subsidy", "DG": "Direct grant", "FI": "Financial instrument"}
-    AITF = [  # name, grant type, lead financier, amount EUR, approval year, shares {country: pct or None}, method, sector, note
-        ("IG for rehabilitation of RN1 and RN2 road sections and construction of the Maroua bypass routes", "IG", "AfDB", 30000000, "2022", {"CM": None}, "single_country", "Transport road", "Maroua is in Cameroon."),
-        ("IG for Togo Cizo pay-as-you-go solar electrification programme for rural populations", "IG", "AfDB", 9990000, "2019", {"TG": None}, "single_country", "Energy solar", ""),
-        ("IG for the rehabilitation of the cotton road Djougou-Pehunco-Kérou-Banikoara", "IG", "AfDB", 9400000, "2019", {"BJ": None}, "single_country", "Transport road", "Roads in northern Benin."),
-        ("Concessionary loan for the Djermaya solar project", "FI", "PIDG", 6350000, "2016", {"TD": None}, "single_country", "Energy solar", "Djermaya is near N'Djamena, Chad."),
-        ("IG for access to electricity in the Atlantique province in Benin", "IG", "AFD", 20000000, "2013", {"BJ": None}, "single_country", "Energy electricity", "Co-financier: EIB."),
-        ("IG for the extension of NIGELEC networks", "IG", "AFD", 11000000, "2013", {"NE": None}, "single_country", "Energy electricity", "NIGELEC is Niger's electricity company."),
-        ("TA to project coordination units and Lomé-Blitta rail line rehabilitation studies", "TA", "AfDB", 2340000, "2012", {"TG": None}, "single_country", "Transport rail", "Co-financier: KfW."),
-        ("TA for the Bolgatanga-Ouagadougou interconnection", "TA", "AFD", 4800000, "2011", {"BF": 50.0}, "equal_split_estimate", "Energy interconnection", "Ghana-Burkina Faso power line; half attributed to Burkina Faso as an estimate."),
-        ("IRS for AFD's loan funding of the Bolgatanga-Ouagadougou interconnection", "IRS", "AFD", 2800000, "2011", {"BF": 50.0}, "equal_split_estimate", "Energy interconnection", "Ghana-Burkina Faso power line; half attributed to Burkina Faso as an estimate."),
-        ("IRS for EIB's loan funding of the Bolgatanga-Ouagadougou interconnection", "IRS", "EIB", 6700000, "2011", {"BF": 50.0}, "equal_split_estimate", "Energy interconnection", "Ghana-Burkina Faso power line; half attributed to Burkina Faso as an estimate."),
-        ("IRS for access to Douala", "IRS", "AFD", 5700000, "2010", {"CM": None}, "single_country", "Transport road", ""),
-        ("Support and capacity building for the financial and accounting staff of PAPN (Port Autonome de Pointe-Noire)", "TA", "AFD", 2000000, "2009", {"CG": None}, "single_country", "Transport port", "Co-financier: EIB."),
-        ("IRS for the rehabilitation of the port of Pointe-Noire", "IRS", "AFD", 6600000, "2009", {"CG": None}, "single_country", "Transport port", "Co-financier: EIB."),
-        ("Benin-Togo power rehabilitation", "IRS", "EIB", 12250000, "2009", {"BJ": None, "TG": None}, "equal_split_estimate", "Energy electricity", "Shared between Benin and Togo; split equally as an estimate. Co-financier: KfW."),
-        ("TA 1: preparatory studies for the CLSG power interconnection project", "TA", "EIB", 3168233, "2007", {"CI": 25.0}, "equal_split_estimate", "Energy interconnection", "Côte d'Ivoire-Liberia-Sierra Leone-Guinea line; a quarter attributed to Côte d'Ivoire as an estimate."),
-        ("IRS for the CLSG interconnection project (EIB)", "IRS", "EIB", 12500000, "2012", {"CI": 25.0}, "equal_split_estimate", "Energy interconnection", "Côte d'Ivoire-Liberia-Sierra Leone-Guinea line; a quarter attributed to Côte d'Ivoire as an estimate."),
-        ("Preparation studies for the Sambangalou hydropower project (OMVG)", "TA", "AFD", 350000, "2009", {"SN": 25.0, "GW": 25.0}, "equal_split_estimate", "Energy hydropower", "Gambia River basin project of The Gambia, Guinea, Guinea-Bissau and Senegal; a quarter each to Senegal and Guinea-Bissau as estimates."),
-        ("IRS for EIB financing of the Félou hydropower project (OMVS)", "IRS", "EIB", 9335000, "2007", {"ML": 33.33, "SN": 33.33}, "equal_split_estimate", "Energy hydropower", "Senegal River basin plant shared by Mali, Mauritania and Senegal; a third each to Mali and Senegal as estimates."),
-        ("Development and implementation of a social and environmental management system at BOAD", "TA", "AfDB", 400000, "2011", {"XW": None}, "single_country", "Governance environment", "Through the WAEMU's development bank: counted WAEMU-wide."),
-        ("BOAD capacity building for environmental impact assessment and clean development mechanism initiatives", "TA", "EIB", 900000, "2010", {"XW": None}, "single_country", "Environment climate", "Through the WAEMU's development bank: counted WAEMU-wide."),
-    ]
-    for name, gt, lead, amt, yr, shares, method, sector, note in AITF:
-        add("eu-aitf", "eu-aitf-pdf", re.sub(r"[^a-z0-9]+", "-", name.lower())[:60], AITF_SRC, name, client=f"Lead financier: {lead}",
-            instrument="Loan" if gt == "FI" else "Grant", sector_broad=broad_sector(sector), sector_detail=f"{AITF_TYPE[gt]}; {sector}",
-            status="Approved", date=yr, amount=amt, currency="EUR", shares=shares, method=method, basis="approved grant amount",
-            note=(f"EU-AITF {AITF_TYPE[gt].lower()} (approval {yr}), lead financier {lead}. " + note).strip())
-    AITF_REGIONAL = [  # wider regional grants: West African power pool, ECCAS, ASECNA, sub-Saharan programmes
-        ("EIB technical assistance in sub-Saharan Africa", "TA", "EIB", 14700000, "2020", "Sub-Saharan Africa", "Multisector"),
-        ("ASECNA - EGNOS phase B", "TA", "AFD", 5000000, "2016", "Africa", "Transport air navigation"),
-        ("ASECNA - capacity enhancement TA programme", "TA", "EIB", 2000000, "2012", "Africa", "Transport air navigation"),
-        ("TA for financing EE and RE investments of private companies in West Africa", "TA", "AFD", 1500000, "2013", "West Africa", "Energy efficiency renewable"),
-        ("Incentive payments for financing EE and RE investments of local companies in West Africa", "IG", "AFD", 4500000, "2013", "West Africa", "Energy efficiency renewable"),
-        ("TA to strengthen the project management capacity at ECCAS", "TA", "AfDB", 3402100, "2013", "Central Africa", "Transport"),
-        ("TA for the WAPP power interconnection in West Africa", "TA", "AFD", 1200000, "2011", "West Africa", "Energy interconnection"),
-        ("Implementation of ERERA's regulation activities", "TA", "AFD", 1700000, "2009", "West Africa", "Energy regulation"),
-        ("Update of the West African Power Pool (WAPP) master plan", "TA", "EIB", 1450000, "2009", "West Africa", "Energy"),
-        ("TA for the WAPP coastal backbone", "TA", "EIB", 1784100, "2009", "West Africa", "Energy transmission"),
-        ("TA for the AXIS project (African Internet Exchange System)", "TA", "Lux-Dev", 5100000, "2010", "Africa", "Digital internet"),
-    ]
-    for name, gt, lead, amt, yr, region, sector in AITF_REGIONAL:
-        add_regional("eu-aitf", "eu-aitf-pdf", re.sub(r"[^a-z0-9]+", "-", name.lower())[:60], AITF_SRC, name, region, year=yr, amount_eur=amt,
-                     sector_broad=broad_sector(sector), instrument="Grant", note=f"EU-AITF {AITF_TYPE[gt].lower()}, lead financier {lead}.")
+    AITF_REPORT = "https://www.eib.org/attachments/country/eu_africa_infrastructure_trust_fund_annual_report_2019_en.pdf"
+    AITF_TYPE = {"IG": "Investment grant", "TA": "Technical assistance grant", "IRS": "Interest rate subsidy", "DG": "Direct grant",
+                 "FI": "Financial instrument", "MS": "Grant"}
+    AITF_RECS = [{'name': 'CLSG Interconnection Project', 'type': 'TA', 'lead': 'EIB', 'amount': 2951980.0, 'year': '2007', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Felou Hydropower plant', 'type': 'IRS', 'lead': 'EIB', 'amount': 6319083.5, 'year': '2007', 'status': 'Completed', 'kind': 'split', 'shares': {'ML': 33.33, 'SN': 33.33}, 'n': 3, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Update of the WAPP Masterplan', 'type': 'TA', 'lead': 'EIB', 'amount': 1306623.75, 'year': '2009', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 14, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Benin - Togo Power Rehabilitation', 'type': 'IRS', 'lead': 'EIB', 'amount': 2250000.0, 'year': '2009', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'BJ': 50.0, 'TG': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'ECOWAS Electricity Regulation (ERERA)', 'type': 'TA', 'lead': 'AFD', 'amount': 1700000.0, 'year': '2009', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 15, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Port de Pointe Noire (PAPN)', 'type': 'IRS', 'lead': 'AFD', 'amount': 5592803.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CF': 25.0, 'TD': 25.0, 'CG': 25.0}, 'n': 4, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Sambangalou Hydro Power Plant', 'type': 'TA', 'lead': 'AFD', 'amount': 290415.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'GW': 25.0, 'SN': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Port de Pointe Noire (PAPN)', 'type': 'TA', 'lead': 'AFD', 'amount': 1719287.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CF': 25.0, 'TD': 25.0, 'CG': 25.0}, 'n': 4, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'WAPP - Coastal Backbone transmission line', 'type': 'TA', 'lead': 'EIB', 'amount': 1753979.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Feasibility study for the Western part of Umojanet', 'type': 'TA', 'lead': 'AFD', 'amount': 1104961.88, 'year': '2010', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 10, 'sector': 'ICT', 'region': 'West Africa'}, {'name': 'AXIS - The African Internet Exchange System', 'type': 'TA', 'lead': 'Lux-Dev', 'amount': 5100000.0, 'year': '2010', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 23, 'sector': 'ICT', 'region': 'Sub-Saharan Africa'}, {'name': 'Capacity building for BOAD (focused on climate change, environmental and social issues in project financing)', 'type': 'TA', 'lead': 'EIB', 'amount': 900000.0, 'year': '2010', 'status': 'Ongoing', 'kind': 'union', 'shares': {'XW': None}, 'n': 8, 'sector': 'Multisector', 'region': 'West Africa'}, {'name': 'Satellite enhanced Telemedicine and e-Health for Sub- Saharan Africa (eHSA)', 'type': 'TA', 'lead': 'Lux-Dev', 'amount': 4000000.0, 'year': '2010', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 1, 'sector': 'ICT', 'region': 'Sub-Saharan Africa'}, {'name': 'Access to Douala', 'type': 'IRS', 'lead': 'AFD', 'amount': 1314257.88, 'year': '2010', 'status': 'Completed', 'kind': 'single', 'shares': {'CM': None}, 'n': 1, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'IRS', 'lead': 'AFD', 'amount': 169702.63, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'IRS', 'lead': 'EIB', 'amount': 231703.31, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'TA', 'lead': 'AFD', 'amount': 4800000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'TA', 'lead': 'EIB', 'amount': 1500000.0, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'WAPP Power Interconnection in West Africa (Ghana-Burkina Faso-Mali)', 'type': 'TA', 'lead': 'AFD', 'amount': 1200000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'split', 'shares': {'BF': 33.33, 'ML': 33.33}, 'n': 3, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Development and implementation of a Social and Environmental Management System (SEMS) at BOAD', 'type': 'TA', 'lead': 'AfDB', 'amount': 400000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'union', 'shares': {'XW': None}, 'n': 8, 'sector': 'Multisector', 'region': 'West Africa'}, {'name': 'Togo-Burkina Faso Road Corridor: Lome- Ouaga Road and Transport Facilitation Project', 'type': 'TA', 'lead': 'AfDB', 'amount': 2340000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'BF': 50.0, 'TG': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'ASECNA', 'type': 'TA', 'lead': 'EIB', 'amount': 2000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 17, 'sector': 'Transport', 'region': 'Sub-Saharan Africa'}, {'name': 'Africa Energy Guarantee Facility (AEGF)', 'type': 'TA', 'lead': 'EIB', 'amount': 1000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 11, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'DG', 'lead': 'AfDB', 'amount': 10000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'IRS', 'lead': 'EIB', 'amount': 12500000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Congo-Gabon: Brazzaville- Libreville road Transport Facilitation Project', 'type': 'TA', 'lead': 'AfDB', 'amount': 3402100.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'GA': 50.0, 'CG': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Rural Roads Infrastructures Development (2RID)', 'type': 'TA', 'lead': 'CDP', 'amount': 4579050.0, 'year': '2015', 'status': 'Ongoing', 'kind': 'split', 'shares': {'NE': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'ASECNA - Programme EGNOS', 'type': 'TA', 'lead': 'AFD', 'amount': 5000000.0, 'year': '2016', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 17, 'sector': 'Transport', 'region': 'Sub-Saharan Africa'}, {'name': 'Niger Electricity Access II (NELACEP II)', 'type': 'IG', 'lead': 'EIB', 'amount': 18200000.0, 'year': '2018', 'status': 'Cancelled', 'kind': 'single', 'shares': {'NE': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Extension of NIGELEC Networks', 'type': 'IG', 'lead': 'AFD', 'amount': 11000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'single', 'shares': {'NE': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'SUNREF – West Africa Phase I', 'type': 'IG', 'lead': 'AFD', 'amount': 3000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'CI': 14.29, 'SN': 14.29, 'BF': 14.29, 'TG': 14.29, 'BJ': 14.29, 'GW': 14.29, 'NE': 14.29}, 'n': 7, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'SUNREF – West Africa Phase I', 'type': 'TA', 'lead': 'AFD', 'amount': 1500000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'CI': 14.29, 'SN': 14.29, 'BF': 14.29, 'TG': 14.29, 'BJ': 14.29, 'GW': 14.29, 'NE': 14.29}, 'n': 7, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Clean Cooking Program for Africa (GLPGP)', 'type': 'TA', 'lead': 'KfW', 'amount': 1700000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CM': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'Central Africa'}, {'name': 'Access to Electricity in the Atlantique Province in Benin', 'type': 'IG', 'lead': 'AFD', 'amount': 20000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'single', 'shares': {'BJ': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Solar Hybridization to Increase National Electrification - SHINE', 'type': 'IG', 'lead': 'AFD', 'amount': 14400000.0, 'year': '2015', 'status': 'Cancelled', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Solar Hybridization to Increase National Electrification - SHINE', 'type': 'TA', 'lead': 'AFD', 'amount': 3600000.0, 'year': '2015', 'status': 'Ongoing', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Djermaya Solar', 'type': 'FI', 'lead': 'PIDG', 'amount': 6350000.0, 'year': '2016', 'status': 'Ongoing', 'kind': 'single', 'shares': {'TD': None}, 'n': 1, 'sector': 'Energy', 'region': 'Central Africa'}, {'name': 'Rehabilitation of the Cotton Road Djougou- Pehunco-Kérou- Banikoara', 'type': 'IG', 'lead': 'AfDB', 'amount': 9400000.0, 'year': '2019', 'status': 'Ongoing', 'kind': 'single', 'shares': {'BJ': None}, 'n': 1, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'Togo Cizo Pay- As-You-Go Solar Electrification Project For Rural Populations', 'type': 'IG', 'lead': 'AfDB', 'amount': 9990000.0, 'year': '2019', 'status': 'Ongoing', 'kind': 'single', 'shares': {'TG': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Rehabilitation of RN1 and RN2 road sections and construction of the Maroua bypass routes', 'type': 'IG', 'lead': 'AfDB', 'amount': 30000000.0, 'year': '2022', 'status': 'Approved', 'kind': 'single', 'shares': {'CM': None}, 'n': 1, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'EIB technical assistance in sub-Saharan Africa', 'type': 'TA', 'lead': 'EIB', 'amount': 14700000.0, 'year': '2020', 'status': 'Approved', 'kind': 'regional', 'shares': {}, 'n': 0, 'sector': 'Multisector', 'region': 'Sub-Saharan Africa'}, {'name': 'Mauritania - Senegal interconnection', 'type': 'TA', 'lead': '', 'amount': 5500000.0, 'year': '', 'status': 'Cancelled', 'kind': 'split', 'shares': {'SN': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'ESIA for the Gouina hydropower plant (Mali)', 'type': 'TA', 'lead': '', 'amount': 1000000.0, 'year': '', 'status': 'Cancelled', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}]
+    AITF_FZ = []  # used for the Programmes view
+    for r in AITF_RECS:
+        rid = re.sub(r"[^a-z0-9]+", "-", (r["name"] + " " + r["type"] + " " + r["year"]).lower())[:70]
+        src = AITF_REPORT if r["year"] and int(r["year"]) <= 2019 and r["status"] != "Cancelled" else AITF_SRC
+        detail = AITF_TYPE.get(r["type"], "Grant")
+        lead = f", lead financier {r['lead']}" if r["lead"] else ""
+        if r["kind"] == "regional":
+            add_regional("eu-aitf", "eu-aitf", rid, src, r["name"], r["region"], year=r["year"], amount_eur=r["amount"],
+                         sector_broad=broad_sector(r["sector"] + " " + r["name"]), instrument="Grant", note=f"EU-AITF {detail.lower()}{lead}.")
+            continue
+        shares = r["shares"] if r["kind"] != "union" else {"XW": None}
+        method = "single_country" if r["kind"] in ("single", "union") else "equal_split_estimate"
+        if r["status"] == "Cancelled":
+            add("eu-aitf", "eu-aitf", rid, src, r["name"], client=f"Lead financier: {r['lead'] or 'not stated'}", instrument="Grant",
+                instrument_detail=detail, sector_broad=broad_sector(r["sector"] + " " + r["name"]), sector_detail=r["sector"], status="Cancelled",
+                date=r["year"], amount=None, shares=shares, method="cancelled",
+                note=f"Cancelled: approved for €{r['amount'] / 1e6:.2f}m but never paid, so not counted in any total.")
+            continue
+        if r["kind"] == "union":
+            note = "Through the WAEMU's development bank (BOAD): counted WAEMU-wide."
+        elif method == "equal_split_estimate":
+            note = f"The fund lists {r['n']} countries; the Franc Zone share is estimated by equal split."
+        else:
+            note = ""
+        add("eu-aitf", "eu-aitf", rid, src, r["name"], client=f"Lead financier: {r['lead']}", instrument="Grant" if r["type"] != "FI" else "Loan",
+            instrument_detail=detail, sector_broad=broad_sector(r["sector"] + " " + r["name"]), sector_detail=r["sector"], status=r["status"],
+            date=r["year"], amount=r["amount"], currency="EUR", shares=shares, method=method,
+            basis="net approved grant (EU-AITF annual report)" if src == AITF_REPORT else "approved grant (EU-AITF grant list)",
+            note=(f"EU-AITF {detail.lower()}{lead}. " + note).strip())
+        AITF_FZ.append((r, shares, detail))
     for r in regional:  # contributions INTO the fund: part of this money is the grants listed above
         if re.search(r"infrastructure trust fund", r["title"], re.I) and r["institution_id"] != "eu-aitf":
             r["note"] = (r["note"] + " Contribution to the EU-Africa Infrastructure Trust Fund: its Franc Zone grants are listed separately under EU-AITF, so do not add the two.").strip()
@@ -1427,14 +1417,14 @@ def step_normalize():
                                     r.get("description", ""), r.get("source_url", ""), float(r["amount_eur"]) if (r.get("amount_eur") or "").replace(".", "", 1).isdigit() else None,
                                     r.get("period", ""), r.get("note", "")))
     # EU-Africa Infrastructure Trust Fund grants, shown as programmes right after the Team Europe Initiatives
-    LEAD_PART = {"AFD": "afd", "EIB": "EIB", "KfW": "kfw-db", "KFW": "kfw-db"}
+    LEAD_PART = {"AFD": "afd", "EIB": "EIB", "KfW": "kfw-db", "CDP": "cdp"}
     _AITF_SECT = {}
-    for name, gt, lead, amt, yr, shares, method, sector, note in AITF:
-        parts = "eu-aitf" + (" " + LEAD_PART[lead] if lead in LEAD_PART else "")
-        PROGRAMMES.append(P("aitf-" + re.sub(r"[^a-z0-9]+", "-", name.lower())[:50], name, AITF_KIND, " ".join(shares), parts,
-                            f"{AITF_TYPE[gt]} approved in {yr}; lead financier {lead}.", AITF_SRC, amount=amt, period=yr,
-                            note=("Full grant amount. " + note).strip()))
-        _AITF_SECT[PROGRAMMES[-1]["programme_id"]] = [broad_sector(sector)]
+    for r, shares, detail in AITF_FZ:
+        parts = "eu-aitf" + (" " + LEAD_PART[r["lead"]] if r["lead"] in LEAD_PART else "")
+        PROGRAMMES.append(P("aitf-" + re.sub(r"[^a-z0-9]+", "-", (r["name"] + " " + r["type"] + " " + r["year"]).lower())[:60], r["name"], AITF_KIND,
+                            " ".join(shares), parts, f"{detail} approved in {r['year']}; lead financier {r['lead']}.", AITF_SRC, amount=r["amount"],
+                            period=r["year"], note="Full grant amount (the Investments view counts only the Franc Zone share)."))
+        _AITF_SECT[PROGRAMMES[-1]["programme_id"]] = [broad_sector(r["sector"] + " " + r["name"])]
     PROGRAMMES = [p for p in PROGRAMMES if any(c in COUNTRIES for c in p["countries"])]
     PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs'], 'nat-lusophone-compact': ['Financial sector and SMEs'], 'tei-cm-north': ['Agriculture and food systems', 'Energy and climate', 'Governance and budget support'], 'tei-cf-court': ['Governance and budget support'], 'tei-cg-forests': ['Energy and climate'], 'gg-cm-nachtigal': ['Energy and climate'], 'gg-cm-logone': ['Transport and corridors'], 'gg-cm-transcam': ['Transport and corridors'], 'gg-td-road': ['Transport and corridors'], 'gg-corr-libreville-ndjamena': ['Transport and corridors'], 'gg-corr-douala-kampala': ['Transport and corridors'], 'gg-ga-transgabonais': ['Transport and corridors'], 'gg-cf-backbone': ['Digital and telecoms'], 'gg-cg-forest': ['Energy and climate'], 'gg-ga-forest': ['Energy and climate'], 'env-cm': ['Other (social, humanitarian, multi-sector)'], 'env-cf': ['Other (social, humanitarian, multi-sector)'], 'env-td': ['Other (social, humanitarian, multi-sector)'], 'env-cg': ['Other (social, humanitarian, multi-sector)'], 'env-ga': ['Other (social, humanitarian, multi-sector)']}
     PROG_SECTORS.update(_AITF_SECT)
@@ -1467,7 +1457,7 @@ def step_normalize():
                                "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
                               for a in comparators if a["amount_attributed_eur"]],
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
-                                                   "instrument", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
+                                                   "instrument", "instrument_detail", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
                                                    "source_url", "note", "multi_country")} for inv in investments],
               "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
                                                  "lat", "lon", "geo_precision")} for a in allocations]}
@@ -1643,6 +1633,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .deal{padding:12px 18px;border-bottom:1px solid var(--line)}
 .deal h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
 .deal .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--muted)}
+.deal h3 .cap{font:500 12px var(--sans);color:var(--muted);white-space:nowrap}
 .deal .amt{font:500 13px var(--mono);color:var(--ink)}
 .deal .who{display:flex;align-items:center;gap:6px}
 .deal .note{font-size:12.5px;color:var(--muted);margin-top:4px}
@@ -2274,6 +2265,14 @@ function update(resetList = true) {
     text: "", title: `${i.name}, ${i.hq_city}`, onclick: () => { state.focus = {inst:id}; update(); }}; }));
   if (state.view === "ana") renderAnalysis(rows); else renderDeals(rows);
 }
+// [instrument: kind of capital] shown next to every deal
+const CAPITAL = {"Loan": "Loan: debt capital, repayable", "Equity": "Equity: ownership capital", "Guarantee": "Guarantee: contingent cover, not disbursed capital",
+  "Grant": "Grant: non-repayable funds", "Export finance": "Export finance: export credit (debt)", "Debt relief": "Debt relief: cancelled debt",
+  "Unknown": "Instrument not stated by the source"};
+function capLabel(inv) {
+  const base = CAPITAL[inv.instrument] || inv.instrument;
+  return inv.instrument_detail && inv.instrument === "Grant" ? `Grant: ${inv.instrument_detail.toLowerCase()}, non-repayable` : base;
+}
 function renderDeals(rows) {
   const total = rows.reduce((s,[a]) => s + (a.amount_attributed_eur || 0), 0);
   const deals = new Set(rows.map(([,inv]) => inv.investment_id));
@@ -2298,9 +2297,9 @@ function renderDeals(rows) {
   if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters${state.q ? " and search" : ""}. Try another search term, widen the year range or turn an institution type back on.</p>`; return; }
   box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg}) => {
     const ins = INST[inv.institution_id];
-    const amount = sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
+    const amount = inv.status === "Cancelled" ? "Cancelled, not counted" : sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
     return `<article class="deal">
-      <h3>${esc(inv.title)}</h3>
+      <h3>${esc(inv.title)} <span class="cap">[${esc(capLabel(inv))}]</span></h3>
       <div class="meta">
         <span class="who"><span class="sw" style="background:var(${typeVar[ins.type]});color:var(${typeVar[ins.type]})"></span>${esc(SHORT[ins.institution_id] || ins.name)}</span>
         <span>${ccs.map(c => esc(ccName(c))).join(", ")}</span>
