@@ -31,6 +31,12 @@ oekb,OeKB – Oesterreichische Kontrollbank,AT,ECA,OeKB Group,Vienna,48.215,16.3
 kuke,KUKE – Export Credit Insurance Corporation,PL,ECA,,Warsaw,52.24,21.0,https://www.kuke.com.pl,curated
 eu-intpa,"European Commission – DG International Partnerships (NDICI-Global Europe, EDF)",EU,EU institution,European Union,Brussels,50.843,4.382,https://international-partnerships.ec.europa.eu,automated
 eib,European Investment Bank (EIB),EU,EU institution,EIB Group,Luxembourg,49.627,6.155,https://www.eib.org,automated
+eu-eutf,EU Emergency Trust Fund for Africa (EUTF),EU,EU institution,European Commission trust fund,Brussels,50.846,4.375,https://trust-fund-for-africa.europa.eu,automated
+edfi-mc,"ElectriFI and AgriFI (EU-funded, managed by EDFI Management Company)",EU,EU institution,EDFI Management Company,Brussels,50.838,4.36,https://edfimc.eu,automated
+eu-echo,European Commission – humanitarian aid (DG ECHO),EU,Humanitarian aid,European Union,Brussels,50.842,4.388,https://civil-protection-humanitarian-aid.ec.europa.eu,automated
+eu-fpi,European Commission – Foreign Policy Instruments (FPI),EU,Foreign policy instrument,European Union,Brussels,50.84,4.378,https://fpi.ec.europa.eu,automated
+wbtf,World Bank-managed trust funds financed by the EU or EU member states,WBTF,World Bank trust fund,World Bank Group,Washington,38.897,-77.04,https://www.worldbank.org,automated
+eu-blending,EU blending grants (Africa Investment Platform / Africa Investment Facility),EU,EU institution,European Commission,Brussels,50.844,4.384,https://international-partnerships.ec.europa.eu,curated
 eu-aitf,EU-Africa Infrastructure Trust Fund (EU-AITF),EU,EU institution,Managed by the EIB; funded by the Commission and contributing member states,Luxembourg,49.64,6.18,https://www.eu-africa-infrastructure-tf.net,curated
 ebrd,European Bank for Reconstruction and Development (EBRD),INT,Multilateral,,London,51.507,-0.128,https://www.ebrd.com,automated
 bpf,Banco Português de Fomento (BPF),PT,NPB,,Lisbon,38.725,-9.15,https://www.bpfomento.pt,checked: no Franc Zone deals found

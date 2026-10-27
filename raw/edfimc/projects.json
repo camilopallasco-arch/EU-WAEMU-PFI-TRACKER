@@ -1,0 +1,322 @@
+[
+{
+"url": "https://edfimc.eu/project/moon-togo/",
+"facility": "electrifi",
+"card": " 2024 Togo Solar PV Moon Togo Read more ",
+"fields": {
+"Country": "Togo",
+"Sector": "Solar PV",
+"Financial Facility": "ElectriFI - Global",
+"Year of Investment": "2024",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Loan",
+"Amount": "EUR 2 million"
+},
+"name": "moon togo"
+},
+{
+"url": "https://edfimc.eu/project/solar-23/",
+"facility": "electrifi",
+"card": " 2024 Burundi Senegal Zambia Solar PV Solar 23 Read more ",
+"fields": {
+"Country": "Burundi Senegal Zambia",
+"Sector": "Solar PV",
+"Financial Facility": "ElectriFI - Global ElectriFI - Kenya Country WIndow",
+"Year of Investment": "2024",
+"Status": "Disbursed",
+"Investment type": "Working capital facility Project overview Solar23 is a German solar company that has been operating for more than 20 years, mostly on the African cont",
+"Financial Instrument": "Loan",
+"Amount": "EUR 4 million"
+},
+"name": "solar 23"
+},
+{
+"url": "https://edfimc.eu/project/les-soleils-du-benin/",
+"facility": "electrifi",
+"card": " 2023 Benin Solar PV ElectriFI – Benin Country Window , ElectriFI – Global Minigrid Disbursed Senior Debt Les Soleils du Bénin Read more ",
+"fields": {
+"Country": "Benin",
+"Sector": "Solar PV",
+"Financial Facility": "ElectriFI - Benin Country Window ElectriFI - Global",
+"Year of Investment": "2023",
+"Status": "Disbursed",
+"Investment type": "Senior Debt Project overview Générale du Solaire International and Africa Renewable Energy System & Solution (“ARESS”) have developed a portfolio of 1",
+"Financial Instrument": "Senior Debt",
+"Amount": "EUR 3.1 million Technology Solar PV Business model Minigrid"
+},
+"name": "les soleils du benin"
+},
+{
+"url": "https://edfimc.eu/project/sunculture/",
+"facility": "electrifi",
+"card": " 2022 Ivory Coast , Kenya Agriculture , Solar PV ElectriFI – Ivory Coast Country Window , ElectriFI – Kenya Country WIndow PURE (Productive Use of Renewable Energy) Disbursed Junior debt SunCulture Read more ",
+"fields": {
+"Country": "Ivory Coast Kenya",
+"Sector": "Agriculture Solar PV",
+"Financial Facility": "ElectriFI - Ivory Coast Country Window ElectriFI - Kenya Country WIndow",
+"Year of Investment": "2022",
+"Status": "Disbursed",
+"Investment type": "Junior debt",
+"Financial Instrument": "Mezzanine debt",
+"Amount": "USD 3m (EUR 2.9m)"
+},
+"name": "sunculture"
+},
+{
+"url": "https://edfimc.eu/project/sunkofa-energy/",
+"facility": "electrifi",
+"card": " 2021 Benin Solar PV ElectriFI – Global Minigrid Disbursed Equity Sunkofa Energy Read more ",
+"fields": {
+"Country": "Benin",
+"Sector": "Solar PV",
+"Financial Facility": "ElectriFI - Global",
+"Year of Investment": "2021",
+"Status": "Disbursed",
+"Investment type": "Equity Project overview",
+"Financial Instrument": "Equity and subordinated debt",
+"Amount": "EUR 1.5 million"
+},
+"name": "sunkofa energy"
+},
+{
+"url": "https://edfimc.eu/project/finelle/",
+"facility": "electrifi",
+"card": " 2021 Ivory Coast Other , Renewable energy ElectriFI – Ivory Coast Country Window Microfinance Institution (MFI) Disbursed Junior debt FIN’Elle Read more ",
+"fields": {
+"Country": "Ivory Coast",
+"Sector": "Other Renewable energy",
+"Financial Facility": "ElectriFI - Ivory Coast Country Window",
+"Year of Investment": "2021",
+"Status": "Disbursed",
+"Investment type": "Junior debt Project overview FIN’Elle, (La Finance pour ELLE) is a microfinance institution specialised in financing female entrepreneurs and MSMEs in",
+"Financial Instrument": "subordinated debt",
+"Amount": "EUR 1.5 million"
+},
+"name": "finelle"
+},
+{
+"url": "https://edfimc.eu/project/myjoulebox/",
+"facility": "electrifi",
+"card": " 2021 2025 Benin , Burkina Faso , DRC , Niger , Senegal Renewable energy , Solar PV ElectriFI – Benin Country Window , ElectriFI – Global C&I Solar (Commercial & Industrial) , Minigrid , Solar Home Systems Disbursed Equity , Quasi equity MyJouleBox Read more ",
+"fields": {
+"Country": "Benin Burkina Faso DRC Niger Senegal",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI - Benin Country Window ElectriFI - Global",
+"Year of Investment": "2021 2025",
+"Status": "Disbursed",
+"Investment type": "Equity Quasi equity Project overview MyJouleBox, operating under the ARESS brand, is a solar energy company based in Benin. Since 2012, it has provide",
+"Financial Instrument": "Equity",
+"Amount": "EUR 1.5 m in 2021 and EUR 1.5 m in 2025"
+},
+"name": "myjoulebox"
+},
+{
+"url": "https://edfimc.eu/project/upowa-cameroun-sasu/",
+"facility": "electrifi",
+"card": " 2020 Cameroon Renewable energy , Solar PV ElectriFI – Global Solar Home Systems Exited Senior Debt UpOwa Cameroun SASU Read more ",
+"fields": {
+"Country": "Cameroon",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI - Global",
+"Year of Investment": "2020",
+"Status": "Exited",
+"Investment type": "Senior Debt Project overview UpOwa is an off-grid energy company distributing solar home systems using pay-as-you-go technology and is the first mover",
+"Financial Instrument": "Debt",
+"Amount": "EUR 3m"
+},
+"name": "upowa cameroun sasu"
+},
+{
+"url": "https://edfimc.eu/project/bamboo-energy-access-multiplier-beam/",
+"facility": "electrifi",
+"card": " 2019 Burkina Faso , Nigeria , Togo Renewable energy , Solar PV ElectriFI – Global Solar Home Systems Disbursed Equity Bamboo Energy Access Multiplier (BEAM) Read more ",
+"fields": {
+"Country": "Burkina Faso Nigeria Togo",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI - Global",
+"Year of Investment": "2019",
+"Status": "Disbursed",
+"Investment type": "Equity Project overview BEAM is a USD 25 million impact fund designed to invest in BBOXX Ltd as well as in greenfield and early‑stage solar home syste",
+"Financial Instrument": "Equity",
+"Amount": "USD 8m"
+},
+"name": "bamboo energy access multiplier beam"
+},
+{
+"url": "https://edfimc.eu/project/e-long-life-energies-nouvelles-ellen/",
+"facility": "electrifi",
+"card": " 2019 Mali , Niger Renewable energy , Solar PV ElectriFI , ElectriFI – Global Solar Home Systems Disbursed Senior Debt E-Long Life Energies Nouvelles (ELLEN) Read more ",
+"fields": {
+"Country": "Mali Niger",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI ElectriFI - Global",
+"Year of Investment": "2019",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Senior debt",
+"Amount": "EUR 4m"
+},
+"name": "e long life energies nouvelles ellen"
+},
+{
+"url": "https://edfimc.eu/project/peg-africa/",
+"facility": "electrifi",
+"card": " 2019 2020 Ghana , Ivory Coast Renewable energy , Solar PV ElectriFI , ElectriFI – Ivory Coast Country Window Solar Home Systems Exited Junior debt PEG Africa Read more ",
+"fields": {
+"Country": "Ghana Ivory Coast",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI ElectriFI - Ivory Coast Country Window",
+"Year of Investment": "2019 2020",
+"Status": "Exited",
+"Investment type": "Junior debt",
+"Financial Instrument": "Junior debt",
+"Amount": "EUR 5m in Sep 2019 + EUR 1.27 in Sep 2020 Status Exited"
+},
+"name": "peg africa"
+},
+{
+"url": "https://edfimc.eu/project/winch-energy/",
+"facility": "electrifi",
+"card": " 2018 Benin Renewable energy , Solar PV ElectriFI , ElectriFI – Global Minigrid Disbursed Development Finance Loan Winch Energy Read more ",
+"fields": {
+"Country": "Benin",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI ElectriFI - Global",
+"Year of Investment": "2018",
+"Status": "Disbursed",
+"Investment type": "Development Finance Loan",
+"Financial Instrument": "Development finance loan",
+"Amount": "EUR 0.1m"
+},
+"name": "winch energy"
+},
+{
+"url": "https://edfimc.eu/project/flexgrid/",
+"facility": "electrifi",
+"card": " 2017 Mali , Rwanda Renewable energy , Solar PV ElectriFI , ElectriFI – Global Minigrid Disbursed Development Finance Loan Flexgrid Read more ",
+"fields": {
+"Country": "Mali Rwanda",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI ElectriFI - Global",
+"Year of Investment": "2017",
+"Status": "Disbursed",
+"Investment type": "Development Finance Loan In 2017,",
+"Financial Instrument": "Development finance loan",
+"Amount": "EUR 0.1 million"
+},
+"name": "flexgrid"
+},
+{
+"url": "https://edfimc.eu/project/asrama-microgrid/",
+"facility": "electrifi",
+"card": " 2017 Togo Renewable energy , Solar PV ElectriFI , ElectriFI – Global Minigrid Disbursed Development Finance Loan Asrama Microgrid Read more ",
+"fields": {
+"Country": "Togo",
+"Sector": "Renewable energy Solar PV",
+"Financial Facility": "ElectriFI ElectriFI - Global",
+"Year of Investment": "2017",
+"Status": "Disbursed",
+"Investment type": "Development Finance Loan",
+"Financial Instrument": "Development financing",
+"Amount": "EUR 0.1 million"
+},
+"name": "asrama microgrid"
+},
+{
+"url": "https://edfimc.eu/project/cajou-espoir-sa/",
+"facility": "agrifi",
+"card": " 2023 Togo Agriculture , Vegetal food AgriFI – ACP Regional Window Direct Disbursed Senior Debt Cajou Espoir SA Read more ",
+"fields": {
+"Country": "Togo",
+"Sector": "Agriculture Vegetal food",
+"Financial Facility": "AgriFI - ACP Regional Window",
+"Year of Investment": "2023",
+"Status": "Disbursed",
+"Investment type": "Senior Debt By investing in Cajou Espoir",
+"Financial Instrument": "Long-term debt",
+"Amount": "€ 3 million"
+},
+"name": "cajou espoir sa"
+},
+{
+"url": "https://edfimc.eu/project/gebana-burkina-faso/",
+"facility": "agrifi",
+"card": " 2023 Burkina Faso Agriculture , Vegetal food AgriFI – ACP Regional Window Direct Disbursed Senior Debt Gebana Burkina Faso Read more ",
+"fields": {
+"Country": "Burkina Faso",
+"Sector": "Agriculture Vegetal food",
+"Financial Facility": "AgriFI - ACP Regional Window",
+"Year of Investment": "2023",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Senior loan",
+"Amount": "€3 million"
+},
+"name": "gebana burkina faso"
+},
+{
+"url": "https://edfimc.eu/project/agroserv/",
+"facility": "agrifi",
+"card": " 2022 Burkina Faso Agriculture , Vegetal food AgriFI , AgriFI – Global Direct Disbursed Senior Debt AgroServ Read more ",
+"fields": {
+"Country": "Burkina Faso",
+"Sector": "Agriculture Vegetal food",
+"Financial Facility": "AgriFI AgriFI - Global",
+"Year of Investment": "2022",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Senior loan",
+"Amount": "€ 3 million"
+},
+"name": "agroserv"
+},
+{
+"url": "https://edfimc.eu/project/microfinance-solidaire/",
+"facility": "agrifi",
+"card": " 2021 Benin , Burkina Faso , Haiti , India , Myanmar Agriculture , Vegetal food AgriFI , AgriFI – Global Investment Fund Disbursed Junior debt Microfinance Solidaire Read more ",
+"fields": {
+"Country": "Benin Burkina Faso Haiti India Myanmar",
+"Sector": "Agriculture Vegetal food",
+"Financial Facility": "AgriFI AgriFI - Global",
+"Year of Investment": "2021",
+"Status": "Disbursed",
+"Investment type": "Junior debt EDFI",
+"Financial Instrument": "Junior debt",
+"Amount": "€ 2 million"
+},
+"name": "microfinance solidaire"
+},
+{
+"url": "https://edfimc.eu/project/la-laiterie-du-berger-kossam/",
+"facility": "agrifi",
+"card": " 2020 Senegal Agriculture , Animal food AgriFI , AgriFI – Global Direct Disbursed Senior Debt La Laiterie du Berger – Kossam Read more ",
+"fields": {
+"Country": "Senegal",
+"Sector": "Agriculture Animal food",
+"Financial Facility": "AgriFI AgriFI - Global",
+"Year of Investment": "2020",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Subordinated debt",
+"Amount": "€ 600,000"
+},
+"name": "la laiterie du berger kossam"
+},
+{
+"url": "https://edfimc.eu/project/alterfin/",
+"facility": "agrifi",
+"card": " 2020 2023 Ecuador , Ivory Coast , Kenya , Myanmar , Nicaragua , Peru Agriculture , Vegetal food AgriFI , AgriFI – Global Investment Fund Disbursed Senior Debt Alterfin Read more ",
+"fields": {
+"Country": "Ecuador Ivory Coast Kenya Myanmar Nicaragua Peru",
+"Sector": "Agriculture Vegetal food",
+"Financial Facility": "AgriFI AgriFI - Global",
+"Year of Investment": "2020 2023",
+"Status": "Disbursed",
+"Investment type": "Senior Debt",
+"Financial Instrument": "Loan",
+"Amount": "€ 3 million"
+},
+"name": "alterfin"
+}
+]
