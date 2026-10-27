@@ -2,12 +2,12 @@
 
 Run everything:      python tracker.py
 Run some steps only: python tracker.py eib normalize build
-Steps: reference iati iati_regional proparco bio wp eib cofides noneu oeeb normalize build
+Steps: reference iati iati_regional proparco bio wp eib cofides noneu oeeb eutf edfimc normalize build
 """
 import os, sys, csv, json, pathlib, datetime
 ROOT = pathlib.Path(__file__).resolve().parent
 os.chdir(ROOT)
-for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "raw/iati_regional", "ref", "data", "site"]:
+for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "raw/iati_regional", "raw/eutf", "raw/edfimc", "ref", "data", "site"]:
     (ROOT / _d).mkdir(parents=True, exist_ok=True)
 
 def step_reference():
@@ -42,6 +42,7 @@ def step_iati():
      "DE-1":"BMZ (filtered to KfW later)",
      "XI-IATI-EC_INTPA":"European Commission DG INTPA",
      "XM-DAC-46002":"African Development Bank Group (non-EU comparison)", "XM-DAC-903":"IFC (non-EU comparison)",
+     "XI-IATI-EC_ECHO":"EU humanitarian aid", "XI-IATI-EC_FPI":"EU foreign policy instruments", "XI-IATI-WBTF":"World Bank trust funds (EU-financed kept)",
     }
     def main():
       out = pathlib.Path("raw/iati")
@@ -343,6 +344,79 @@ def step_iati_regional():
         for ref in PUBLISHERS:
             run(ref)
 
+def step_eutf():
+    """EU Emergency Trust Fund for Africa: programmes in Franc Zone countries (Sahel & Lake Chad window).
+    Country pages list programmes; each programme page gives locations, EU contribution, duration, theme, partners and reference."""
+    import re, json, time, html as H, urllib.request, pathlib
+    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
+    BASE = "https://trust-fund-for-africa.europa.eu"
+    pathlib.Path("raw/eutf").mkdir(parents=True, exist_ok=True)
+    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=90).read().decode("utf-8", "replace")
+    def text(s): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
+    region = get(BASE + "/where-we-work/regions-countries/sahel-lake-chad_en")
+    country_pages = sorted(set(re.findall(r'href="(/where-we-work/regions-countries/sahel-lake-chad/[^"#?]+)"', region)))
+    FZ_SLUG = re.compile(r"burkina|cameroon|cameroun|chad|tchad|ivory|ivoire|mali|niger(?!ia)|senegal|guinea-bissau|guinee-bissau", re.I)
+    progs = {}
+    for cp in country_pages:
+        if not FZ_SLUG.search(cp.rsplit("/", 1)[-1]):
+            continue
+        s = get(BASE + cp)
+        for l in sorted(set(re.findall(r'href="(/our-programmes/[^"#?]+)"', s))):
+            progs.setdefault(l, set()).add(cp.rsplit("/", 1)[-1].replace("_en", ""))
+        time.sleep(0.3)
+    out = []
+    for link, pages in progs.items():
+        try:
+            raw = get(BASE + link)
+            t = text(raw)
+        except Exception as e:
+            print("skip", link, e); continue
+        h1 = re.search(r"<h1[^>]*>(.*?)</h1>", raw, re.S)
+        m = re.search(r"EU contribution\s*€\s*(\d{1,3}(?:[ .,\u00a0]\d{3})+|\d+)(?!\d)", t)
+        amount = float(re.sub(r"[^\d]", "", m.group(1))) if m else None
+        loc = re.search(r"Project locations\s+(.+?)\s+EU contribution", t)
+        dur = re.search(r"Project duration\s+(\d{1,2} \w+ (\d{4}))", t)
+        theme = re.search(r"Thematic\s+(.+?)\s+Partner", t)
+        partner = re.search(r"Partner\s+(.+?)\s+More news", t)
+        ref = re.search(r"t05-eutf-[a-z]+-[a-z]{2,3}-\d+", t, re.I)
+        title = re.search(r"Home\s+Our Programmes\s+(.+?)\s+(?:Summary|Main objectives|Programme)", t)
+        name = text(h1.group(1)) if h1 else (title.group(1) if title else link.rsplit("/", 1)[-1].replace("_en", "").replace("-", " "))
+        out.append({"url": BASE + link, "title": name.strip()[:250],
+                    "country_pages": sorted(pages), "locations": loc.group(1) if loc else "", "amount": amount,
+                    "start_year": dur.group(2) if dur else "", "theme": theme.group(1) if theme else "",
+                    "partner": partner.group(1)[:200] if partner else "", "ref": ref.group(0).upper() if ref else ""})
+        time.sleep(0.25)
+    json.dump(out, open("raw/eutf/programmes.json", "w"), ensure_ascii=False, indent=0)
+    print(len(country_pages), "country pages,", len(out), "EUTF programmes in Franc Zone countries")
+
+def step_edfimc():
+    """ElectriFI and AgriFI (EU-funded facilities managed by EDFI Management Company): projects in Franc Zone countries."""
+    import re, json, time, html as H, urllib.request, pathlib
+    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
+    pathlib.Path("raw/edfimc").mkdir(parents=True, exist_ok=True)
+    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60).read().decode("utf-8", "replace")
+    def text(s): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
+    FZ = r"Benin|Burkina|C[oô]te d.Ivoire|Ivory Coast|Guinea-Bissau|\bMali\b|\bNiger\b|Senegal|\bTogo\b|Cameroon|Central African|\bChad\b|\bCongo\b|Equatorial Guinea|Gabon"
+    out, seen = [], set()
+    for facility in ("electrifi", "agrifi"):
+        s = get(f"https://edfimc.eu/what-we-do/{facility}/")
+        for u, c in re.findall(r'<a[^>]+href="(https://edfimc\.eu/projects?/[^"]+)"[^>]*>(.*?)</a>', s, re.S):
+            card = text(c)
+            if u in seen or not re.search(FZ, card):
+                continue
+            seen.add(u)
+            t = text(get(u))
+            f = {}
+            for lab, nxt in [("Country", "Sector"), ("Sector", "Financial Facility"), ("Financial Facility", "Year of Investment"), ("Year of Investment", "Business Model|Status|Investment type"),
+                             ("Status", "Investment type"), ("Investment type", "EDFI MC|ElectriFI|AgriFI|The |This |[A-Z][a-z]+ is"), ("Financial Instrument", "Amount"), ("Amount", "Year")]:
+                m = re.search(re.escape(lab) + r"\s+(.+?)\s+(?:" + nxt + r")\b", t)
+                if m: f[lab] = m.group(1).strip()[:150]
+            name = re.search(r"Read more\s*$", card) and re.sub(r"\s*Read more\s*$", "", card)
+            out.append({"url": u, "facility": facility, "card": card, "fields": f, "name": u.rstrip("/").rsplit("/", 1)[-1].replace("-", " ")})
+            time.sleep(0.3)
+    json.dump(out, open("raw/edfimc/projects.json", "w"), ensure_ascii=False, indent=0)
+    print(len(out), "ElectriFI/AgriFI projects in Franc Zone countries")
+
 def step_normalize():
     """Normalise all raw sources into the tracker data model.
 
@@ -528,6 +602,12 @@ def step_normalize():
         ("kuke", "KUKE – Export Credit Insurance Corporation", "PL", "ECA", "", "Warsaw", 52.240, 21.000, "https://www.kuke.com.pl", "curated"),
         ("eu-intpa", "European Commission – DG International Partnerships (NDICI-Global Europe, EDF)", "EU", "EU institution", "European Union", "Brussels", 50.843, 4.382, "https://international-partnerships.ec.europa.eu", "automated"),
         ("eib", "European Investment Bank (EIB)", "EU", "EU institution", "EIB Group", "Luxembourg", 49.627, 6.155, "https://www.eib.org", "automated"),
+        ("eu-eutf", "EU Emergency Trust Fund for Africa (EUTF)", "EU", "EU institution", "European Commission trust fund", "Brussels", 50.846, 4.375, "https://trust-fund-for-africa.europa.eu", "automated"),
+        ("edfi-mc", "ElectriFI and AgriFI (EU-funded, managed by EDFI Management Company)", "EU", "EU institution", "EDFI Management Company", "Brussels", 50.838, 4.360, "https://edfimc.eu", "automated"),
+        ("eu-echo", "European Commission – humanitarian aid (DG ECHO)", "EU", "Humanitarian aid", "European Union", "Brussels", 50.842, 4.388, "https://civil-protection-humanitarian-aid.ec.europa.eu", "automated"),
+        ("eu-fpi", "European Commission – Foreign Policy Instruments (FPI)", "EU", "Foreign policy instrument", "European Union", "Brussels", 50.840, 4.378, "https://fpi.ec.europa.eu", "automated"),
+        ("wbtf", "World Bank-managed trust funds financed by the EU or EU member states", "WBTF", "World Bank trust fund", "World Bank Group", "Washington", 38.897, -77.040, "https://www.worldbank.org", "automated"),
+        ("eu-blending", "EU blending grants (Africa Investment Platform / Africa Investment Facility)", "EU", "EU institution", "European Commission", "Brussels", 50.844, 4.384, "https://international-partnerships.ec.europa.eu", "curated"),
         ("eu-aitf", "EU-Africa Infrastructure Trust Fund (EU-AITF)", "EU", "EU institution", "Managed by the EIB; funded by the Commission and contributing member states", "Luxembourg", 49.640, 6.180, "https://www.eu-africa-infrastructure-tf.net", "curated"),
         ("ebrd", "European Bank for Reconstruction and Development (EBRD)", "INT", "Multilateral", "", "London", 51.507, -0.128, "https://www.ebrd.com", "automated"),
     ]
@@ -583,7 +663,7 @@ def step_normalize():
             "investment_id": inv_id, "institution_id": inst, "source_id": src, "source_record_id": rec_id,
             "source_url": url, "title": (title or "").strip()[:250], "description": re.sub(r"\s+", " ", desc or "").strip()[:600],
             "client": client, "client_domicile": client_domicile, "instrument": instrument,
-            "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date, "instrument_detail": instrument_detail,
+            "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date, "instrument_detail": instrument_detail, "tags": "",
             "year": (date or "")[:4], "amount_original": amount, "currency_original": currency,
             "fx_rate_per_eur": fx_rate, "amount_eur": round(amount_eur) if amount_eur is not None else None,
             "amount_basis": basis or ("commitment" if amount_eur is not None else "not disclosed"),
@@ -612,10 +692,39 @@ def step_normalize():
     IATI_INST = {"FR-3": "afd", "NL-KVK-27078545": "fmo", "XM-DAC-918-3": "eib", "XI-IATI-EBRD": "ebrd",
                  "NL-KVK-33226495": "atradius-dsb", "NL-KVK-83517626": "invest-intl",
                  "NL-KVK-61172863": "dggf", "DE-1": "kfw-db", "XI-IATI-EC_INTPA": "eu-intpa",
-                 "XM-DAC-46002": "afdb", "XM-DAC-903": "ifc"}
+                 "XM-DAC-46002": "afdb", "XM-DAC-903": "ifc",
+                 "XI-IATI-EC_ECHO": "eu-echo", "XI-IATI-EC_FPI": "eu-fpi", "XI-IATI-WBTF": "wbtf"}
     amounts = {}
     for r in json.load(open(RAW / "iati_amounts.json")):
         amounts[r["aid"]] = r
+    # EU money implemented by a member-state agency: classify a record (or one component) as delegated EU funds
+    _WHOLE = re.compile(r"d[ée]l[ée]gation (europ[ée]enne|de l.UE|de l.Union europ\w*|UE)|sur d[ée]l[ée]gation (de l.)?(UE|Union)|"
+                        r"programme de l.Union europ[ée]enne|initiative financ[ée]e par l.Union europ[ée]enne|nom du projet (à|a) l.UE|"
+                        r"le financement de l.Union europ[ée]enne \(UE\)|financ[ée]e? (int[ée]gralement )?par l.(UE|Union europ[ée]enne)|"
+                        r"fonds (de l.UE|europ[ée]ens) d[ée]l[ée]gu|EU[- ]funded|funded by the (EU|European Union)|on behalf of the (EU|European Union)", re.I)
+    _COFI = re.compile(r"cofinanc\w* avec l.(UE|Union)|en compl[ée]ment du projet .{0,40}financ[ée] par l.UE|cofinancement", re.I)
+    _PART = re.compile(r"(\d+(?:[,.]\d+)?)\s*M\s?(?:€|EUR|euros?)\s*(?:\))?\s*(?:de l.UE\s*)?(?:d[ée]l[ée]gu[ée]s?|d[ée]l[ée]gation)|"
+                       r"(?:UE|Union europ[ée]enne)\s*\((\d+(?:[,.]\d+)?)\s*M\s?(?:€|EUR)\s*d[ée]l[ée]gu|top[ -]?up\s*(\d+(?:[,.]\d+)?)\s*M?EUR\s*UE", re.I)
+    def eu_delegated(title, desc, amount_eur):
+        """True when this record's own amount is EU money that the agency implements on the EU's behalf."""
+        text = f"{title} || {desc}"
+        if re.match(r"\s*d[ée]l[ée]gation (europ[ée]enne|UE|de l.UE)", title, re.I):
+            return True
+        parts = [float((a or b or c).replace(",", ".")) * 1e6 for a, b, c in _PART.findall(text)]
+        if parts and amount_eur:
+            return any(abs(amount_eur - p) <= 0.06 * p for p in parts)   # only the component that equals the delegated sum
+        if _WHOLE.search(text) and not _COFI.search(text):
+            return True
+        return False
+
+    eu_delegated_text = eu_delegated
+    EU_DONOR = re.compile(r"EU-Commission|European Commission|European Union|Commission of the European|Netherlands|Dutch|Germany|German|BMZ|Bundesministerium|"
+                          r"KfW|Italy|Itali|France|French|Agence Fran|Denmark|Danish|DANIDA|Belgi|Spain|Spanish|AECID|Finland|Finnish|Sweden|Swedish|SIDA|"
+                          r"Austria|Austrian|Ireland|Irish|Luxembourg|Portugal|Portuguese|Czech|Slovak|Poland|Polish|Hungar|Romania|Bulgaria|Greece|Hellenic|"
+                          r"Sloven|Croatia|Estonia|Latvia|Lithuania|Cyprus|Malta", re.I)
+    NON_EU_DONOR = re.compile(r"Japan|United Kingdom|\bUK\b|DFID|FCDO|Canada|Norway|Norweg|NORAD|Australia|Swiss|Switzerland|SDC|SECO|United States|USAID|"
+                              r"Gates|Korea|China|Russia|Saudi|Kuwait|Qatar|Emirates|New Zealand|Iceland", re.I)
+
     # Parent activities whose sub-activities are also published (AFD projects, Commission decisions) are skipped:
     # the money is counted once, at the sub-activity (contract) level.
     _ids, _kids = set(), {}
@@ -701,9 +810,19 @@ def step_normalize():
                 if not total:
                     total = _sum([pd.find("value") for pd in a.findall("planned-disbursement") if pd.find("value") is not None])
                     basis = "planned disbursement" if total else None
-            eu_delegated = inst != "eu-intpa" and bool(re.search(
-                r"(d[ée]l[ée]gu[ée]e?s? (par|de) l.Union|financ[ée]e?s? par l.Union europ|fonds (de l.)?Union europ[ée]enne|EU-funded|funded by the European Union|délégation de fonds de l.UE|cofinanc[ée]e? par l.UE)",
-                " ".join(n.text or "" for n in a.findall(".//narrative")), re.I))
+            eu_delegated = inst in ("afd", "fmo", "invest-intl", "dggf") and eu_delegated_text(
+                a.findtext("title/narrative") or "", " ".join(n.text or "" for n in a.findall("description/narrative")), total)
+            facility_contribution = inst == "eu-intpa" and bool(re.search(r"\b(electri ?fi|agrifi)\b", (a.findtext("title/narrative") or ""), re.I)) \
+                and not re.search(r"[ée]lectrification", (a.findtext("title/narrative") or ""), re.I)
+            mixed_donor = False
+            if inst == "wbtf":  # World Bank trust funds: keep only those financed by the EU or EU member states
+                donors = [(p.findtext("narrative") or p.get("ref") or "") for p in a.findall("participating-org[@role='1']")] + \
+                         [(p.findtext("narrative") or p.get("ref") or "") for p in a.findall("transaction/provider-org")]
+                eu_d = [x for x in donors if EU_DONOR.search(x)]
+                non_eu = [x for x in donors if NON_EU_DONOR.search(x) and not EU_DONOR.search(x)]
+                if not eu_d:
+                    continue
+                mixed_donor = bool(non_eu)
             # d-portal's commitment_eur is the whole-activity total (verified); country split happens in add()
             pts = {}
             for loc in a.findall("location"):
@@ -721,9 +840,13 @@ def step_normalize():
                 desc=desc, client="; ".join(dict.fromkeys(receivers))[:200], instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
                 sector_broad=broad_sector(dac=dac), sector_detail=SECTORS.get(dac, dac or ""),
                 status=IATI_STATUS.get(status_el.get("code") if status_el is not None else "", ""),
-                date=start, amount_eur=total, shares=shares, method="eu_delegated" if eu_delegated else method, points=pts, basis=basis,
-                note=("EU-funded activity implemented by this agency: counted under the European Commission to avoid double counting. "
-                      if eu_delegated else "") + {"commitment": "Amount: commitment in EUR (d-portal).",
+                date=start, amount_eur=total, shares=shares,
+                method="eu_delegated" if eu_delegated else "facility_contribution" if facility_contribution else "mixed_donor" if mixed_donor else method,
+                points=pts, basis=basis,
+                note=("EU money implemented by this agency on the EU's behalf: counted under the European Commission to avoid double counting. "
+                      if eu_delegated else "Commission payment into an ElectriFI/AgriFI window: counted through that facility's own deals. "
+                      if facility_contribution else "World Bank trust fund with European and non-European donors: the European share is not published, so not counted. "
+                      if mixed_donor else "") + {"commitment": "Amount: commitment in EUR (d-portal).",
                       "disbursement": "Amount: disbursements in EUR (no commitment reported).",
                       "budget": "Amount: budget figure from the publisher's IATI record (no commitment or disbursement reported).",
                       "planned disbursement": "Amount: planned disbursements from the IATI record (no commitment reported).",
@@ -1189,6 +1312,107 @@ def step_normalize():
         if re.search(r"infrastructure trust fund", r["title"], re.I) and r["institution_id"] != "eu-aitf":
             r["note"] = (r["note"] + " Contribution to the EU-Africa Infrastructure Trust Fund: its Franc Zone grants are listed separately under EU-AITF, so do not add the two.").strip()
 
+    # ---- EU Emergency Trust Fund for Africa (EUTF): programmes in Franc Zone countries
+    SLC_OTHERS = re.compile(r"Mauritani|Nigeria|Ghana|\bGuin[eé]e?\b(?!-| Bissau| [EÉ]quatoriale| Equatorial)|Gambi|Liberia|Sierra Leone|Morocco|Libya|Algeria|Tunisia|Egypt", re.I)
+    EUTF_PAGE = {"burkina-faso": "BF", "mali": "ML", "niger": "NE", "tchad": "TD", "cote-divoire": "CI", "senegal": "SN", "cameroun": "CM"}
+    eutf_file = RAW / "eutf" / "programmes.json"
+    if eutf_file.exists():
+        for pr in json.load(open(eutf_file, encoding="utf-8")):
+            locs = pr.get("locations") or ""
+            ccs = [c for c in countries_in(locs) if c in COUNTRIES]
+            n_other = len(set(m.group(0).lower()[:5] for m in SLC_OTHERS.finditer(locs)))
+            if not ccs:
+                ccs = [EUTF_PAGE[p] for p in pr.get("country_pages", []) if p in EUTF_PAGE]
+                n_other = 0
+            if not ccs:
+                continue
+            n_total = len(ccs) + n_other
+            shares = {c: (None if n_total == 1 else round(100.0 / n_total, 2)) for c in ccs}
+            add("eu-eutf", "eutf-web", pr.get("ref") or re.sub(r"[^a-z0-9]+", "-", pr["url"].rsplit("/", 1)[-1].lower())[:60], pr["url"], pr["title"],
+                client=(pr.get("partner") or "")[:150], instrument="Grant", instrument_detail="Trust fund grant",
+                sector_broad=broad_sector((pr.get("theme") or "") + " " + pr["title"]), sector_detail=(pr.get("theme") or "")[:100], status="Approved",
+                date=pr.get("start_year") or "", amount=pr.get("amount"), currency="EUR", shares=shares,
+                method="single_country" if n_total == 1 else "equal_split_estimate", basis="EU contribution (EUTF programme page)",
+                note=("EU Emergency Trust Fund for Africa programme" + (f"; implemented by {pr['partner'][:80]}" if pr.get("partner") else "") + ". "
+                      + ("" if n_total == 1 else f"Covers {n_total} countries; the Franc Zone share is estimated by equal split.")).strip())
+
+    # ---- ElectriFI and AgriFI (EU-funded investment facilities managed by EDFI Management Company)
+    OTHER_CTRY = re.compile(r"Burundi|Zambia|Kenya|\bDRC\b|Haiti|India|Myanmar|Ecuador|Nicaragua|Peru|Ghana|Nigeria|Rwanda|Uganda|Cambodia|Indonesia|Madagascar|"
+                            r"Tanzania|Mozambique|Malawi|Ethiopia|Sierra Leone|Liberia|Guinea(?!-Bissau)|Somalia|Sudan|Zimbabwe|Namibia|Pacific|Philippines", re.I)
+    def _eur_amount(txt, year):
+        txt = txt or ""
+        m = re.search(r"\(EUR\s*([\d.,]+)\s*m", txt)
+        if m:
+            return float(m.group(1).replace(",", "")) * 1e6
+        tot = 0.0
+        for cur, num, unit in re.findall(r"(EUR|USD|€)\s*([\d.,]+)\s*(million|m\b|M\b)?", txt):
+            val = float(num.replace(",", "")) if num.count(",") != 1 or "." in num else float(num.replace(",", ""))
+            val = val * 1e6 if (unit or val < 1000) else val
+            tot += to_eur(val, "USD", f"{year}-06")[0] if cur == "USD" else val
+        return tot or None
+    edfi_file = RAW / "edfimc" / "projects.json"
+    if edfi_file.exists():
+        for pjt in json.load(open(edfi_file, encoding="utf-8")):
+            f = pjt["fields"]
+            ctext = f.get("Country") or pjt["card"]
+            ccs = [c for c in countries_in(ctext) if c in COUNTRIES]
+            if not ccs:
+                continue
+            n_total = len(ccs) + len(set(m.group(0).lower() for m in OTHER_CTRY.finditer(ctext)))
+            year = (re.search(r"20\d\d", f.get("Year of Investment", "") or pjt["card"]) or re.search(r"", "")).group(0)
+            instr_txt = f.get("Financial Instrument") or f.get("Investment type") or ""
+            instrument = "Equity" if re.search(r"equity", instr_txt, re.I) else "Loan" if re.search(r"debt|loan|financ", instr_txt, re.I) else "Unknown"
+            amount = _eur_amount(f.get("Amount", ""), year or "2020")
+            shares = {c: (None if n_total == 1 else round(100.0 / n_total, 2)) for c in ccs}
+            name = pjt["name"].title()
+            add("edfi-mc", "edfimc-web", pjt["url"].rstrip("/").rsplit("/", 1)[-1], pjt["url"], f"{name} ({'ElectriFI' if pjt['facility'] == 'electrifi' else 'AgriFI'})",
+                client=name, instrument=instrument, instrument_detail=instr_txt[:60], sector_broad=broad_sector((f.get("Sector") or "") + " " + pjt["facility"]),
+                sector_detail=f.get("Sector", ""), status=f.get("Status", "")[:20], date=year or "", amount_eur=amount, shares=shares,
+                method="single_country" if n_total == 1 else "equal_split_estimate", basis="investment amount (EDFI MC project page)" if amount else None,
+                note=("EU-funded facility managed by EDFI Management Company; the Commission's payments into its country windows are not counted separately. "
+                      + ("" if n_total == 1 else f"Covers {n_total} countries; the Franc Zone share is estimated by equal split.")).strip())
+
+    # ---- EU blending grants (Commission's list of board-approved blending operations): tag records already counted, add the rest
+    BLENDING_SRC = "https://international-partnerships.ec.europa.eu/document/download/555e79f7-177a-44c9-82a7-925240597c68_en?filename=board-approved-intpa-blending-operations-as-of-2021_en.pdf"
+    BLENDING = [{'facility': 'AIP', 'country': 'Guinea-Bissau', 'year': '2024', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Top-up of Investment Grant for Guinea-Bissau: Safim-', 'total_m': 30.55, 'eu_m': 7.55, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Gabon', 'year': '2024', 'lead': 'AFD', 'sector': 'Transport', 'title': 'Programme de Remise à Niveau du Transgabonais (phase', 'total_m': 595.0, 'eu_m': 30.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Cameroon', 'year': '2024', 'lead': 'EIB', 'sector': 'Agriculture', 'title': 'Grant to Cameroon Green African Agriculture Value Chain', 'total_m': 53.0, 'eu_m': 3.0, 'type': 'Interest Rate Subsidy'}, {'facility': 'AIP', 'country': 'Ivory Coast', 'year': '2024', 'lead': 'KfW', 'sector': 'Energy', 'title': 'Renewable Energy and Energy Efficiency in Côte d´Ivoire -', 'total_m': 220.16, 'eu_m': 44.41, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Ivory Coast', 'year': '2024', 'lead': 'KfW', 'sector': 'Energy', 'title': 'Energy for the sustainable development of Eastern Côte', 'total_m': 39.99, 'eu_m': 9.9, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'AFD', 'sector': 'Agriculture', 'title': 'Financement agricole et transition durable - La Banque', 'total_m': 24.99, 'eu_m': 4.99, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'AFD', 'sector': 'Environment', 'title': 'Projet de dépollution de la Baie de Hann à Dakar - TOP UP', 'total_m': 102.99, 'eu_m': 6.5, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Togo', 'year': '2023', 'lead': 'FMO', 'sector': 'Mixed', 'title': 'Togo Nexus Country Window (“Nexus”)', 'total_m': 24.8, 'eu_m': 10.0, 'type': 'Equity/Technical Assistance'}, {'facility': 'AIP', 'country': 'Guinea-Bissau', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Investment Grant for the Guinea-Bissau Section of the', 'total_m': 182.9, 'eu_m': 30.6, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Investment Grant for Dakar Public Transport Network', 'total_m': 354.9, 'eu_m': 20.0, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Benin', 'year': '2023', 'lead': 'AFD', 'sector': 'Agriculture', 'title': 'Projet d’appui au développement et aux investissements', 'total_m': 38.01, 'eu_m': 8.01, 'type': 'Technical Assistance'}, {'facility': 'AIP', 'country': 'Chad', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'EU Support for Modernisation du Reseau Routier au Tchad', 'total_m': 283.83, 'eu_m': 35.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Niger', 'year': '2022', 'lead': 'AFD', 'sector': 'Energy', 'title': 'PREDAC', 'total_m': 77.02, 'eu_m': 10.94, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Benin', 'year': '2022', 'lead': 'FMO', 'sector': 'Energy', 'title': 'Second EDFI ElectriFI Country Window for Bénin(11thEDF)', 'total_m': 12.0, 'eu_m': 12.0, 'type': 'Equity/Technical Assistance'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2022', 'lead': 'AFD', 'sector': 'Social', 'title': 'Appui à la relance du secteur pharmaceutique sénégalais', 'total_m': 30.0, 'eu_m': 5.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Togo', 'year': '2022', 'lead': 'AFD', 'sector': 'Mixed', 'title': 'Projet Environnement Urbain de Lomé (PEUL) IV', 'total_m': 20.0, 'eu_m': 5.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Cameroon', 'year': '2022', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Transition énergétique de la Sodécoton', 'total_m': 47.0, 'eu_m': 10.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Senegal', 'year': '2021', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Energie – Electrification rurale – Accès à l’énergie par', 'total_m': 73.0, 'eu_m': 13.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Senegal', 'year': '2021', 'lead': 'EIB', 'sector': 'Water', 'title': 'Investment Grant for Senegal Eau Potable & COVID-19', 'total_m': 79.6, 'eu_m': 6.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Benin', 'year': '2021', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Projet FORSUN de renforcement des réseaux de', 'total_m': 55.95, 'eu_m': 24.7, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Cameroon', 'year': '2021', 'lead': 'EIB', 'sector': 'Private Sector', 'title': 'Cameroon Team Europe COVID-19 Response Access to', 'total_m': 28.8, 'eu_m': 3.8, 'type': 'IRS/Technical Assistance'}]
+    BL_CC = {"Benin": "BJ", "Burkina Faso": "BF", "Ivory Coast": "CI", "Côte d'Ivoire": "CI", "Guinea-Bissau": "GW", "Mali": "ML", "Niger": "NE", "Senegal": "SN",
+             "Togo": "TG", "Cameroon": "CM", "Central African Republic": "CF", "Chad": "TD", "Congo": "CG", "Equatorial Guinea": "GQ", "Gabon": "GA"}
+    def _words(t):
+        t = unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().lower()
+        return {w for w in re.findall(r"[a-z]{5,}", t) if w not in ("projet", "programme", "project", "support", "appui", "grant", "investment", "phase")}
+    _alloc_cc = {}
+    for al in allocations:
+        _alloc_cc.setdefault(al["investment_id"], set()).add(al["country"])
+    for b in BLENDING:
+        cc = BL_CC.get(b["country"])
+        if not cc:
+            continue
+        eu = (b["eu_m"] or 0) * 1e6
+        bw = _words(b["title"])
+        best, best_score = None, 0
+        for inv in investments:
+            if inv["institution_id"] != "eu-intpa" or cc not in _alloc_cc.get(inv["investment_id"], ()):
+                continue
+            ov = len(bw & _words(inv["title"]))
+            close = inv["amount_eur"] and abs(inv["amount_eur"] - eu) <= max(60000, 0.03 * eu)
+            score = ov + (2 if close else 0)
+            if (ov >= 2 and close) or ov >= 3:
+                if score > best_score:
+                    best, best_score = inv, score
+        tag = f"EU blending ({b['facility']}) with {b['lead']}: EU €{b['eu_m']:.2f}m in a €{b['total_m']:.1f}m project"
+        if best:
+            best["tags"] = tag
+            best["note"] = (best["note"] + " " + tag + ".").strip()
+        else:
+            add("eu-blending", "eu-blending-list", re.sub(r"[^a-z0-9]+", "-", (b["title"] + " " + b["year"]).lower())[:60], BLENDING_SRC, b["title"],
+                client=f"Lead financier: {b['lead']}", instrument="Grant", instrument_detail=b["type"][:60], sector_broad=broad_sector(b["sector"] + " " + b["title"]),
+                sector_detail=b["sector"], status="Approved", date=b["year"], amount=eu, currency="EUR", shares={cc: None}, method="single_country",
+                basis="EU contribution (blending list)", note=f"From the Commission's list of approved blending operations; no matching record in its IATI data. {tag}.")
+            investments[-1]["tags"] = tag
+    for r in regional:  # contributions INTO the EUTF stay in the regional layer
+        if re.search(r"emergency trust fund|fonds fiduciaire d.urgence|\bEUTF\b", r["title"], re.I) and r["institution_id"] != "eu-eutf":
+            r["note"] = (r["note"] + " Contribution to the EU Emergency Trust Fund for Africa: its Franc Zone programmes are listed under EUTF, so do not add the two.").strip()
+
     # ---- World Bank (IBRD/IDA): non-EU comparison layer
     wb_file = RAW / "nonEU" / "worldbank.json"
     if wb_file.exists():
@@ -1457,7 +1681,7 @@ def step_normalize():
                                "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
                               for a in comparators if a["amount_attributed_eur"]],
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
-                                                   "instrument", "instrument_detail", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
+                                                   "instrument", "instrument_detail", "tags", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
                                                    "source_url", "note", "multi_country")} for inv in investments],
               "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
                                                  "lat", "lon", "geo_precision")} for a in allocations]}
@@ -1486,7 +1710,7 @@ def step_build():
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
 
-FETCH_STEPS = ["reference", "iati", "iati_regional", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb"]
+FETCH_STEPS = ["reference", "iati", "iati_regional", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb", "eutf", "edfimc"]
 
 def main(steps):
     inv = ROOT / "data" / "investments.csv"
@@ -1534,7 +1758,7 @@ TEMPLATE = r'''<!doctype html>
   --ink:#d9f4ff; --muted:#8db1c0; --dim:#56798a; --line:#163746; --line-hi:#2a6a80;
   --accent:#40e8ff; --focus:#40e8ff; --chip:#0a1c26;
   --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --land-cemac:#55271c; --border:#5d93a6; --waemu-line:#ffbf5c; --cemac-line:#ff9a7a;
-  --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff;
+  --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff; --t-hum:#ff6b6b; --t-fpi:#8fa3ff; --t-wbtf:#e0c8a0;
   --t-non:#c3ccd1; --k-tei:#4fa8ff; --k-aitf:#9fd86b; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
@@ -1591,9 +1815,11 @@ body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);bac
 @keyframes ping{0%{transform:scale(.3);opacity:.9}100%{transform:scale(1.6);opacity:0}}
 aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;backdrop-filter:blur(6px)}
 .filters{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:grid;gap:10px}
-.filterbox{border:1px solid var(--line)}
-.filterbox summary{cursor:pointer;padding:8px 10px;font:600 13px var(--sans);color:var(--ink);list-style-position:inside}
-.filterbox summary span{color:var(--accent);font-weight:500}
+.filterbox{border:1px solid #2f9a68}
+.filterbox summary{cursor:pointer;padding:10px 12px;font:600 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;list-style-position:inside;
+  color:#e6fff2;background:linear-gradient(#17573a,#0f4029);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.filterbox summary:hover{background:linear-gradient(#1d6a47,#124a30)}
+.filterbox summary span{color:#bff5d8;font-weight:500;text-transform:none;letter-spacing:0}
 .filtergrid{display:grid;gap:12px;padding:4px 10px 12px}
 .searchbox input{width:100%;font:500 14px var(--sans);color:var(--ink);background:var(--chip);border:1px solid var(--line-hi);padding:8px 10px 8px 32px;
   background-image:linear-gradient(transparent,transparent);outline:none}
@@ -1648,6 +1874,8 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .ana .seg{display:inline-flex;border:1px solid var(--line);margin-bottom:10px}
 .ana .seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:500 12.5px var(--sans);padding:5px 10px;cursor:pointer}
 .ana .seg button[aria-pressed="true"]{background:rgba(64,232,255,.1);color:var(--ink)}
+.ana .substack{display:block;margin:-2px 0 10px 18px;padding-left:10px;border-left:2px solid var(--line-hi)}
+.ana .substack .seg{margin-bottom:0}
 .ana .seg button:disabled{opacity:.4;cursor:not-allowed}
 .bar{display:grid;grid-template-columns:minmax(110px,48%) 1fr auto;gap:8px;align-items:center;font-size:13px;margin:3px 0}
 .bar .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
@@ -1668,7 +1896,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .col .cnt{position:absolute;top:-16px;left:0;right:0;text-align:center;font:500 10.5px var(--mono);color:var(--muted)}
 .col i + i{border-top:1px solid rgba(0,0,0,.45)}
 .plot{padding-top:18px}
-.xlabels.sec span{height:150px}
+.xlabels.sec span{height:205px;font-size:10.5px}
 .stacklegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11.5px;color:var(--muted)}
 .stacklegend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
 .foot{padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
@@ -1722,6 +1950,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
       <div>Records: <b id="r-rec"></b></div>
       <div class="r-total">Total: <b id="r-total"></b> since implementation of XOF/XAF–Euro peg</div>
       <div class="r-small" id="r-und"></div>
+      <div class="r-small" id="r-oth"></div>
       <div class="r-small" id="r-reg"></div>
       <div class="r-small">Data sync <span id="r-sync"></span></div>
     </div>
@@ -1767,6 +1996,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="foot">
       <details><summary>About the data</summary>
         <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999, and the tracker covers operations from that date. Operations through the unions' own institutions (BOAD, BCEAO, the WAEMU Commission; BDEAC, BEAC, the CEMAC Commission) are counted "WAEMU-wide" or "CEMAC-wide". Wider regional programmes (West Africa, Central Africa, Sub-Saharan Africa, Africa-wide) are shown separately in Analysis and never added to Franc Zone totals. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
+        <p>The header total counts investment and development finance. EU humanitarian aid (DG ECHO), EU foreign-policy instruments and World Bank-managed trust funds financed by European donors are shown on the map and in the lists, but kept out of that total; World Bank trust funds with non-European co-donors are listed without an amount, since the European share is not published. EU money that AFD implements on the EU's behalf is counted once, under the European Commission.</p>
         <p id="gaps"></p>
       </details>
     </div>
@@ -1783,7 +2013,10 @@ const WORLD = /*__WORLD__*/null;
 const TYPES = [
   ["DFI","DFI","--t-dfi"], ["Bilateral development bank","Development bank","--t-bdb"],
   ["NPB","Promotional bank","--t-npb"], ["ECA","Export credit agency","--t-eca"],
-  ["EU institution","EU institution","--t-eu"], ["Multilateral","Multilateral (EBRD)","--t-mdb"]];
+  ["EU institution","EU institution","--t-eu"], ["Multilateral","Multilateral (EBRD)","--t-mdb"],
+  ["Humanitarian aid","EU humanitarian aid","--t-hum"], ["Foreign policy instrument","EU foreign policy","--t-fpi"],
+  ["World Bank trust fund","World Bank trust funds (EU-financed)","--t-wbtf"]];
+const NON_INVESTMENT = new Set(["Humanitarian aid", "Foreign policy instrument", "World Bank trust fund"]);
 const KINDS = [["Team Europe Initiative","Team Europe Initiative","--k-tei"],
   ["EU-Africa Infrastructure Trust Fund","EU-Africa Infrastructure Trust Fund","--k-aitf"], ["Global Gateway flagship","Global Gateway flagship","--k-gg"],
   ["EU country envelope","EU country envelope","--k-env"], ["Energy transition partnership","Energy transition partnership","--k-part"],
@@ -1791,9 +2024,10 @@ const KINDS = [["Team Europe Initiative","Team Europe Initiative","--k-tei"],
 const MS = {FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",FI:"Finland",DK:"Denmark",SE:"Sweden",
   AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",PL:"Poland",EU:"EU institution",INT:"International (EBRD)",NONEU:"Non-EU",
   CZ:"Czechia",SK:"Slovakia",HR:"Croatia",GR:"Greece",SI:"Slovenia",HU:"Hungary",RO:"Romania",BG:"Bulgaria",EE:"Estonia",LV:"Latvia",
-  LT:"Lithuania",IE:"Ireland",LU:"Luxembourg"};
+  LT:"Lithuania",IE:"Ireland",LU:"Luxembourg",WBTF:"World Bank trust funds (European donors)"};
 const SHORT = {"eu-intpa":"European Commission",afd:"AFD",proparco:"Proparco","kfw-db":"KfW",deg:"DEG",fmo:"FMO","invest-intl":"Invest International",
-  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD",bgk:"BGK",kuke:"KUKE",cofides:"COFIDES",swedfund:"Swedfund",
+  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD",bgk:"BGK",kuke:"KUKE","eu-eutf":"EU Trust Fund for Africa","edfi-mc":"ElectriFI / AgriFI","eu-echo":"EU humanitarian aid (ECHO)",
+  "eu-fpi":"EU Foreign Policy Instruments","wbtf":"World Bank trust funds","eu-blending":"EU blending grants","eu-aitf":"EU-AITF",cofides:"COFIDES",swedfund:"Swedfund",
   sace:"SACE",cdp:"CDP",eifo:"EIFO",credendo:"Credendo","bpifrance-ae":"Bpifrance Assurance Export",worldbank:"World Bank",ifc:"IFC",
   afdb:"AfDB Group",aiib:"AIIB"};
 // Official capitals: arcs end here
@@ -1826,7 +2060,7 @@ const ccName = cc => DATA.countries[cc].name;
 
 const state = {view:"inv", types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
   cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40,
-  est:true, donorBy:"inst", ovMode:"eu", ovCC:"", ovSector:"", q:"", ovStack:"inst"};
+  est:true, donorBy:"inst", ovMode:"sector", ovCC:"", ovSector:"", q:"", ovStack:"inst"};
 const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 let qTimer = null;
 document.getElementById("q").addEventListener("input", e => {
@@ -1913,13 +2147,16 @@ document.getElementById("r-sync").textContent = DATA.generated;
 document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleString("en") + " deals, " + PROG.length + " programmes";
 (() => {
   const INVY = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i.year]));
-  let peg = 0, und = 0;
+  const INVT = Object.fromEntries(DATA.investments.map(i => [i.investment_id, (INST[i.institution_id] || {}).type]));
+  let peg = 0, und = 0, other = 0;
   for (const a of DATA.allocations) {
     const y = INVY[a.investment_id], v = a.amount_attributed_eur || 0;
+    if (NON_INVESTMENT.has(INVT[a.investment_id])) { other += v; continue; }
     if (!y) und += v; else if (+y >= (DATA.peg_year || 1999)) peg += v;
   }
   document.getElementById("r-total").textContent = fmt(peg + und);
   document.getElementById("r-und").textContent = und ? `includes ${fmt(und)} in deals with no recorded date` : "";
+  document.getElementById("r-oth").textContent = other ? `Plus ${fmt(other)} in EU humanitarian aid, foreign-policy and World Bank trust-fund grants (not in total)` : "";
   const regTot = (DATA.regional || []).reduce((s, r) => s + (r.amount_eur || 0), 0);
   document.getElementById("r-reg").textContent = regTot ? `Wider African regional programmes: ${fmt(regTot)} (not in total, see Analysis)` : "";
 })();
@@ -2211,7 +2448,7 @@ function setPins(origins) {
   R.pins(origins, dests);
   const MAPNAME = {CF: "Central African Rep.", CG: "Rep. of Congo", GQ: "Eq. Guinea", XW: "WAEMU-wide", XC: "CEMAC-wide"};  // shorter names on the map only
   const LABELPOS = {GQ: [1.0, 6.4], GA: [-2.6, 11.0], CG: [1.2, 16.6], XW: [15.2, -3.6], XC: [0.6, 17.4]};  // keep small neighbours' labels apart
-  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc)).map(([cc,c]) => ({name: MAPNAME[cc] || c.name, lat: (LABELPOS[cc] || [c.lat])[0], lng: (LABELPOS[cc] || [0, c.lon])[1]})));
+  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc) && cc !== "XW" && cc !== "XC").map(([cc,c]) => ({name: MAPNAME[cc] || c.name, lat: (LABELPOS[cc] || [c.lat])[0], lng: (LABELPOS[cc] || [0, c.lon])[1]})));
 }
 
 // ---------- investments view
@@ -2261,7 +2498,7 @@ function update(resetList = true) {
   });
   styleArcs(arcs, false);
   const ids = [...new Set(arcs.map(a => a.inst))];
-  setPins(ids.map(id => { const i = INST[id]; return {lat:+i.hq_lat, lng:+i.hq_lon, color: css(typeVar[i.type]), seed: seedOf(id),
+  setPins(ids.map(id => { const i = INST[id]; return {lat:+i.hq_lat, lng:+i.hq_lon, color: "#ffffff", seed: seedOf(id),
     text: "", title: `${i.name}, ${i.hq_city}`, onclick: () => { state.focus = {inst:id}; update(); }}; }));
   if (state.view === "ana") renderAnalysis(rows); else renderDeals(rows);
 }
@@ -2277,7 +2514,7 @@ function renderDeals(rows) {
   const total = rows.reduce((s,[a]) => s + (a.amount_attributed_eur || 0), 0);
   const deals = new Set(rows.map(([,inv]) => inv.investment_id));
   const instN = new Set(rows.map(([,inv]) => inv.institution_id));
-  document.getElementById("s-total").textContent = deals.size.toLocaleString("en") + " deal" + (deals.size === 1 ? "" : "s");
+  document.getElementById("s-total").textContent = "Total: " + deals.size.toLocaleString("en") + " deal" + (deals.size === 1 ? "" : "s");
   let scope = "";
   if (state.q) scope += ` Matching "${document.getElementById("q").value.trim()}".`;
   if (state.focus) scope += " Showing " + [state.focus.inst ? (SHORT[state.focus.inst] || INST[state.focus.inst].name) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
@@ -2309,6 +2546,7 @@ function renderDeals(rows) {
         ${est ? `<span class="flag" title="Multi-country deal split equally across listed countries">estimated share</span>` : ""}
         ${reg ? `<span class="flag" title="Regional deal, amount not allocated to WAEMU countries">regional</span>` : ""}
       </div>
+      ${inv.tags ? `<div class="note"><span class="flag">${esc(inv.tags)}</span></div>` : ""}
       ${inv.client && inv.client !== inv.title ? `<div class="note">Client: ${esc(inv.client)}${inv.client_domicile ? ", " + esc(inv.client_domicile) : ""}</div>` : ""}
       <a href="${esc(inv.source_url)}" target="_blank" rel="noopener">View source record</a>
     </article>`;
@@ -2347,7 +2585,7 @@ function stackedColumns(cols) {
   return `<div class="cols"><div class="yaxis"><span>${fmt(max)}</span><span>${fmt(max / 2)}</span><span>€0</span></div>
     <div class="plot">${cols.map(c => `<div class="col" title="${esc(c.label)}: ${fmt(c.total)} from ${c.segs.length} actor${c.segs.length === 1 ? "" : "s"}\n${esc(c.segs.slice(0, 8).map(s => s.name + ": " + fmt(s.v)).join("\n"))}">
       <b class="cnt">${c.segs.length}</b>${c.segs.map(s => `<i style="height:${(100 * s.v / max).toFixed(2)}%;background:${s.color}"></i>`).join("")}</div>`).join("")}</div>
-    <div class="xlabels sec">${cols.map(c => `<span>${esc(c.label)}</span>`).join("")}</div></div>
+    <div class="xlabels sec">${cols.map(c => `<span title="${esc(c.label)}">${esc(c.label.startsWith("Other (") ? "Other / multi-sector" : c.label)}</span>`).join("")}</div></div>
     <p class="ylabel">Y axis: euros committed. X axis: sectors. Coloured blocks are the actors investing in each sector; the number on top counts them. Hover a column for details.</p>`;
 }
 function regFiltered() {
@@ -2437,6 +2675,11 @@ function renderAnalysis(rows) {
   }
   const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, dis]) => `<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key] === v}"${dis ? " disabled title=\"Arrives with the next data update\"" : ""}>${l}</button>`).join("")}</div>`;
   document.getElementById("list").innerHTML = `<div class="ana">
+    <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
+      ${seg("ovMode", [["sector", "By sector"], ["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
+      ${state.ovMode === "sector" ? `<div class="substack">${seg("ovStack", [["inst", "Stack by institution"], ["ms", "Stack by member state"]])}</div>` : ""}
+      <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select>${state.ovMode === "sector" ? "" : `<select id="ov-sec" aria-label="Sector">${secOpts}</select>`}</div>
+      ${state.ovMode === "sector" ? stackedColumns(sectorCols) + stackLegend : columns(ov, unit)}</section>
     <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the Franc Zone countries in your selection, ranked.</p>
       ${seg("donorBy", [["inst", "Institutions"], ["ms", "Member states"]])}
       ${bars(donorItems, k => k === "Others" ? css("--dim") : state.donorBy === "inst" ? css(typeVar[INST[k].type]) : css("--accent"))}</section>
@@ -2456,11 +2699,7 @@ function renderAnalysis(rows) {
         <h4 class="sub">By sector</h4>${bars(rank(bySec), () => css("--muted"))}
         <h4 class="sub">By institution</h4>${bars(rank(byInst, 10).map(([k, v]) => [k, v, k === "Others" ? "Others" : (SHORT[k] || INST[k].name)]), k => k === "Others" ? css("--dim") : css(typeVar[INST[k].type]))}</section>`;
     })()}
-    <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
-      ${seg("ovMode", [["sector", "By sector"], ["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
-      ${state.ovMode === "sector" ? seg("ovStack", [["inst", "Stack by institution"], ["ms", "Stack by member state"]]) : ""}
-      <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select>${state.ovMode === "sector" ? "" : `<select id="ov-sec" aria-label="Sector">${secOpts}</select>`}</div>
-      ${state.ovMode === "sector" ? stackedColumns(sectorCols) + stackLegend : columns(ov, unit)}</section>
+
   </div>`;
   document.querySelectorAll(".ana .seg button").forEach(b => b.onclick = () => { state[b.dataset.k] = b.dataset.v; renderAnalysis(filtered()); });
   document.getElementById("ov-cc").onchange = e => { state.ovCC = e.target.value; renderAnalysis(filtered()); };
@@ -2491,10 +2730,10 @@ function updateProgrammes() {
     eLat:CAPITALS[g.cc][1], eLng:CAPITALS[g.cc][2], seed: seedOf(g.part + g.cc + g.kind), color: css(kindVar[g.kind]), stroke: 0.1 + 0.05 * Math.min(g.n, 6)}));
   styleArcs(arcs, true);
   const used = [...new Set(arcs.map(a => a.part))];
-  setPins(used.map(p => ({lat:PLACES[p].lat, lng:PLACES[p].lon, color: css("--accent"), seed: seedOf(p), text: "",
+  setPins(used.map(p => ({lat:PLACES[p].lat, lng:PLACES[p].lon, color: "#ffffff", seed: seedOf(p), text: "",
     title: partName(p), onclick: () => { state.focus = {part:p}; update(); }})));
   const withAmt = progs.filter(p => p.amount_eur);
-  document.getElementById("s-total").textContent = progs.length + " programme" + (progs.length === 1 ? "" : "s");
+  document.getElementById("s-total").textContent = "Total: " + progs.length + " programme" + (progs.length === 1 ? "" : "s");
   let scope = "";
   if (state.focus) scope = " Showing " + [state.focus.part ? partName(state.focus.part) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
   document.getElementById("s-text").textContent = `${withAmt.length} publish an amount. Programme amounts overlap with the investments view and with each other, so they are not added up.` + scope;
