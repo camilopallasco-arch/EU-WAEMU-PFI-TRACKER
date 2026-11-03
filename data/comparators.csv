@@ -278,6 +278,13 @@ afdb,CI,Governance and budget support,12741134,2015,Grant,Côte d’Ivoire  - Pr
 afdb,CI,Governance and budget support,6157354,2019,Loan,Côte d'Ivoire - Cocoa Sector Governance Support Project (PAGFIC),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-003
 afdb,CI,Governance and budget support,16042370,2022,Loan,Côte d'Ivoire - Business Climate Improvement Support Programme for the Structural Transformation of the Ivorian Economy (PACA-CI) - Phase I,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-004
 afdb,CI,Governance and budget support,39036888,2026,Loan,COTE D'IVOIRE - Governance Support Project for The Promotion of Inclusive Growth (PAGOCI),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CI-KF0-007
+afdb,CM,Energy and climate,134318110,2018,Loan,Cameroon - Nachtigal Hydro Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-F00-006
+afdb,CM,Energy and climate,8017152,2021,Unknown,CAMEROON - Proposed Risk Participation of the Private Sector Credit Enhancement Facility in the Loan to Nachtigal Hydro Power Company,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-F00-010
+afdb,CM,Energy and climate,55948040,2006,Loan,Cameroon - AES Sonel investment program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FA0-002
+afdb,CM,Energy and climate,26410036,2011,Loan,Cameroon - Kribi Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FA0-005
+afdb,CM,Energy and climate,18925630,2011,Loan,Cameroon - The Dibamba Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FAA-002
+afdb,CM,Financial sector and SMEs,15064505,2025,Loan,CAMEROON - Credit Communautaire d'Afrique-Bank (CCA-BANK),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-HAB-008
+afdb,CM,Financial sector and SMEs,9109617,2007,Unknown,Cameroon - Growth-Oriented Women Enterprises Development Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-HAZ-001
 afdb,CM,Agriculture and food systems,1282273,2000,Grant,Cameroon - Project to support the Special Food Security Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-A00-005
 afdb,CM,Agriculture and food systems,21039460,2004,Loan,Cameroon - Rumpi Area Participatory Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-A00-006
 afdb,CM,Agriculture and food systems,145589100,2016,Loan,Cameroon - Agricultural Value Chain Development Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-AA0-012
@@ -310,13 +317,6 @@ afdb,CM,Water and sanitation,303963,2007,Grant,Cameroon - Rural Water Supply and
 afdb,CM,Water and sanitation,18010220,2010,Loan,Cameroon - Rural Drinking Water Supply and Sanitation Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-E00-006
 afdb,CM,Water and sanitation,5379146,2019,Loan,Cameroon - Project for Studies and Preparation of a Rural Drinking Water Supply and Sanitation Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-E00-008
 afdb,CM,Water and sanitation,1312611,2016,Grant,Cameroon - Studies for the mobilisation and valorisation of rainwater through hillside reservoirs (PEMVEP),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-EAZ-002
-afdb,CM,Energy and climate,134318110,2018,Loan,Cameroon - Nachtigal Hydro Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-F00-006
-afdb,CM,Energy and climate,8017152,2021,Unknown,CAMEROON - Proposed Risk Participation of the Private Sector Credit Enhancement Facility in the Loan to Nachtigal Hydro Power Company,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-F00-010
-afdb,CM,Energy and climate,55948040,2006,Loan,Cameroon - AES Sonel investment program,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FA0-002
-afdb,CM,Energy and climate,26410036,2011,Loan,Cameroon - Kribi Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FA0-005
-afdb,CM,Energy and climate,18925630,2011,Loan,Cameroon - The Dibamba Power Project,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-FAA-002
-afdb,CM,Financial sector and SMEs,15064505,2025,Loan,CAMEROON - Credit Communautaire d'Afrique-Bank (CCA-BANK),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-HAB-008
-afdb,CM,Financial sector and SMEs,9109617,2007,Unknown,Cameroon - Growth-Oriented Women Enterprises Development Programme,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-HAZ-001
 afdb,CM,Water and sanitation,79571496,2026,Loan,Cameroon – Agro-Industrial Development Programme – Phase I: Construction of Multipurpose Dams,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-EAZ-003
 afdb,CM,Water and sanitation,33356440,2006,Loan,Cameroon - Yaoundé sanitation project (PADY),https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-EB0-003
 afdb,CM,Water and sanitation,714798,2002,Grant,Cameroon - Urban Poverty Reduction Program Preparation Facility,https://d-portal.org/ctrack.html#view=act&aid=46002-P-CM-EB0-006
@@ -833,7 +833,6 @@ ifc,CI,"Other (social, humanitarian, multi-sector)",3053620,2002,Unknown,PETRO I
 ifc,CI,"Other (social, humanitarian, multi-sector)",1088130,1999,Loan,AEF DROP-IVOIRE,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9114
 ifc,CI,Agriculture and food systems,4124584,1999,Loan,BACI Revolving Line,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9407
 ifc,CI,"Other (social, humanitarian, multi-sector)",5810346,2000,Loan,Societe des Caoutchoucs de Grand Bereby,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9552
-ifc,CM,"Other (social, humanitarian, multi-sector)",377672,2000,Loan,AEF  Société Agro-Industrielle et Commerciale du Cameroun,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9388
 ifc,CM,Agriculture and food systems,4357646,2014,Equity,Activa Finances,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-31215
 ifc,CM,Education and skills,6784208,2015,Unknown,BICEC  Agri RSF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34915
 ifc,CM,Education and skills,4780593,2015,Unknown,SGC Agri RSF,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34916
@@ -863,6 +862,7 @@ ifc,CM,Agriculture and food systems,10702559,2010,Loan,EB-Accion CMR,https://d-p
 ifc,CM,Digital and telecoms,25173796,2011,Loan,Dibamba Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-28529
 ifc,CM,"Other (social, humanitarian, multi-sector)",1105590,2012,Loan,AEF NOSA IV,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-28659
 ifc,CM,Agriculture and food systems,3366882,2011,Loan,Eco-Cam CFA loan,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-28936
+ifc,CM,"Other (social, humanitarian, multi-sector)",377672,2000,Loan,AEF  Société Agro-Industrielle et Commerciale du Cameroun,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SPI-9388
 ifc,GA,Transport and corridors,47751368,2014,Loan,VAALCO III Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-33781
 ifc,GA,"Other (social, humanitarian, multi-sector)",44692596,2017,Loan,SETRAG Project,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-34400
 ifc,GA,"Other (social, humanitarian, multi-sector)",,2024,Loan,Olam Palm Gabon,https://d-portal.org/ctrack.html#view=act&aid=XM-DAC-903-SII-39310
@@ -1047,9 +1047,9 @@ worldbank,BJ,Health,80345730,,Loan,First Additional Financing for the Benin Heal
 worldbank,BJ,"Other (social, humanitarian, multi-sector)",26781910,,Loan,Benin Disaster Risk Management Development Policy Credit with Cat DDO,https://projects.worldbank.org/en/projects-operations/project-detail/P168987
 worldbank,BJ,Energy and climate,,,Loan,Program for Management of Forests and Adjacent Lands,https://projects.worldbank.org/en/projects-operations/project-detail/P065010
 worldbank,BJ,"Other (social, humanitarian, multi-sector)",89273033,,Loan,Benin Land Tenure Management Program,https://projects.worldbank.org/en/projects-operations/project-detail/P181259
-worldbank,BJ,"Other (social, humanitarian, multi-sector)",,,Loan,Benin Statistical Capacity Building,https://projects.worldbank.org/en/projects-operations/project-detail/P154314
 worldbank,BJ,Financial sector and SMEs,89273033,,Loan,Women entrepreneurship development & access to finance,https://projects.worldbank.org/en/projects-operations/project-detail/P500561
 worldbank,BJ,Digital and telecoms,,,Loan,"BENIN - Fostering Inclusive Learning and Leadership for Education and STEM (Sciences, Technology, Engineering and Mathematics)",https://projects.worldbank.org/en/projects-operations/project-detail/P501283
+worldbank,BJ,"Other (social, humanitarian, multi-sector)",,,Loan,Benin Statistical Capacity Building,https://projects.worldbank.org/en/projects-operations/project-detail/P154314
 worldbank,BJ,"Other (social, humanitarian, multi-sector)",9016576,,Loan,Capacity Building for Government NGO Collaboration Under Adjustment Programs,https://projects.worldbank.org/en/projects-operations/project-detail/P000113
 worldbank,BJ,Transport and corridors,4463652,,Loan,Women's Initiative Pilot Support Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000123
 worldbank,BJ,Education and skills,,,Loan,Benin Global Partnership for Education Project Phase 3,https://projects.worldbank.org/en/projects-operations/project-detail/P167432
@@ -1122,8 +1122,8 @@ worldbank,BF,"Other (social, humanitarian, multi-sector)",55883373,2007,Loan,"Se
 worldbank,BF,Transport and corridors,52174101,2006,Loan,Agricultural Diversification and Market Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P081567
 worldbank,BF,Education and skills,18102832,2006,Loan,Post-Primary Education,https://projects.worldbank.org/en/projects-operations/project-detail/P098956
 worldbank,BF,Transport and corridors,38871610,2006,Loan,Health Sector Support  & Multisectoral AIDS Project,https://projects.worldbank.org/en/projects-operations/project-detail/P093987
-worldbank,BF,Transport and corridors,47266594,2005,Loan,Poverty Reduction Support Credit (5),https://projects.worldbank.org/en/projects-operations/project-detail/P078995
 worldbank,BF,Health,3938883,2005,Loan,BF-HIV/AIDS Disaster Resp Supl  (FY05),https://projects.worldbank.org/en/projects-operations/project-detail/P088879
+worldbank,BF,Transport and corridors,47266594,2005,Loan,Poverty Reduction Support Credit (5),https://projects.worldbank.org/en/projects-operations/project-detail/P078995
 worldbank,BF,"Other (social, humanitarian, multi-sector)",5302762,2005,Loan,Administration Capacity Building Project,https://projects.worldbank.org/en/projects-operations/project-detail/P078596
 worldbank,BF,Energy and climate,48940205,2004,Loan,Power Sector Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P069126
 worldbank,BF,Transport and corridors,49969859,2004,Loan,Poverty Reduction Support Credit (4),https://projects.worldbank.org/en/projects-operations/project-detail/P078994
@@ -1141,22 +1141,22 @@ worldbank,BF,Water and sanitation,76963442,2001,Loan,Ouagadougou Water Supply Pr
 worldbank,BF,"Other (social, humanitarian, multi-sector)",77885406,2000,Loan,COMMUNITY-BASED RURAL DEVELOPMENT PROJECT,https://projects.worldbank.org/en/projects-operations/project-detail/P035673
 worldbank,BF,"Other (social, humanitarian, multi-sector)",24727659,1999,Loan,Burkina Faso - SAC III,https://projects.worldbank.org/en/projects-operations/project-detail/P069165
 worldbank,BF,"Other (social, humanitarian, multi-sector)",4479746,1999,Loan,Pilot Private Irrigation Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P050886
-worldbank,BF,Transport and corridors,,,Loan,Additional Financing for Financial Inclusion Support Project to Support COVID-19 Crisis Recovery,https://projects.worldbank.org/en/projects-operations/project-detail/P177087
-worldbank,BF,Water and sanitation,133909550,,Loan,BURKINA FASO WATER SUPPLY AND SANITATION AF,https://projects.worldbank.org/en/projects-operations/project-detail/P181546
-worldbank,BF,Financial sector and SMEs,89273033,,Loan,Burkina Faso Growth and Resilience Development Policy Financing,https://projects.worldbank.org/en/projects-operations/project-detail/P501656
-worldbank,BF,Transport and corridors,4642198,,Loan,RAILWAYS,https://projects.worldbank.org/en/projects-operations/project-detail/P000256
 worldbank,BF,Transport and corridors,,,Loan,Burkina Faso Electronic Government Procurement Support,https://projects.worldbank.org/en/projects-operations/project-detail/P176026
+worldbank,BF,Transport and corridors,4642198,,Loan,RAILWAYS,https://projects.worldbank.org/en/projects-operations/project-detail/P000256
+worldbank,BF,Financial sector and SMEs,89273033,,Loan,Burkina Faso Growth and Resilience Development Policy Financing,https://projects.worldbank.org/en/projects-operations/project-detail/P501656
+worldbank,BF,Water and sanitation,133909550,,Loan,BURKINA FASO WATER SUPPLY AND SANITATION AF,https://projects.worldbank.org/en/projects-operations/project-detail/P181546
+worldbank,BF,Transport and corridors,,,Loan,Additional Financing for Financial Inclusion Support Project to Support COVID-19 Crisis Recovery,https://projects.worldbank.org/en/projects-operations/project-detail/P177087
 worldbank,BF,Agriculture and food systems,,,Loan,Burkina Faso access to irrigation for cotton farming,https://projects.worldbank.org/en/projects-operations/project-detail/P159754
 worldbank,BF,"Other (social, humanitarian, multi-sector)",17854607,,Loan,Highway Project (05),https://projects.worldbank.org/en/projects-operations/project-detail/P000278
 worldbank,BF,Transport and corridors,89273033,,Loan,Sustainable Mineral Development Support Project,https://projects.worldbank.org/en/projects-operations/project-detail/P167949
 worldbank,BF,Transport and corridors,35709213,,Loan,Economic Management Reform Support Operation Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000298
 worldbank,BF,"Other (social, humanitarian, multi-sector)",178546067,,Loan,Sikasso- Korhogo-Bobo-Dioulasso (SKBo) Basin of Integration - Burkina Faso,https://projects.worldbank.org/en/projects-operations/project-detail/P181499
 worldbank,BF,Agriculture and food systems,35709213,,Loan,Agricultural Sector Adjustment Credit Project (02),https://projects.worldbank.org/en/projects-operations/project-detail/P035610
-worldbank,BF,Education and skills,,,Loan,Burkina Faso Improving Education of children with disabilities,https://projects.worldbank.org/en/projects-operations/project-detail/P166596
+worldbank,BF,"Other (social, humanitarian, multi-sector)",53563820,,Loan,SAL II,https://projects.worldbank.org/en/projects-operations/project-detail/P000299
 worldbank,BF,Energy and climate,,,Loan,BF REDD+ Readiness Preparation,https://projects.worldbank.org/en/projects-operations/project-detail/P149827
 worldbank,BF,Agriculture and food systems,8927303,,Loan,Livestock Project (02),https://projects.worldbank.org/en/projects-operations/project-detail/P000273
 worldbank,BF,Education and skills,133909550,,Loan,Restoring Education System Performance and Improving Resilience Project,https://projects.worldbank.org/en/projects-operations/project-detail/P502472
-worldbank,BF,"Other (social, humanitarian, multi-sector)",53563820,,Loan,SAL II,https://projects.worldbank.org/en/projects-operations/project-detail/P000299
+worldbank,BF,Education and skills,,,Loan,Burkina Faso Improving Education of children with disabilities,https://projects.worldbank.org/en/projects-operations/project-detail/P166596
 worldbank,BF,Transport and corridors,133909550,,Loan,Burkina Faso - Ouagadougou Urban Transport Project,https://projects.worldbank.org/en/projects-operations/project-detail/P168963
 worldbank,BF,Education and skills,,,Loan,Fast Track Initiative Grant for Basic Education,https://projects.worldbank.org/en/projects-operations/project-detail/P115264
 worldbank,BF,"Other (social, humanitarian, multi-sector)",155335078,,Loan,Emergency Local Development and Fragility Reduction,https://projects.worldbank.org/en/projects-operations/project-detail/P168401
@@ -1259,12 +1259,12 @@ worldbank,CI,Financial sector and SMEs,,,Loan,DEBT&DEBT REDUCTION,https://projec
 worldbank,CI,Transport and corridors,,,Loan,Support to the Data Science Institute at the Institut National polytechnique Houphouet Boigny,https://projects.worldbank.org/en/projects-operations/project-detail/P170130
 worldbank,CI,Digital and telecoms,428510561,,Loan,Côte d'Ivoire Strengthening Technical and Vocational Education and Training System Operation,https://projects.worldbank.org/en/projects-operations/project-detail/P501277
 worldbank,CI,Energy and climate,35709213,,Loan,Rural Infrastructure Environment Project,https://projects.worldbank.org/en/projects-operations/project-detail/P001201
-worldbank,CI,"Other (social, humanitarian, multi-sector)",281210055,,Loan,Structural Adjustment Grant Project,https://projects.worldbank.org/en/projects-operations/project-detail/P040666
 worldbank,CI,Education and skills,,,Loan,CÔTE D'IVOIRE AF TO STRENGTHENING PRIMARY EDUCATION SYSTEM OPERATION,https://projects.worldbank.org/en/projects-operations/project-detail/P181489
-worldbank,CI,Transport and corridors,,,Loan,COTE D'IVOIRE - Emergency Basic Education Support Project - GPEF Grant,https://projects.worldbank.org/en/projects-operations/project-detail/P119328
+worldbank,CI,"Other (social, humanitarian, multi-sector)",281210055,,Loan,Structural Adjustment Grant Project,https://projects.worldbank.org/en/projects-operations/project-detail/P040666
 worldbank,CI,Energy and climate,,,Loan,Cote d'Ivoire Forest Investment Program,https://projects.worldbank.org/en/projects-operations/project-detail/P162581
-worldbank,CI,Agriculture and food systems,44636517,,Loan,Livestock,https://projects.worldbank.org/en/projects-operations/project-detail/P001196
+worldbank,CI,Transport and corridors,,,Loan,COTE D'IVOIRE - Emergency Basic Education Support Project - GPEF Grant,https://projects.worldbank.org/en/projects-operations/project-detail/P119328
 worldbank,CI,"Other (social, humanitarian, multi-sector)",26781910,,Loan,CAPACITY BUILDING FOR POVERTY REDUCTION PROGRAM,https://projects.worldbank.org/en/projects-operations/project-detail/P055076
+worldbank,CI,Agriculture and food systems,44636517,,Loan,Livestock,https://projects.worldbank.org/en/projects-operations/project-detail/P001196
 worldbank,CI,Transport and corridors,,,Loan,Support to Nutrition Sensitive Agriculture and Capacity Development of Small and Marginal Farmers,https://projects.worldbank.org/en/projects-operations/project-detail/P155081
 worldbank,CI,Financial sector and SMEs,983788829,,Loan,Financial Inclusion for Green and Resilient Housing in Cote d'Ivoire,https://projects.worldbank.org/en/projects-operations/project-detail/P500519
 worldbank,CI,Energy and climate,31245562,,Loan,Azito Power Project,https://projects.worldbank.org/en/projects-operations/project-detail/P058547
@@ -1394,9 +1394,9 @@ worldbank,ML,Transport and corridors,22318258,,Loan,Mali Health Sector Support P
 worldbank,ML,Education and skills,,,Loan,Piloting Effective Early Childhood Development Services in Mali,https://projects.worldbank.org/en/projects-operations/project-detail/P124612
 worldbank,ML,Transport and corridors,,,Loan,Mali Sustainable Land Management,https://projects.worldbank.org/en/projects-operations/project-detail/P099709
 worldbank,ML,Digital and telecoms,10712764,,Loan,Mali: Telecommunication and Postal Sector Reform,https://projects.worldbank.org/en/projects-operations/project-detail/P062908
+worldbank,ML,Agriculture and food systems,89273033,,Loan,Commercial Irrigated Agriculture Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P159765
 worldbank,ML,Energy and climate,120518595,,Loan,Mali Sustainable Energy Access and Improved Service Delivery for Increased Stability Development Policy Financing - Phase II,https://projects.worldbank.org/en/projects-operations/project-detail/P171503
 worldbank,ML,Transport and corridors,,,Loan,Mali Connectivity and Road Resilience Program,https://projects.worldbank.org/en/projects-operations/project-detail/P507921
-worldbank,ML,Agriculture and food systems,89273033,,Loan,Commercial Irrigated Agriculture Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P159765
 worldbank,ML,Education and skills,33923753,,Loan,ML Higher Education Development,https://projects.worldbank.org/en/projects-operations/project-detail/P122015
 worldbank,ML,Transport and corridors,17854607,,Loan,TRANSPORT SECTOR PROJECT,https://projects.worldbank.org/en/projects-operations/project-detail/P073984
 worldbank,ML,Water and sanitation,89273033,,Loan,Mali Water Security Project,https://projects.worldbank.org/en/projects-operations/project-detail/P181538
@@ -1488,8 +1488,8 @@ worldbank,NE,"Other (social, humanitarian, multi-sector)",13596105,2000,Loan,OIL
 worldbank,NE,Financial sector and SMEs,40132355,2000,Loan,Public Finance Recovery Adjustment Credit,https://projects.worldbank.org/en/projects-operations/project-detail/P069568
 worldbank,NE,Transport and corridors,10904180,2000,Loan,Niger Agro-Pastoral Export Promotion Project,https://projects.worldbank.org/en/projects-operations/project-detail/P058730
 worldbank,NE,Energy and climate,,,Loan,Community-based Integrated Ecosystem Management,https://projects.worldbank.org/en/projects-operations/project-detail/P073011
-worldbank,NE,Financial sector and SMEs,260230893,,Loan,ADDITIONAL FINANCING - PUBLIC SECTOR MANAGEMENT FOR RESILIENCE AND SERVICE DELIVERY PROGRAM,https://projects.worldbank.org/en/projects-operations/project-detail/P181726
 worldbank,NE,"Other (social, humanitarian, multi-sector)",26781910,,Loan,Public Sector Management Modernization and Capacity Building Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002001
+worldbank,NE,Financial sector and SMEs,260230893,,Loan,ADDITIONAL FINANCING - PUBLIC SECTOR MANAGEMENT FOR RESILIENCE AND SERVICE DELIVERY PROGRAM,https://projects.worldbank.org/en/projects-operations/project-detail/P181726
 worldbank,NE,"Other (social, humanitarian, multi-sector)",9909307,,Loan,Institutional Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002000
 worldbank,NE,Financial sector and SMEs,,,Loan,Niger Financial Sector and SME Recovery,https://projects.worldbank.org/en/projects-operations/project-detail/P507762
 worldbank,NE,"Other (social, humanitarian, multi-sector)",455292471,,Loan,Southern Niger Connectivity and Integration Project,https://projects.worldbank.org/en/projects-operations/project-detail/P179770
@@ -1603,8 +1603,8 @@ worldbank,SN,"Other (social, humanitarian, multi-sector)",9817931,1999,Loan,Year
 worldbank,SN,Transport and corridors,25780725,1999,Loan,Agricultural Services & Producer Organizations Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002367
 worldbank,SN,Transport and corridors,82698116,1999,Loan,Second Transport Sector Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002366
 worldbank,SN,"Other (social, humanitarian, multi-sector)",26781910,,Loan,PUB SCTR MANAGEMENT,https://projects.worldbank.org/en/projects-operations/project-detail/P041448
-worldbank,SN,"Other (social, humanitarian, multi-sector)",,,Loan,Senegal First Reforms for Inclusive and Sustained Economic Transformation and Transparency (RISE) DPF,https://projects.worldbank.org/en/projects-operations/project-detail/P506839
 worldbank,SN,Agriculture and food systems,26781910,,Loan,Agricultural Sector Investment Program Project,https://projects.worldbank.org/en/projects-operations/project-detail/P045105
+worldbank,SN,"Other (social, humanitarian, multi-sector)",,,Loan,Senegal First Reforms for Inclusive and Sustained Economic Transformation and Transparency (RISE) DPF,https://projects.worldbank.org/en/projects-operations/project-detail/P506839
 worldbank,SN,Digital and telecoms,,,Loan,Digital Entrepreneurship Senegal,https://projects.worldbank.org/en/projects-operations/project-detail/P156259
 worldbank,SN,Health,,,Loan,Second Additional Financing for the Senegal COVID-19 Response Project,https://projects.worldbank.org/en/projects-operations/project-detail/P181056
 worldbank,SN,Digital and telecoms,26781910,,Loan,Technical and Vocational Training Restructuring Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002375
@@ -1614,19 +1614,19 @@ worldbank,SN,Energy and climate,,,Loan,Senegal Rural Electrification Program,htt
 worldbank,SN,Digital and telecoms,7409662,,Loan,Technical Assistance to Ministry of Rural Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002347
 worldbank,SN,"Other (social, humanitarian, multi-sector)",17854607,,Loan,Integrated Natural Resource Management Program Project,https://projects.worldbank.org/en/projects-operations/project-detail/P002359
 worldbank,SN,"Other (social, humanitarian, multi-sector)",,,Loan,DASUM,https://projects.worldbank.org/en/projects-operations/project-detail/P507844
-worldbank,SN,Energy and climate,,,Loan,Community-based Sustainable Land Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P130271
 worldbank,SN,Energy and climate,13390955,,Loan,Energy Sector Investment Project,https://projects.worldbank.org/en/projects-operations/project-detail/P051356
+worldbank,SN,Energy and climate,,,Loan,Community-based Sustainable Land Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P130271
 worldbank,SN,Energy and climate,,,Loan,From Harmful Aquatic Plants to New Cooking Fuel,https://projects.worldbank.org/en/projects-operations/project-detail/P108191
 worldbank,SN,Education and skills,,,Loan,Senegal EFA-FTI Catalytic Fund,https://projects.worldbank.org/en/projects-operations/project-detail/P116783
 worldbank,SN,Energy and climate,8927303,,Loan,Sustainable and participatory Energy Management - phase 2 (PROGEDE II),https://projects.worldbank.org/en/projects-operations/project-detail/P108439
 worldbank,SN,"Other (social, humanitarian, multi-sector)",,,Loan,Commercial Debt Reduction Program,https://projects.worldbank.org/en/projects-operations/project-detail/P002270
-worldbank,SN,Agriculture and food systems,,,Loan,Building Resilience to Food and Nutrition Insecurity Shocks,https://projects.worldbank.org/en/projects-operations/project-detail/P155475
 worldbank,SN,"Other (social, humanitarian, multi-sector)",35709213,,Loan,INT DEVT PROG IRRIG,https://projects.worldbank.org/en/projects-operations/project-detail/P035618
-worldbank,SN,Energy and climate,,,Loan,Integrated Marine and Coastal Resources Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P058367
+worldbank,SN,Agriculture and food systems,,,Loan,Building Resilience to Food and Nutrition Insecurity Shocks,https://projects.worldbank.org/en/projects-operations/project-detail/P155475
 worldbank,SN,Transport and corridors,,,Loan,Senegal PFM Reform Support Program,https://projects.worldbank.org/en/projects-operations/project-detail/P112627
+worldbank,SN,Energy and climate,,,Loan,Integrated Marine and Coastal Resources Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P058367
 worldbank,SN,Energy and climate,,,Loan,Sustainable Management of Fish Resources,https://projects.worldbank.org/en/projects-operations/project-detail/P092062
-worldbank,SN,Energy and climate,31245562,,Loan,Senegal Solar Energy Development through IPPs Project,https://projects.worldbank.org/en/projects-operations/project-detail/P153826
 worldbank,SN,"Other (social, humanitarian, multi-sector)",,,Loan,Senegal DPO1 FY25,https://projects.worldbank.org/en/projects-operations/project-detail/P500462
+worldbank,SN,Energy and climate,31245562,,Loan,Senegal Solar Energy Development through IPPs Project,https://projects.worldbank.org/en/projects-operations/project-detail/P153826
 worldbank,SN,Energy and climate,133909550,,Loan,Project to Promote a Shift towards Lower Carbon Power Generation in Senegal,https://projects.worldbank.org/en/projects-operations/project-detail/P169744
 worldbank,SN,Transport and corridors,,,Loan,Senegal Support to Extractive Industries Transparency Initiative Compliance Process,https://projects.worldbank.org/en/projects-operations/project-detail/P160022
 worldbank,TG,Digital and telecoms,95431230,2024,Loan,Togo Digital Acceleration Project,https://projects.worldbank.org/en/projects-operations/project-detail/P179138
@@ -1669,14 +1669,14 @@ worldbank,TG,Health,4463652,,Loan,Population and Health Sector Investment Projec
 worldbank,TG,"Other (social, humanitarian, multi-sector)",13390955,,Loan,Regional Centers Rehabilitation Project,https://projects.worldbank.org/en/projects-operations/project-detail/P039976
 worldbank,TG,Water and sanitation,8927303,,Loan,Water Supply Project (02),https://projects.worldbank.org/en/projects-operations/project-detail/P002888
 worldbank,TG,Health,17854607,,Loan,DROPPED - Togo Health System Performance Strengthening Project,https://projects.worldbank.org/en/projects-operations/project-detail/P164886
-worldbank,TG,Energy and climate,26781910,,Loan,Energy Project (05),https://projects.worldbank.org/en/projects-operations/project-detail/P041277
 worldbank,TG,Energy and climate,,,Loan,REDD+  Readiness preparation - Togo,https://projects.worldbank.org/en/projects-operations/project-detail/P149942
+worldbank,TG,Energy and climate,26781910,,Loan,Energy Project (05),https://projects.worldbank.org/en/projects-operations/project-detail/P041277
 worldbank,TG,Transport and corridors,133909550,,Loan,Togo Transport Connectivity and Logistics Improvement Project,https://projects.worldbank.org/en/projects-operations/project-detail/P181461
 worldbank,TG,Education and skills,,,Loan,TOGO - Education and Institutional Strengthening Project 2,https://projects.worldbank.org/en/projects-operations/project-detail/P146294
 worldbank,TG,"Other (social, humanitarian, multi-sector)",8927303,,Loan,Togo: Data for a fact based society,https://projects.worldbank.org/en/projects-operations/project-detail/P166135
 worldbank,TG,Health,,,Loan,"AGAIB Maritime - LICUS Ref. No. 18 C, TF056809",https://projects.worldbank.org/en/projects-operations/project-detail/P101068
-worldbank,TG,Health,4463652,,Loan,HEALTH SECTOR DEVELOPMENT PROJECT - KARA REGION,https://projects.worldbank.org/en/projects-operations/project-detail/P057824
 worldbank,TG,Agriculture and food systems,133909550,,Loan,Togo Sustainable Agricultural Transformation Project,https://projects.worldbank.org/en/projects-operations/project-detail/P180580
+worldbank,TG,Health,4463652,,Loan,HEALTH SECTOR DEVELOPMENT PROJECT - KARA REGION,https://projects.worldbank.org/en/projects-operations/project-detail/P057824
 worldbank,TG,Health,,,Loan,EPPR - Consolidation Phase - Savanes GA#090492,https://projects.worldbank.org/en/projects-operations/project-detail/P108916
 worldbank,TG,"Other (social, humanitarian, multi-sector)",,,Loan,Togo DPO New Series 2019 PBG,https://projects.worldbank.org/en/projects-operations/project-detail/P170832
 worldbank,TG,"Other (social, humanitarian, multi-sector)",267819100,,Loan,Togo Secondary Cities Program,https://projects.worldbank.org/en/projects-operations/project-detail/P501278
@@ -1740,9 +1740,9 @@ worldbank,CM,Energy and climate,6078949,2000,Loan,Cameroon Petroleum Environment
 worldbank,CM,"Other (social, humanitarian, multi-sector)",23069243,2000,Loan,Public/Private Partnership for Growth and Poverty Reduction Project,https://projects.worldbank.org/en/projects-operations/project-detail/P065927
 worldbank,CM,"Other (social, humanitarian, multi-sector)",66954775,,Loan,ENEO Liquidity and Performance Incentivisation Guarantee,https://projects.worldbank.org/en/projects-operations/project-detail/P169915
 worldbank,CM,Agriculture and food systems,133909550,,Loan,Agriculture Sector Adjustment Loan Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000418
-worldbank,CM,Financial sector and SMEs,17854607,,Loan,RURAL FINANCE PROJ.,https://projects.worldbank.org/en/projects-operations/project-detail/P048550
-worldbank,CM,"Other (social, humanitarian, multi-sector)",89273033,,Loan,Cameroon Inclusive and Resilient Housing Project,https://projects.worldbank.org/en/projects-operations/project-detail/P176795
 worldbank,CM,Energy and climate,26781910,,Loan,MANPOWER DEV.,https://projects.worldbank.org/en/projects-operations/project-detail/P000384
+worldbank,CM,"Other (social, humanitarian, multi-sector)",89273033,,Loan,Cameroon Inclusive and Resilient Housing Project,https://projects.worldbank.org/en/projects-operations/project-detail/P176795
+worldbank,CM,Financial sector and SMEs,17854607,,Loan,RURAL FINANCE PROJ.,https://projects.worldbank.org/en/projects-operations/project-detail/P048550
 worldbank,CM,Financial sector and SMEs,178546067,,Loan,"Cameroon Third Fiscal Sustainability, Inclusive and Sustainable Growth Development Policy Financing",https://projects.worldbank.org/en/projects-operations/project-detail/P180907
 worldbank,CM,"Other (social, humanitarian, multi-sector)",133909550,,Loan,Data Public Infrastructure in Cameroon project,https://projects.worldbank.org/en/projects-operations/project-detail/P500425
 worldbank,CM,"Other (social, humanitarian, multi-sector)",26781910,,Loan,URBAN MGMT IMPROVEME,https://projects.worldbank.org/en/projects-operations/project-detail/P000398
@@ -1750,14 +1750,14 @@ worldbank,CM,Education and skills,17854607,,Loan,Education and Training Developm
 worldbank,CM,Education and skills,17854607,,Loan,Private and Community School Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000419
 worldbank,CM,Health,35709213,,Loan,Cameroon - Contribution to Health Sector Investment Project,https://projects.worldbank.org/en/projects-operations/project-detail/P100656
 worldbank,CM,Education and skills,,,Loan,CAMEROON--Equity and Quality for Improved Learning Project,https://projects.worldbank.org/en/projects-operations/project-detail/P133338
-worldbank,CM,"Other (social, humanitarian, multi-sector)",8927303,,Loan,Urban Sector Engineering Credit Project,https://projects.worldbank.org/en/projects-operations/project-detail/P035604
 worldbank,CM,Transport and corridors,4463652,,Loan,Women's Initiative Pilot Support Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000420
+worldbank,CM,"Other (social, humanitarian, multi-sector)",8927303,,Loan,Urban Sector Engineering Credit Project,https://projects.worldbank.org/en/projects-operations/project-detail/P035604
 worldbank,CM,Financial sector and SMEs,,,Loan,Cameroon Commercial Debt Restructuring,https://projects.worldbank.org/en/projects-operations/project-detail/P082289
 worldbank,CM,"Other (social, humanitarian, multi-sector)",4463652,,Loan,JUDICIAL REFORM TA,https://projects.worldbank.org/en/projects-operations/project-detail/P048173
 worldbank,CM,Education and skills,44636517,,Loan,Skills Development for Growth Project,https://projects.worldbank.org/en/projects-operations/project-detail/P164117
 worldbank,CM,Transport and corridors,,,Loan,Sustainable Agro-Pastoral and Land Management Promotion under the PNDP,https://projects.worldbank.org/en/projects-operations/project-detail/P089289
-worldbank,CM,Financial sector and SMEs,357092134,,Loan,"Cameroon Second Fiscal Sustainability, Inclusive and Sustainable Growth Development Policy Financing",https://projects.worldbank.org/en/projects-operations/project-detail/P180017
 worldbank,CM,"Other (social, humanitarian, multi-sector)",,,Loan,Cameroon:NGOYLA MINTOM PROJECT,https://projects.worldbank.org/en/projects-operations/project-detail/P118018
+worldbank,CM,Financial sector and SMEs,357092134,,Loan,"Cameroon Second Fiscal Sustainability, Inclusive and Sustainable Growth Development Policy Financing",https://projects.worldbank.org/en/projects-operations/project-detail/P180017
 worldbank,CM,Water and sanitation,53563820,,Loan,Water Supply Project (03),https://projects.worldbank.org/en/projects-operations/project-detail/P000369
 worldbank,CM,Digital and telecoms,89273033,,Loan,Cameroon - ICT Sector Reform Project,https://projects.worldbank.org/en/projects-operations/project-detail/P161219
 worldbank,CM,Energy and climate,,,Loan,CM -- FCPF REDD READINESS,https://projects.worldbank.org/en/projects-operations/project-detail/P124293
@@ -1818,8 +1818,8 @@ worldbank,CF,"Other (social, humanitarian, multi-sector)",16783330,,Loan,Municip
 worldbank,CF,Education and skills,3570921,,Loan,Education Sector Development Project II,https://projects.worldbank.org/en/projects-operations/project-detail/P133580
 worldbank,CF,Industry and trade,,,Loan,Central African Republic - Post Compliance I,https://projects.worldbank.org/en/projects-operations/project-detail/P133434
 worldbank,CF,Agriculture and food systems,,,Loan,CAR Food Response Project,https://projects.worldbank.org/en/projects-operations/project-detail/P113221
-worldbank,CF,"Other (social, humanitarian, multi-sector)",17854607,,Loan,Structural Adjustment Loan Project (04),https://projects.worldbank.org/en/projects-operations/project-detail/P035990
 worldbank,CF,"Other (social, humanitarian, multi-sector)",26781910,,Loan,TRANSP SECTOR II,https://projects.worldbank.org/en/projects-operations/project-detail/P000477
+worldbank,CF,"Other (social, humanitarian, multi-sector)",17854607,,Loan,Structural Adjustment Loan Project (04),https://projects.worldbank.org/en/projects-operations/project-detail/P035990
 worldbank,CF,Transport and corridors,,,Loan,Central African Republic - Education Sector Plan Support Project,https://projects.worldbank.org/en/projects-operations/project-detail/P173103
 worldbank,CF,Energy and climate,,,Loan,C.A.R. Community Reintegration Project,https://projects.worldbank.org/en/projects-operations/project-detail/P122099
 worldbank,CF,"Other (social, humanitarian, multi-sector)",44636517,,Loan,CAR First Resilient and Inclusive Institutions for State Effectiveness DPO,https://projects.worldbank.org/en/projects-operations/project-detail/P175173
@@ -1887,8 +1887,8 @@ worldbank,TD,"Other (social, humanitarian, multi-sector)",,,Loan,Data Production
 worldbank,TD,Energy and climate,,,Loan,Community-Based Ecosystem Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P078138
 worldbank,TD,Energy and climate,8927303,,Loan,Petroleum and Power Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000503
 worldbank,TD,"Other (social, humanitarian, multi-sector)",8927303,,Loan,Petroleum Management Capacity Building Project supplemental,https://projects.worldbank.org/en/projects-operations/project-detail/P080709
-worldbank,TD,Health,,,Loan,Chad Health Emergency Preparedness and Response Additional Financing,https://projects.worldbank.org/en/projects-operations/project-detail/P180680
 worldbank,TD,Water and sanitation,18033153,,Loan,Water Resource Management Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000524
+worldbank,TD,Health,,,Loan,Chad Health Emergency Preparedness and Response Additional Financing,https://projects.worldbank.org/en/projects-operations/project-detail/P180680
 worldbank,TD,"Other (social, humanitarian, multi-sector)",89273033,,Loan,Chad COVID-19 Response DPF,https://projects.worldbank.org/en/projects-operations/project-detail/P174160
 worldbank,TD,Digital and telecoms,5802747,,Loan,TD-Post & Telecom Sec Reform TAL (DR),https://projects.worldbank.org/en/projects-operations/project-detail/P065496
 worldbank,TD,Financial sector and SMEs,,,Loan,Chad SME and Financial Sector Development,https://projects.worldbank.org/en/projects-operations/project-detail/P507617
@@ -1941,20 +1941,20 @@ worldbank,CG,"Other (social, humanitarian, multi-sector)",5809470,2001,Loan,Emer
 worldbank,CG,"Other (social, humanitarian, multi-sector)",43768551,2001,Loan,Post Conflict - Economic Rehabilitation Credit,https://projects.worldbank.org/en/projects-operations/project-detail/P073316
 worldbank,CG,Health,8927303,,Loan,"Population, Health and Nutrition Project",https://projects.worldbank.org/en/projects-operations/project-detail/P035647
 worldbank,CG,"Other (social, humanitarian, multi-sector)",,,Loan,Emission Reductions Program in Sangha and Likouala,https://projects.worldbank.org/en/projects-operations/project-detail/P163361
-worldbank,CG,Health,,,Loan,Second Additional Financing to Republic of Congo COVID-19 Emergency Response Project,https://projects.worldbank.org/en/projects-operations/project-detail/P177008
 worldbank,CG,"Other (social, humanitarian, multi-sector)",7141843,,Loan,EMERGENCY RD WORKS,https://projects.worldbank.org/en/projects-operations/project-detail/P044823
+worldbank,CG,Health,,,Loan,Second Additional Financing to Republic of Congo COVID-19 Emergency Response Project,https://projects.worldbank.org/en/projects-operations/project-detail/P177008
 worldbank,CG,Education and skills,8927303,,Loan,Education Sector Adjustment Operation (ESA) Project,https://projects.worldbank.org/en/projects-operations/project-detail/P045093
+worldbank,CG,Water and sanitation,8927303,,Loan,Urban Rehabilitation and Sanitation Project,https://projects.worldbank.org/en/projects-operations/project-detail/P041358
 worldbank,CG,Agriculture and food systems,8034573,,Loan,Agricultural Services Project,https://projects.worldbank.org/en/projects-operations/project-detail/P045183
 worldbank,CG,Energy and climate,31245562,,Loan,CG-Infrastructure Rehab (DR),https://projects.worldbank.org/en/projects-operations/project-detail/P080079
-worldbank,CG,Water and sanitation,8927303,,Loan,Urban Rehabilitation and Sanitation Project,https://projects.worldbank.org/en/projects-operations/project-detail/P041358
 worldbank,CG,"Other (social, humanitarian, multi-sector)",89273033,,Loan,Strengthening Urban Resilience Project,https://projects.worldbank.org/en/projects-operations/project-detail/P179190
 worldbank,CG,Energy and climate,,,Loan,Northern Congo Agroforestry Project,https://projects.worldbank.org/en/projects-operations/project-detail/P166189
 worldbank,CG,Energy and climate,,,Loan,Support to Indigenous Peoples and Local Communities for Sustainable Resources Management,https://projects.worldbank.org/en/projects-operations/project-detail/P169610
 worldbank,CG,Financial sector and SMEs,17854607,,Loan,Financial Sector Project,https://projects.worldbank.org/en/projects-operations/project-detail/P000581
 worldbank,CG,"Other (social, humanitarian, multi-sector)",71418427,,Loan,Republic of Congo Third Fiscal Management and Inclusive Growth DPF,https://projects.worldbank.org/en/projects-operations/project-detail/P180398
 worldbank,CG,"Other (social, humanitarian, multi-sector)",35709213,,Loan,SAC I,https://projects.worldbank.org/en/projects-operations/project-detail/P000570
-worldbank,CG,"Other (social, humanitarian, multi-sector)",89273033,,Loan,"Congo Fiscal management, economic and social resilience DPF",https://projects.worldbank.org/en/projects-operations/project-detail/P165815
 worldbank,CG,"Other (social, humanitarian, multi-sector)",17854607,,Loan,Structural Adjustment Credit Project (SAC),https://projects.worldbank.org/en/projects-operations/project-detail/P035616
+worldbank,CG,"Other (social, humanitarian, multi-sector)",89273033,,Loan,"Congo Fiscal management, economic and social resilience DPF",https://projects.worldbank.org/en/projects-operations/project-detail/P165815
 worldbank,CG,"Other (social, humanitarian, multi-sector)",,,Loan,Poultry and Aquaculture Development Project,https://projects.worldbank.org/en/projects-operations/project-detail/P505271
 worldbank,CG,Energy and climate,,,Loan,CG - FCPF REDD READINESS,https://projects.worldbank.org/en/projects-operations/project-detail/P124292
 worldbank,GQ,Industry and trade,,2009,Loan,Equatorial Guinea-Extractive Industries Transparency Initiative,https://projects.worldbank.org/en/projects-operations/project-detail/P098843
