@@ -555,10 +555,11 @@ def step_normalize():
         return OTHER_SECTOR
 
     def instrument_from(text):
+        """Main financing instrument of a deal. When several tools are listed (e.g. 'Loan, Technical assistance'),
+        the capital instrument wins: loan, then equity, then guarantee; grant only when nothing else is listed."""
         t = (text or "").lower()
-        for name, rx in [("Equity", r"equity|share|fund invest"), ("Guarantee", r"guarant|insur|cover"),
-                         ("Grant", r"grant|subvention|subsid|don\b|technical assistance"),
-                         ("Loan", r"loan|debt|credit|prêt|mezzanine|bond|facility")]:
+        for name, rx in [("Loan", r"loan|debt|cr[ée]dit|pr[êe]t|mezzanine|bond|facility"), ("Equity", r"equity|share|fund invest|participation"),
+                         ("Guarantee", r"guarant|insur|cover"), ("Grant", r"grant|subvention|subsid|\bdon\b|technical assistance")]:
             if re.search(rx, t):
                 return name
         return "Unknown"
@@ -644,6 +645,22 @@ def step_normalize():
     # ---------------------------------------------------------------- collectors
     investments, allocations = [], []
 
+    IMPL_AGENCIES = [  # (pattern, short name, member state) - agencies that implement EU funds under indirect management
+        (r"agence fran[cç]aise de d[ée]veloppement|\bAFD\b|french development agency", "AFD", "FR"), (r"expertise france", "Expertise France", "FR"),
+        (r"civipol", "Civipol", "FR"), (r"proparco", "Proparco", "FR"), (r"deutsche gesellschaft|\bGIZ\b", "GIZ", "DE"),
+        (r"\bkfw\b|kreditanstalt", "KfW", "DE"), (r"enabel|belgian development agency|agence belge de d[ée]veloppement", "Enabel", "BE"),
+        (r"lux[- ]?dev|luxembourg development|lux-development", "LuxDev", "LU"), (r"\bAECID\b|agencia espa[ñn]ola de cooperaci", "AECID", "ES"),
+        (r"\bFIIAPP\b", "FIIAPP", "ES"), (r"\bCOFIDES\b", "COFIDES", "ES"), (r"\bAICS\b|agenzia italiana", "AICS", "IT"),
+        (r"cassa depositi|\bCDP\b", "CDP", "IT"), (r"cam[õo]es", "Camões", "PT"), (r"austrian development agency", "ADA", "AT"),
+        (r"\bFMO\b|nederlandse financierings", "FMO", "NL"), (r"belgian investment|\bBIO\b", "BIO", "BE"), (r"\bDEG\b", "DEG", "DE"),
+        (r"european investment bank|\bEIB\b|\bBEI\b|banque europ[ée]enne d.investissement", "EIB", "EU")]
+    EU_FUND_INST = {"eu-intpa", "eu-eutf", "eu-blending", "eu-aitf", "eu-echo", "eu-fpi"}
+    def impl_agency(text):
+        for rx, short, ms in IMPL_AGENCIES:
+            if re.search(rx, text or "", re.I):
+                return short, ms
+        return "", ""
+
     def add(inst, src, rec_id, url, title, *, desc="", client="", client_domicile="", instrument="Unknown",
             sector_broad="Other", sector_detail="", status="", date="", amount=None, currency="EUR",
             amount_eur=None, es="", shares=None, method="", note="", points=None, basis=None, instrument_detail=""):
@@ -664,6 +681,8 @@ def step_normalize():
             "source_url": url, "title": (title or "").strip()[:250], "description": re.sub(r"\s+", " ", desc or "").strip()[:600],
             "client": client, "client_domicile": client_domicile, "instrument": instrument,
             "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date, "instrument_detail": instrument_detail, "tags": "",
+            "impl_agency": impl_agency(re.sub(r"^Lead financier:\s*", "", client))[0] if inst in EU_FUND_INST else "",
+            "impl_ms": impl_agency(re.sub(r"^Lead financier:\s*", "", client))[1] if inst in EU_FUND_INST else "",
             "year": (date or "")[:4], "amount_original": amount, "currency_original": currency,
             "fx_rate_per_eur": fx_rate, "amount_eur": round(amount_eur) if amount_eur is not None else None,
             "amount_basis": basis or ("commitment" if amount_eur is not None else "not disclosed"),
@@ -1009,7 +1028,7 @@ def step_normalize():
         if rec in _proparco_ids:  # Proparco sometimes reuses a project number for a renewal: keep both deals
             rec = rec + "-" + p["url"].rstrip("/").rsplit("/", 1)[-1][:40]
         _proparco_ids.add(rec)
-        add("proparco", "proparco-web", rec, p["url"], p["title"], client=f.get("Customer", ""),
+        add("proparco", "proparco-web", rec, p["url"], p["title"], client=f.get("Customer", ""), instrument_detail=(f.get("Financing tool") or "")[:80],
             client_domicile=f.get("Country of headquarters", ""),
             instrument=instrument_from(f.get("Financing tool", "")), sector_broad=broad_sector(" ".join(p["tags"])),
             sector_detail=", ".join(p["tags"]), status="Signed", date=p.get("year") or "",
@@ -1681,7 +1700,7 @@ def step_normalize():
                                "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
                               for a in comparators if a["amount_attributed_eur"]],
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
-                                                   "instrument", "instrument_detail", "tags", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
+                                                   "instrument", "instrument_detail", "tags", "impl_agency", "impl_ms", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
                                                    "source_url", "note", "multi_country")} for inv in investments],
               "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
                                                  "lat", "lon", "geo_precision")} for a in allocations]}
@@ -1747,7 +1766,11 @@ TEMPLATE = r'''<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>European public finance in the WAEMU</title>
+<title>EU-CFA Public finance tracker</title>
+<meta name="description" content="European public investment in the CFA franc zone (WAEMU and CEMAC) since the 1999 XOF/XAF-euro peg: deals, programmes and analysis.">
+<meta property="og:title" content="EU-CFA Public finance tracker">
+<meta property="og:description" content="European public investment in the CFA franc zone (WAEMU and CEMAC) since the 1999 XOF/XAF-euro peg.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1859,6 +1882,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
 .deal{padding:12px 18px;border-bottom:1px solid var(--line)}
 .deal h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
 .deal .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--muted)}
+.flag.deleg{border-style:solid;border-color:#d8b4ff;color:#e9d6ff}
 .deal h3 .cap{font:500 12px var(--sans);color:var(--muted);white-space:nowrap}
 .deal .amt{font:500 13px var(--mono);color:var(--ink)}
 .deal .who{display:flex;align-items:center;gap:6px}
@@ -2058,7 +2082,8 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const partName = p => (PLACES[p] && PLACES[p].name) || p;
 const ccName = cc => DATA.countries[cc].name;
 
-const state = {view:"inv", types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
+const defaultTypes = () => new Set(TYPES.map(t => t[0]).filter(k => !NON_INVESTMENT.has(k)));
+const state = {view:"inv", types:defaultTypes(), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
   cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40,
   est:true, donorBy:"inst", ovMode:"sector", ovCC:"", ovSector:"", q:"", ovStack:"inst"};
 const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -2071,7 +2096,7 @@ document.getElementById("q").addEventListener("input", e => {
 // ---------- controls
 function chipGroup(el, list, set) {
   list.forEach(([k,label,v]) => {
-    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed","true");
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(set.has(k)));
     b.innerHTML = `<span class="sw" style="background:var(${v});color:var(${v})"></span>${label}`;
     b.onclick = () => { set.has(k) ? set.delete(k) : set.add(k); b.setAttribute("aria-pressed", set.has(k)); state.focus = null; update(); };
     el.append(b);
@@ -2130,11 +2155,11 @@ document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
   drawLegend(); update();
 });
 document.getElementById("reset").onclick = () => {
-  Object.assign(state, {types:new Set(TYPES.map(t => t[0])), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
+  Object.assign(state, {types:defaultTypes(), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
     cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, est:true, q:""});
   document.getElementById("q").value = "";
   document.getElementById("f-est").checked = true;
-  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed","true"));
+  document.querySelectorAll("#f-cc .chip").forEach(c => c.setAttribute("aria-pressed","true"));
   ["f-ms","f-inst","f-ins","f-yr","f-part"].forEach(id => document.getElementById(id).value = "");
   // chip groups hold their own Set references, so rebuild them
   ["f-type","f-kind"].forEach(id => document.getElementById(id).innerHTML = "");
@@ -2476,7 +2501,7 @@ function filtered() {
 function countFilters() {
   let n = 0;
   if (state.view === "prog") { n += KINDS.length - state.kinds.size; if (state.part) n++; }
-  else { n += TYPES.length - state.types.size; ["ms","inst","ins","yr"].forEach(k => state[k] && n++); if (state.view === "ana" && !state.est) n++; }
+  else { const def = defaultTypes(); n += TYPES.map(t => t[0]).filter(k => def.has(k) !== state.types.has(k)).length; ["ms","inst","ins","yr"].forEach(k => state[k] && n++); if (state.view === "ana" && !state.est) n++; }
   n += Object.keys(DATA.countries).length - state.cc.size;
   document.getElementById("fcount").textContent = n ? `(${n} active)` : "";
 }
@@ -2508,7 +2533,9 @@ const CAPITAL = {"Loan": "Loan: debt capital, repayable", "Equity": "Equity: own
   "Unknown": "Instrument not stated by the source"};
 function capLabel(inv) {
   const base = CAPITAL[inv.instrument] || inv.instrument;
-  return inv.instrument_detail && inv.instrument === "Grant" ? `Grant: ${inv.instrument_detail.toLowerCase()}, non-repayable` : base;
+  if (inv.instrument_detail && inv.instrument === "Grant") return `Grant: ${inv.instrument_detail.toLowerCase()}, non-repayable`;
+  if (inv.instrument_detail && /,/.test(inv.instrument_detail)) return `${base}; tools: ${inv.instrument_detail.toLowerCase().replace(/\s*,\s*/g, " + ")}`;
+  return base;
 }
 function renderDeals(rows) {
   const total = rows.reduce((s,[a]) => s + (a.amount_attributed_eur || 0), 0);
@@ -2519,11 +2546,14 @@ function renderDeals(rows) {
   if (state.q) scope += ` Matching "${document.getElementById("q").value.trim()}".`;
   if (state.focus) scope += " Showing " + [state.focus.inst ? (SHORT[state.focus.inst] || INST[state.focus.inst].name) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
   const unk = rows.filter(([a]) => a.amount_attributed_eur == null).length;
+  const hidden = [...NON_INVESTMENT].some(k => !state.types.has(k));
   document.getElementById("s-text").textContent = `${fmt(total)} from ${instN.size} institution${instN.size === 1 ? "" : "s"} in this selection.` + scope +
+    (hidden ? " EU humanitarian aid, foreign-policy and World Bank trust-fund grants are switched off by default (turn them on under Filters, Institution type)." : "") +
     (unk ? ` ${unk.toLocaleString("en")} allocations have no disclosed or attributable amount.` : "");
   const byDeal = new Map();
   for (const [a, inv] of rows) {
-    const d = byDeal.get(inv.investment_id) || {inv, ccs:[], sum:0, est:false, reg:false};
+    const d = byDeal.get(inv.investment_id) || {inv, ccs:[], sum:0, est:false, reg:false, deleg:false};
+    if (a.attribution_method === "eu_delegated") d.deleg = true;
     d.ccs.push(a.country); d.sum += a.amount_attributed_eur || 0;
     if (a.attribution_method === "equal_split_estimate") d.est = true;
     if (a.attribution_method === "regional_unallocated") d.reg = true;
@@ -2532,9 +2562,24 @@ function renderDeals(rows) {
   const list = [...byDeal.values()].sort((x,y) => (y.sum || y.inv.amount_eur || 0) - (x.sum || x.inv.amount_eur || 0));
   const box = document.getElementById("list");
   if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters${state.q ? " and search" : ""}. Try another search term, widen the year range or turn an institution type back on.</p>`; return; }
-  box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg}) => {
+  box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg, deleg}) => {
     const ins = INST[inv.institution_id];
-    const amount = inv.status === "Cancelled" ? "Cancelled, not counted" : sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
+    const who = SHORT[ins.institution_id] || ins.name;
+    const amount = inv.status === "Cancelled" ? "Cancelled, not counted"
+      : deleg ? (inv.amount_eur ? fmt(inv.amount_eur) + " of EU money (counted under the European Commission)" : "EU money (counted under the European Commission)")
+      : sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
+    const MSADJ = {FR:"French",DE:"German",BE:"Belgian",LU:"Luxembourg",ES:"Spanish",IT:"Italian",PT:"Portuguese",AT:"Austrian",NL:"Dutch"};
+    const fromIATI = /d-portal/.test(inv.source_url || "");
+    let partyLine = "";
+    if (inv.client && inv.client !== inv.title) {
+      const party = inv.client.replace(/^Lead financier:\s*/, "");
+      if (inv.impl_agency && inv.impl_ms && inv.impl_ms !== "EU")
+        partyLine = `Implemented by: ${esc(party)} (EU funds entrusted to a ${esc(MSADJ[inv.impl_ms] || inv.impl_ms)} agency)`;
+      else if (inv.impl_agency === "EIB") partyLine = `Implemented by: ${esc(party)} (EU funds entrusted to the EIB)`;
+      else if (/^Lead financier:/.test(inv.client)) partyLine = `Lead financier: ${esc(party)}`;
+      else if (fromIATI || ["eu-eutf"].includes(inv.institution_id)) partyLine = `Implemented by: ${esc(party)}`;
+      else partyLine = `Client: ${esc(party)}${inv.client_domicile ? ", " + esc(inv.client_domicile) : ""}`;
+    }
     return `<article class="deal">
       <h3>${esc(inv.title)} <span class="cap">[${esc(capLabel(inv))}]</span></h3>
       <div class="meta">
@@ -2545,9 +2590,10 @@ function renderDeals(rows) {
         <span class="amt">${amount}</span>
         ${est ? `<span class="flag" title="Multi-country deal split equally across listed countries">estimated share</span>` : ""}
         ${reg ? `<span class="flag" title="Regional deal, amount not allocated to WAEMU countries">regional</span>` : ""}
+        ${deleg ? `<span class="flag deleg">EU funds implemented by ${esc(who)}, counted under the European Commission</span>` : ""}
       </div>
       ${inv.tags ? `<div class="note"><span class="flag">${esc(inv.tags)}</span></div>` : ""}
-      ${inv.client && inv.client !== inv.title ? `<div class="note">Client: ${esc(inv.client)}${inv.client_domicile ? ", " + esc(inv.client_domicile) : ""}</div>` : ""}
+      ${partyLine ? `<div class="note">${partyLine}</div>` : ""}
       <a href="${esc(inv.source_url)}" target="_blank" rel="noopener">View source record</a>
     </article>`;
   }).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
@@ -2680,6 +2726,22 @@ function renderAnalysis(rows) {
       ${state.ovMode === "sector" ? `<div class="substack">${seg("ovStack", [["inst", "Stack by institution"], ["ms", "Stack by member state"]])}</div>` : ""}
       <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select>${state.ovMode === "sector" ? "" : `<select id="ov-sec" aria-label="Sector">${secOpts}</select>`}</div>
       ${state.ovMode === "sector" ? stackedColumns(sectorCols) + stackLegend : columns(ov, unit)}</section>
+    ${(() => {
+      const m = new Map(); let eib = 0;
+      for (const [a, inv] of rows) {
+        if (!inv.impl_agency) continue;
+        const v = valueOf(a, inv); if (!v) continue;
+        if (inv.impl_ms === "EU") { eib += v; continue; }
+        const k = inv.impl_agency + "|" + inv.impl_ms; m.set(k, (m.get(k) || 0) + v);
+      }
+      if (!m.size) return "";
+      const MSN = {FR:"France",DE:"Germany",BE:"Belgium",LU:"Luxembourg",ES:"Spain",IT:"Italy",PT:"Portugal",AT:"Austria",NL:"Netherlands"};
+      const items = rank(m).map(([k, v]) => { const [ag, ms] = k.split("|"); return [k, v, `${ag} (${MSN[ms] || ms})`]; });
+      const tot = items.reduce((s, x) => s + x[1], 0);
+      return `<section><h3>EU funds implemented by member-state agencies</h3>
+        <p class="hint">${fmt(tot)} of EU money (from the Commission, the EU Trust Fund for Africa, blending and the EU-AITF) is entrusted to member-state agencies to implement. It is counted under the EU, not under the member state.${eib ? ` A further ${fmt(eib)} is implemented by the EIB.` : ""}</p>
+        ${bars(items, k => css("--t-eu"))}</section>`;
+    })()}
     <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the Franc Zone countries in your selection, ranked.</p>
       ${seg("donorBy", [["inst", "Institutions"], ["ms", "Member states"]])}
       ${bars(donorItems, k => k === "Others" ? css("--dim") : state.donorBy === "inst" ? css(typeVar[INST[k].type]) : css("--accent"))}</section>
