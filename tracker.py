@@ -1497,21 +1497,6 @@ def step_normalize():
     counts = {}
     for inv in investments:
         counts[inv["source_id"]] = counts.get(inv["source_id"], 0) + 1
-    SOURCES = [
-        ("iati", "IATI via d-portal.org (European Commission DG INTPA, AFD, KfW/BMZ, FMO, EBRD, Atradius DSB, Invest International, DGGF)", "https://d-portal.org", "api", "IATI data is published under open licences (mostly CC BY / ODbL)"),
-        ("eib-api", "EIB signed loans (JSON API behind eib.org/en/projects/loans)", "https://www.eib.org/en/projects/loans/index", "api", "Public website; cite the EIB"),
-        ("proparco-web", "Proparco project list and project pages", "https://www.proparco.fr/en/projects/list", "scrape", "Public website; cite Proparco"),
-        ("bio-web", "BIO investment portfolio pages", "https://www.bio-invest.be/en/investments", "scrape", "Public website; cite BIO"),
-        ("deg-csv", "DEG investments database (CSV export)", "https://deginvest-investments.de/deginvest.csv", "csv", "Public download; cite DEG"),
-        ("finnfund-wp", "Finnfund investments (WordPress REST API)", "https://www.finnfund.fi/en/investments/", "api", "Public website; cite Finnfund"),
-        ("ifu-wp", "IFU investments (WordPress REST API)", "https://impactfund.dk", "api", "Public website; cite IFU"),
-        ("ecb-fx", "ECB monthly reference exchange rates", "https://data.ecb.europa.eu", "api", "ECB statistics, free reuse with attribution"),
-        ("curated", "Curated deals from press releases (BGK, KUKE)", "", "manual", "Per-record source URLs"),
-        ("manual", "Manual research sheet (ECAs, NPBs, JavaScript-only DFI sites)", "", "manual", "Per-record source URLs"),
-    ]
-    write("sources", [{"source_id": s[0], "name": s[1], "url": s[2], "method": s[3], "terms": s[4],
-                       "last_retrieved": TODAY, "records": counts.get(s[0], "")} for s in SOURCES],
-          ["source_id", "name", "url", "method", "terms", "last_retrieved", "records"])
 
     # ---------------------------------------------------------------- programmes (curated, sourced)
     # Team Europe Initiatives, Global Gateway flagships, EU country envelopes and national programmes that
@@ -1552,9 +1537,9 @@ def step_normalize():
                 "description": desc, "source_url": source, "note": note}
     PROGRAMMES = [
         # Country Team Europe Initiatives
-        P("tei-ci-cocoa", "Côte d'Ivoire – Sustainable cocoa", TEI, "CI", TE_COUNTRY["CI"], "Living incomes for farmers, deforestation, child labour and compliance with EU rules in the cocoa value chain.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE),
+        P("tei-ci-cocoa", "Côte d'Ivoire – Sustainable cocoa", TEI, "CI", TE_COUNTRY["CI"], "Living incomes for farmers, deforestation, child labour and compliance with EU rules in the cocoa value chain.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE + " The EEAS page refuses automated link checks; open it in a browser."),
         P("tei-ci-lowcarbon", "Côte d'Ivoire – Low-carbon transition", TEI, "CI", TE_COUNTRY["CI"], "Renewable power (Boundiali and Sérébou solar plants), the 400 kV eastern backbone line, clean cooking, energy efficiency and cleaner transport.", EC + "cote-divoire_en", note=MEMBERS_NOTE),
-        P("tei-ci-peace", "Côte d'Ivoire – Peace, stability and social cohesion", TEI, "CI", TE_COUNTRY["CI"], "Keeping Côte d'Ivoire a pole of stability in West Africa, especially in the northern border regions.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE),
+        P("tei-ci-peace", "Côte d'Ivoire – Peace, stability and social cohesion", TEI, "CI", TE_COUNTRY["CI"], "Keeping Côte d'Ivoire a pole of stability in West Africa, especially in the northern border regions.", EC + "cote-divoire_en", note=MEMBERS_NOTE),
         P("tei-sn-green", "Senegal – Green economy", TEI, "SN", TE_COUNTRY["SN"], "Green agriculture and sustainable, digital cities.", EC + "senegal_en", note=SN_NOTE),
         P("tei-bj-port", "Benin – Investing for a sustainable port", TEI, "BJ", TE_COUNTRY["BJ"], "Port of Cotonou, coastline and the sustainable port economy.", EC + "benin_en", note=MEMBERS_NOTE + C4D_NOTE),
         P("tei-bj-energy", "Benin – Investing in green energy", TEI, "BJ", "EU FR DE", "Renewables, energy efficiency, access to energy and regional cooperation through the West African Power Pool.", EC + "benin_en"),
@@ -1691,6 +1676,89 @@ def step_normalize():
         w = csv.DictWriter(fh, fieldnames=["investment_id", "institution_id", "source_id", "region", "title", "year", "amount_eur", "sector_broad", "instrument", "source_url", "note"])
         w.writeheader(); w.writerows(regional)
 
+    import collections, urllib.request
+    # ---- Source register (shown in the Sources tab): every source, what it provides, its licence and how many deals it contributes
+    PUB = "Public website; reuse with attribution"
+    REGISTER = [
+        ("iati", "IATI activity data (via d-portal)", "IATI Standard / d-portal", "https://d-portal.org", "API queries (XML and JSON), monthly",
+         "Activities, commitments, disbursements, budgets, sectors and implementing organisations for AFD, KfW (via BMZ), FMO, Invest International, DGGF, Atradius DSB, the EBRD, the European Commission (DG INTPA, ECHO, FPI) and World Bank trust funds.",
+         ["iati"], "Each publisher's open licence (mostly CC BY 4.0 or ODbL), registered on the IATI Registry", "Figures"),
+        ("iati-regional", "IATI regional activities", "IATI Standard / d-portal", "https://d-portal.org", "Full publisher files read page by page, monthly",
+         "Africa-wide, Sub-Saharan, West and Central African activities of the Commission and KfW.", ["iati-regional"], "As above", "Regional layer"),
+        ("eib-api", "EIB signed loans (country and regional lists)", "European Investment Bank", "https://www.eib.org/en/projects/loans/index", "JSON behind the EIB's project pages, monthly",
+         "Signed loans by country since 1999, and regional loans for Africa, West Africa and Central Africa.", ["eib-api"], PUB + " (EIB legal notice)", "Figures"),
+        ("proparco-web", "Proparco project list and project pages", "Proparco (AFD Group)", "https://www.proparco.fr/en/projects/list", "Web pages read monthly",
+         "Projects with country, year, amount, instrument, client and E&S category.", ["proparco-web"], PUB, "Figures"),
+        ("bio-web", "BIO investment portfolio", "BIO (Belgium)", "https://www.bio-invest.be/en/investments", "Web pages read monthly",
+         "Investments by country with amount, date and type.", ["bio-web"], PUB, "Figures"),
+        ("deg-csv", "DEG investments database (CSV export)", "DEG (KfW Group)", "https://deginvest-investments.de/", "CSV download, monthly",
+         "Commitments since 2021 with country, amount, instrument and E&S category.", ["deg-csv"], PUB, "Figures"),
+        ("finnfund-wp", "Finnfund investments", "Finnfund", "https://www.finnfund.fi/en/investments/", "WordPress data feed, monthly",
+         "Investments by country with amount bands.", ["finnfund-wp"], PUB, "Figures"),
+        ("ifu-wp", "Impact Fund Denmark investments", "Impact Fund Denmark (IFU)", "https://impactfund.dk/investment-portfolio/", "WordPress data feed, monthly",
+         "Investments by country.", ["ifu-wp"], PUB, "Figures"),
+        ("cofides-web", "COFIDES projects", "COFIDES (Spain)", "https://www.cofides.es/en/projects", "Web pages read monthly",
+         "Projects by country with sector and instrument.", ["cofides-web"], PUB, "Figures"),
+        ("oeeb-web", "OeEB projects at a glance", "OeEB (Austria)", "https://www.oe-eb.at/en/our-projects/projects-at-a-glance.html", "All project pages read monthly",
+         "Projects naming a Franc Zone country, with volume and date.", ["oeeb-web"], PUB, "Figures"),
+        ("eutf-web", "EU Emergency Trust Fund for Africa programmes", "European Commission", "https://trust-fund-for-africa.europa.eu/our-programmes_en", "Programme pages read monthly",
+         "EU contribution, locations, duration, theme and implementing partner of each programme.", ["eutf-web"], "European Commission reuse policy (CC BY 4.0)", "Figures"),
+        ("edfimc-web", "ElectriFI and AgriFI projects", "EDFI Management Company", "https://edfimc.eu/what-we-do/electrifi/", "Project pages read monthly",
+         "Deals with country, year, instrument and amount.", ["edfimc-web"], PUB, "Figures"),
+        ("eu-aitf", "EU-Africa Infrastructure Trust Fund grants", "EU-AITF (managed by the EIB)", "https://www.eu-africa-infrastructure-tf.net/activities/grant-operations.pdf", "Annual report 2019 table and grant list (static)",
+         "Every grant with countries, net amount, type, lead financier and status (2019 annual report: eib.org).", ["eu-aitf"], PUB, "Figures"),
+        ("eu-blending-list", "EU blending operations approved by the Commission", "European Commission (DG INTPA)", BLENDING_SRC, "PDF list (static)",
+         "Blending grants with country, lead financier, total project cost and EU contribution; used to tag deals already counted and to add missing ones.", ["eu-blending-list"], "European Commission reuse policy (CC BY 4.0)", "Figures"),
+        ("curated", "Curated deals from public sources", "Press releases, annual reports and specialist press", "", "Hand-checked, each deal links its own source",
+         "Deals by BGK, KUKE, SACE, CDP, EIFO, Credendo, Bpifrance Assurance Export and Swedfund that no data feed covers.", ["curated"], "Per source", "Figures"),
+        ("manual", "Your manual entries", "data/manual_entries.csv", "", "Edited on GitHub",
+         "Deals you add from information requests and reports; each row needs a source link.", ["manual"], "Per source", "Figures"),
+        ("programmes", "Programme sources", "European Commission country pages, EEAS, UN, institutions", "https://international-partnerships.ec.europa.eu/policies/global-gateway_en", "Hand-checked, each programme links its own source",
+         "Team Europe Initiatives, Global Gateway flagships, EU envelopes and national programmes.", [], "Per source", "Programmes"),
+        ("wb-api", "World Bank projects", "World Bank", "https://projects.worldbank.org", "Projects API, monthly",
+         "IBRD/IDA projects for the non-EU comparison.", ["wb-api"], "World Bank open data (CC BY 4.0)", "Non-EU comparison"),
+        ("aiib-web", "AIIB project list", "Asian Infrastructure Investment Bank", "https://www.aiib.org/en/projects/list/index.html", "Project data file, monthly",
+         "Projects for the non-EU comparison.", ["aiib-web"], PUB, "Non-EU comparison"),
+        ("ecb-fx", "ECB reference exchange rates", "European Central Bank", "https://data.ecb.europa.eu", "API, monthly",
+         "Monthly average rates used to convert every amount to euros; XOF and XAF use the fixed peg of 655.957.", [], "ECB statistics, free reuse with attribution", "Reference"),
+        ("iati-codes", "IATI sector codes", "IATI Standard", "https://iatistandard.org/reference_downloads/203/codelists/downloads/clv3/json/en/Sector.json", "Download, monthly",
+         "Names of the OECD-DAC sector codes, grouped into the tracker's ten sectors.", [], "Public domain (IATI codelists)", "Reference"),
+        ("map", "Base map and software", "Natural Earth (via world-atlas), globe.gl, topojson-client", "https://github.com/topojson/world-atlas", "Downloaded once and embedded",
+         "Country shapes (Natural Earth, public domain; Crimea redrawn as part of Ukraine), the 3D globe and the shape decoder (MIT and ISC licences).", [], "Public domain / MIT / ISC", "Map and software"),
+        ("fts", "EU Financial Transparency System", "European Commission", "https://ec.europa.eu/budget/financial-transparency-system/index.html", "Yearly downloads (not yet used)",
+         "Who receives EU budget money each year, including AFD, GIZ and Expertise France as implementers: the best cross-check for EU funds implemented by member-state agencies.", [], "European Commission reuse policy", "Recommended next"),
+        ("oecd-crs", "OECD Creditor Reporting System", "OECD", "https://data-explorer.oecd.org/", "Bulk files (not yet used)",
+         "Official development finance by agency since the 1970s: the route to fill 1999-2010.", [], "OECD terms (free reuse with attribution)", "Recommended next"),
+        ("pwyf", "DFI Transparency Tool", "Publish What You Fund", "https://www.publishwhatyoufund.org/projects/dfi-transparency-tool/", "Reference (not yet used)",
+         "How openly each development finance institution discloses: explains the gaps in this tracker.", [], PUB, "Recommended next"),
+        ("teitracker", "Team Europe tracker", "European Commission (Capacity4dev)", "https://capacity4dev.europa.eu/resources/team-europe-tracker/dashboard/region/tei_en", "Requires a login (not used directly)",
+         "Official names and members of Team Europe Initiatives; only public pages are cited in this tracker.", [], "Login required", "Recommended next"),
+    ]
+    counts = collections.Counter(inv["source_id"] for inv in investments)
+    # check every cited link (register, programmes, curated deals); some sites refuse automated checks but open in a browser
+    import concurrent.futures as _cf
+    _cited = collections.defaultdict(set)
+    for r_ in REGISTER:
+        if r_[3]: _cited[r_[3]].add("source register: " + r_[1])
+    for p_ in PROGRAMMES:
+        if p_.get("source_url"): _cited[p_["source_url"]].add("programme: " + p_["name"][:60])
+    for inv in investments:
+        if inv["source_id"] in ("curated", "manual", "eu-blending-list", "eu-aitf") and inv["source_url"]:
+            _cited[inv["source_url"]].add("deal: " + inv["title"][:60])
+    def _check(u):
+        try:
+            return u, urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124"}), timeout=30).status
+        except Exception as e:
+            return u, getattr(e, "code", None) or type(e).__name__
+    with _cf.ThreadPoolExecutor(12) as _ex:
+        _status = dict(_ex.map(_check, list(_cited)))
+    LINK_CHECKS = {"checked": len(_status), "ok": sum(1 for c in _status.values() if c == 200),
+                   "problems": [[u, str(c), sorted(_cited[u])[:3]] for u, c in sorted(_status.items()) if c not in (200, 202)]}
+    SOURCES_OUT = [{"id": r_[0], "name": r_[1], "provider": r_[2], "url": r_[3], "method": r_[4], "provides": r_[5],
+                    "records": sum(counts.get(x, 0) for x in r_[6]), "licence": r_[7], "role": r_[8], "retrieved": TODAY,
+                    "status": str(_status.get(r_[3], "")) if r_[3] else ""} for r_ in REGISTER]
+    write("sources", SOURCES_OUT, ["id", "name", "provider", "url", "method", "provides", "records", "licence", "role", "retrieved", "status"])
+
     # compact bundle for the website
     bundle = {"generated": TODAY, "programmes": PROGRAMMES,
               "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()},
@@ -1701,7 +1769,8 @@ def step_normalize():
                               for a in comparators if a["amount_attributed_eur"]],
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
                                                    "instrument", "instrument_detail", "tags", "impl_agency", "impl_ms", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
-                                                   "source_url", "note", "multi_country")} for inv in investments],
+                                                   "source_url", "note", "multi_country", "source_id")} for inv in investments],
+              "sources": SOURCES_OUT, "link_checks": LINK_CHECKS,
               "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
                                                  "lat", "lon", "geo_precision")} for a in allocations]}
     json.dump(bundle, open(OUT / "tracker.json", "w"), ensure_ascii=False, separators=(",", ":"))
@@ -1861,7 +1930,14 @@ aside{background:var(--panel);border-left:1px solid var(--line);display:flex;fle
 .reset:hover{background:linear-gradient(#8e1a28,#661220);border-color:#ff5f73}
 .reset:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 0 #2b060b}
 .reset:focus-visible{outline:2px solid #ff8a98;outline-offset:3px}
-.views{display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--line-hi)}
+.views{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border:1px solid var(--line-hi)}
+.srcgrp{margin:14px 0 4px;font:600 12.5px var(--sans);color:var(--muted);text-transform:none}
+.srcrow{border-top:1px solid var(--line);padding:9px 18px;font-size:13px}
+.srcrow b{font-weight:600}
+.srcrow .meta{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.covtab{border-collapse:collapse;font-size:11.5px;margin:6px 18px 12px}
+.covtab td,.covtab th{border:1px solid var(--line);padding:3px 6px;text-align:left}
+.covtab th{color:var(--muted);font-weight:500}
 .views button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px/1 var(--sans);padding:10px 6px;cursor:pointer}
 .views button[aria-pressed="true"]{background:rgba(64,232,255,.08);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
 [hidden]{display:none!important}
@@ -1988,6 +2064,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
         <button type="button" data-view="inv" aria-pressed="true">Investments</button>
         <button type="button" data-view="prog" aria-pressed="false">Programmes</button>
         <button type="button" data-view="ana" aria-pressed="false">Analysis</button>
+        <button type="button" data-view="src" aria-pressed="false">Sources</button>
       </div>
       <details class="filterbox" id="filterbox"><summary>Filters <span id="fcount"></span></summary><div class="filtergrid">
       <div id="inv-filters">
@@ -2147,8 +2224,8 @@ for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr",
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
   state.view = b.dataset.view; state.focus = null;
   document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-pressed", x === b));
-  document.getElementById("inv-filters").hidden = state.view === "prog";
-  document.getElementById("inv-filters-2").hidden = state.view === "prog";
+  document.getElementById("inv-filters").hidden = state.view === "prog" || state.view === "src";
+  document.getElementById("inv-filters-2").hidden = state.view === "prog" || state.view === "src";
   document.getElementById("prog-filters").hidden = state.view !== "prog";
   document.getElementById("est-wrap").hidden = state.view !== "ana";
   document.getElementById("q").placeholder = state.view === "prog" ? "Search programmes by name, goal or participant" : "Search deals by name, client or institution";
@@ -2525,7 +2602,7 @@ function update(resetList = true) {
   const ids = [...new Set(arcs.map(a => a.inst))];
   setPins(ids.map(id => { const i = INST[id]; return {lat:+i.hq_lat, lng:+i.hq_lon, color: "#ffffff", seed: seedOf(id),
     text: "", title: `${i.name}, ${i.hq_city}`, onclick: () => { state.focus = {inst:id}; update(); }}; }));
-  if (state.view === "ana") renderAnalysis(rows); else renderDeals(rows);
+  if (state.view === "ana") renderAnalysis(rows); else if (state.view === "src") renderSources(); else renderDeals(rows);
 }
 // [instrument: kind of capital] shown next to every deal
 const CAPITAL = {"Loan": "Loan: debt capital, repayable", "Equity": "Equity: ownership capital", "Guarantee": "Guarantee: contingent cover, not disbursed capital",
@@ -2599,6 +2676,36 @@ function renderDeals(rows) {
   }).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
   const m = document.getElementById("more");
   if (m) m.onclick = () => { state.shown += 40; renderDeals(filtered()); };
+}
+
+// ---------- sources view
+function renderSources() {
+  const S = DATA.sources || [], LC = DATA.link_checks || {checked: 0, ok: 0, problems: []};
+  document.getElementById("s-total").textContent = "Sources";
+  document.getElementById("s-text").textContent = `${S.filter(s => s.role !== "Recommended next").length} sources in this build, data of ${DATA.generated}. Every deal links to the record it came from ("View source record").`;
+  const roles = ["Figures", "Regional layer", "Programmes", "Non-EU comparison", "Reference", "Map and software", "Recommended next"];
+  const ROLE_NOTE = {"Figures": "Sources of the deals and amounts in every total.", "Regional layer": "Wider regional programmes, kept out of Franc Zone totals.",
+    "Programmes": "Frameworks shown in the Programmes view; amounts never added up.", "Non-EU comparison": "Used only in Analysis, never in European totals.",
+    "Reference": "Conversion and classification.", "Map and software": "Shapes and code that draw the map.",
+    "Recommended next": "Checked and relevant, not yet used in any figure."};
+  let h = `<div class="ana" style="padding-top:6px">`;
+  for (const r of roles) {
+    const rows = S.filter(s => s.role === r); if (!rows.length) continue;
+    h += `<div class="srcgrp" style="padding:0 18px">${esc(r)}: ${esc(ROLE_NOTE[r])}</div>` + rows.map(s => `<div class="srcrow"><b>${esc(s.name)}</b> <span class="meta">${esc(s.provider)} · ${esc(s.method)}${s.records ? ` · <span class="amt">${s.records.toLocaleString("en")} deals</span>` : ""}</span>
+      <span class="meta">${esc(s.provides)}</span><span class="meta">Licence: ${esc(s.licence)}${s.url ? ` · <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url.replace(/^https?:\/\//, "").slice(0, 60))}</a>` : ""}${s.status && s.status !== "200" ? ` · link check: ${esc(s.status)}` : ""}</span></div>`).join("");
+  }
+  // coverage: which source supplies each institution's deals
+  const cov = new Map();
+  for (const inv of DATA.investments) { const k = inv.institution_id; if (!cov.has(k)) cov.set(k, new Map()); const m = cov.get(k); m.set(inv.source_id || "?", (m.get(inv.source_id || "?") || 0) + 1); }
+  const name = Object.fromEntries(S.map(s => [s.id, s.name]));
+  const srcOf = id => ({"iati": "iati", "iati-regional": "iati-regional", "eutf-web": "eutf-web"})[id] || id;
+  h += `<div class="srcgrp" style="padding:0 18px">Coverage: which source supplies each institution's deals</div><table class="covtab"><tr><th>Institution</th><th>Sources (number of deals)</th></tr>` +
+    [...cov.entries()].sort((a, b) => [...b[1].values()].reduce((x, y) => x + y, 0) - [...a[1].values()].reduce((x, y) => x + y, 0))
+      .map(([k, m]) => `<tr><td>${esc(SHORT[k] || (INST[k] || {}).name || k)}</td><td>${[...m.entries()].map(([s, n]) => `${esc(name[srcOf(s)] || s)} (${n})`).join("; ")}</td></tr>`).join("") + `</table>`;
+  h += `<div class="srcgrp" style="padding:0 18px">Link check at build: ${LC.ok} of ${LC.checked} cited links answered normally</div>` +
+    (LC.problems.length ? LC.problems.map(([u, c, used]) => `<div class="srcrow"><span class="meta">${esc(c)} · <a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.slice(0, 70))}</a></span><span class="meta">Used by: ${esc(used.join("; "))}</span></div>`).join("") +
+      `<p class="hint" style="padding:0 18px">Some sites refuse automated checks (403) but open normally in a browser; Capacity4dev pages need a login. Check these by hand.</p>` : "");
+  document.getElementById("list").innerHTML = h + `</div>`;
 }
 
 // ---------- analysis view
