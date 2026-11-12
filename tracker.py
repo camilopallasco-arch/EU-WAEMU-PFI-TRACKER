@@ -2020,7 +2020,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
     <div class="foot">
       <details><summary>About the data</summary>
         <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999, and the tracker covers operations from that date. Operations through the unions' own institutions (BOAD, BCEAO, the WAEMU Commission; BDEAC, BEAC, the CEMAC Commission) are counted "WAEMU-wide" or "CEMAC-wide". Wider regional programmes (West Africa, Central Africa, Sub-Saharan Africa, Africa-wide) are shown separately in Analysis and never added to Franc Zone totals. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
-        <p>The header total counts investment and development finance. EU humanitarian aid (DG ECHO), EU foreign-policy instruments and World Bank-managed trust funds financed by European donors are shown on the map and in the lists, but kept out of that total; World Bank trust funds with non-European co-donors are listed without an amount, since the European share is not published. EU money that AFD implements on the EU's behalf is counted once, under the European Commission.</p>
+        <p>The header total counts investment and development finance, including World Bank-managed trust funds financed only by European donors. EU humanitarian aid (DG ECHO) and EU foreign-policy instruments are shown on the map and in the lists, but kept out of that total; World Bank trust funds with non-European co-donors are listed without an amount, since the European share is not published. EU money that AFD implements on the EU's behalf is counted once, under the European Commission.</p>
         <p id="gaps"></p>
       </details>
     </div>
@@ -2040,7 +2040,7 @@ const TYPES = [
   ["EU institution","EU institution","--t-eu"], ["Multilateral","Multilateral (EBRD)","--t-mdb"],
   ["Humanitarian aid","EU humanitarian aid","--t-hum"], ["Foreign policy instrument","EU foreign policy","--t-fpi"],
   ["World Bank trust fund","World Bank trust funds (EU-financed)","--t-wbtf"]];
-const NON_INVESTMENT = new Set(["Humanitarian aid", "Foreign policy instrument", "World Bank trust fund"]);
+const NON_INVESTMENT = new Set(["Humanitarian aid", "Foreign policy instrument"]);  // World Bank trust funds (EU-financed) are shown and counted
 const KINDS = [["Team Europe Initiative","Team Europe Initiative","--k-tei"],
   ["EU-Africa Infrastructure Trust Fund","EU-Africa Infrastructure Trust Fund","--k-aitf"], ["Global Gateway flagship","Global Gateway flagship","--k-gg"],
   ["EU country envelope","EU country envelope","--k-env"], ["Energy transition partnership","Energy transition partnership","--k-part"],
@@ -2181,7 +2181,7 @@ document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleS
   }
   document.getElementById("r-total").textContent = fmt(peg + und);
   document.getElementById("r-und").textContent = und ? `includes ${fmt(und)} in deals with no recorded date` : "";
-  document.getElementById("r-oth").textContent = other ? `Plus ${fmt(other)} in EU humanitarian aid, foreign-policy and World Bank trust-fund grants (not in total)` : "";
+  document.getElementById("r-oth").textContent = other ? `Plus ${fmt(other)} in EU humanitarian aid and foreign-policy grants (not in total)` : "";
   const regTot = (DATA.regional || []).reduce((s, r) => s + (r.amount_eur || 0), 0);
   document.getElementById("r-reg").textContent = regTot ? `Wider African regional programmes: ${fmt(regTot)} (not in total, see Analysis)` : "";
 })();
@@ -2548,7 +2548,7 @@ function renderDeals(rows) {
   const unk = rows.filter(([a]) => a.amount_attributed_eur == null).length;
   const hidden = [...NON_INVESTMENT].some(k => !state.types.has(k));
   document.getElementById("s-text").textContent = `${fmt(total)} from ${instN.size} institution${instN.size === 1 ? "" : "s"} in this selection.` + scope +
-    (hidden ? " EU humanitarian aid, foreign-policy and World Bank trust-fund grants are switched off by default (turn them on under Filters, Institution type)." : "") +
+    (hidden ? " EU humanitarian aid and foreign-policy grants are switched off by default (turn them on under Filters, Institution type)." : "") +
     (unk ? ` ${unk.toLocaleString("en")} allocations have no disclosed or attributable amount.` : "");
   const byDeal = new Map();
   for (const [a, inv] of rows) {
