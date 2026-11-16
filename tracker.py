@@ -1797,6 +1797,9 @@ def step_build():
             html = html.replace(f"<script>{mark}</script>", f'<script src="{url}"></script>')
     (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
     print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
+    # the data file is published next to the page, so the network tracker can read exactly the same figures
+    (ROOT / "site" / "tracker.json").write_bytes((ROOT / "data" / "tracker.json").read_bytes())
+    print("site/tracker.json published for the network tracker")
 
 FETCH_STEPS = ["reference", "iati", "iati_regional", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb", "eutf", "edfimc"]
 
