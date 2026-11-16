@@ -1784,6 +1784,30 @@ def step_normalize():
         if re.search(r"democratique|\brdc\b|kinshasa|conakry", c) or re.fullmatch(r"\s*guinee\s*", c):
             return None
         return next((cc for cc, rx in _FZN if re.search(rx, c)), None)
+    # European parent groups: subsidiaries and brand names that appear in contract awards -> (group, member state)
+    PARENTS = [(r"EIFFAGE|CLEMESSY", "Eiffage", "FR"), (r"SOGEA|SATOM|VINCI|EUROVIA|CEGELEC|OMEXOM|ENTREPOSE", "Vinci (Sogea-Satom)", "FR"),
+               (r"\bSUEZ\b|DEGREMONT", "Suez", "FR"), (r"VEOLIA|\bOTV\b|\bSADE\b", "Veolia", "FR"), (r"BOUYGUES|\bCOLAS\b|\bETDE\b", "Bouygues (Colas)", "FR"),
+               (r"RAZEL|FAYAT", "Fayat (Razel-Bec)", "FR"), (r"\bENGIE\b|COFELY|INEO", "Engie", "FR"), (r"\bSPIE\b", "Spie", "FR"),
+               (r"SCHNEIDER", "Schneider Electric", "FR"), (r"SAGEMCOM", "Sagemcom", "FR"), (r"VERGNET", "Vergnet", "FR"), (r"\bEGIS\b", "Egis", "FR"),
+               (r"ARTELIA", "Artelia", "FR"), (r"\bSETEC\b", "Setec", "FR"), (r"\bBRL\b", "BRL Ingénierie", "FR"), (r"BOLLORE", "Bolloré", "FR"),
+               (r"\bRMT\b", "RMT Industrie & Elektrotechnik", "DE"), (r"SIEMENS", "Siemens", "DE"), (r"STRABAG", "Strabag", "AT"),
+               (r"BESIX", "Besix", "BE"), (r"JAN DE NUL", "Jan De Nul", "BE"), (r"\bDEME\b", "DEME", "BE"), (r"TRACTEBEL", "Tractebel (Engie)", "BE"),
+               (r"BOSKALIS", "Boskalis", "NL"), (r"VAN OORD", "Van Oord", "NL"), (r"HASKONING", "Royal HaskoningDHV", "NL"), (r"ARCADIS", "Arcadis", "NL"),
+               (r"\bSENER\b", "Sener", "ES"), (r"ELECNOR", "Elecnor", "ES"), (r"ISOLUX", "Isolux Corsán", "ES"),
+               (r"SALINI|WEBUILD|IMPREGILO", "Webuild", "IT"), (r"GHELLA", "Ghella", "IT"), (r"MOTA[- ]ENGIL", "Mota-Engil", "PT")]
+    def contract_members(name, eu_ms, plain):
+        """Split a consortium name into its partners; return ([(group, member state), ...], number of partners).
+        Partners found in PARENTS get their group and nationality; a single firm not in PARENTS keeps its name and the dataset's nationality."""
+        clean = re.sub(r"\b(GROUPEMENT|GPT|CONSORTIUM|JOINT VENTURE|JV)\b\s*:?", " ", plain(name))
+        parts = [p.strip() for p in re.split(r"\s*/\s*|\s+\+\s+|\s+-\s+|;|\s+ET\s+", clean) if p.strip()]
+        found = []
+        for p in parts:
+            hit = next(((g, m) for rx, g, m in PARENTS if re.search(rx, p)), None)
+            if hit and hit not in found:
+                found.append(hit)
+        if found:
+            return found, max(len(parts), len(found))
+        return [(re.sub(r"\s+", " ", name.strip())[:90], eu_ms)], 1
     _firms = {}
     if _cpath.exists():
         for r in json.load(open(_cpath, encoding="utf-8")):
@@ -1802,10 +1826,11 @@ def step_normalize():
             service = re.search(r"etude|study|assistance|appui|support|preparation|structuration|coordination|termes de reference|capacit|formation|conseil|"
                                 r"expertise|audit|evaluation|supervision|controle|maitrise d.oeuvre|analyse|diagnostic|cartographie|recherche|communication|accompagnement", what)
             eur = k if (k > 100000 or (k > 10000 and service)) else k * 1000
-            firm = re.sub(r"\s+", " ", (r.get("nom_de_l_attributaire") or "").strip())[:90]
-            key = re.sub(r"[^a-z0-9]+", "-", _plain(firm).lower()).strip("-")[:60]   # same grouping as the network: spelling variants merge
-            f = _firms.setdefault(key, {"f": firm, "ms": ms, "c": set(), "v": 0.0, "n": 0})
-            f["c"].add(cc); f["v"] += eur; f["n"] += 1
+            members, n_parts = contract_members(r.get("nom_de_l_attributaire") or "", ms, _plain)   # same rule as the network: parent groups, consortium partners
+            for g, m in members:
+                key = re.sub(r"[^a-z0-9]+", "-", _plain(g).lower()).strip("-")[:60]
+                f = _firms.setdefault(key, {"f": g, "ms": m, "c": set(), "v": 0.0, "n": 0})
+                f["c"].add(cc); f["v"] += eur / n_parts; f["n"] += 1
     CONTRACTORS = [{"f": f["f"], "ms": f["ms"], "c": sorted(f["c"]), "v": round(f["v"]), "n": f["n"]} for f in _firms.values()]
     print(len(CONTRACTORS), "European contractor firms (AFD contract list)")
 
