@@ -1759,6 +1759,56 @@ def step_normalize():
                     "status": str(_status.get(r_[3], "")) if r_[3] else ""} for r_ in REGISTER]
     write("sources", SOURCES_OUT, ["id", "name", "provider", "url", "method", "provides", "records", "licence", "role", "retrieved", "status"])
 
+    # ---- Contractors: European firms that won contracts under AFD projects co-financed by the EU (for the About directory only;
+    # these contracts are paid out of financing already counted, so they are never added to any total)
+    import urllib.request as _ur
+    _cpath = RAW / "afd_contracts.json"
+    try:
+        _raw = _ur.urlopen(_ur.Request("https://opendata.afd.fr/api/explore/v2.1/catalog/datasets/liste-des-marches-finances-par-lafd-avec-la-participation-financiere-de-lunion-e/exports/json?limit=-1",
+                                       headers={"User-Agent": "Mozilla/5.0 (EU-CFA tracker)"}), timeout=120).read()
+        json.loads(_raw); _cpath.write_bytes(_raw)
+    except Exception as e:
+        print("AFD contract list not refreshed:", e)
+    _EU_NAT = {"FRANCE": "FR", "FRANCAISE": "FR", "ALLEMAGNE": "DE", "ALLEMANDE": "DE", "BELGIQUE": "BE", "BELGE": "BE", "ESPAGNE": "ES", "ESPAGNOLE": "ES",
+               "ITALIE": "IT", "ITALIENNE": "IT", "PORTUGAL": "PT", "PORTUGAISE": "PT", "PAYS-BAS": "NL", "PAYS BAS": "NL", "NEERLANDAISE": "NL",
+               "LUXEMBOURG": "LU", "LUXEMBOURGEOISE": "LU", "AUTRICHE": "AT", "AUTRICHIENNE": "AT", "DANEMARK": "DK", "DANOISE": "DK", "SUEDE": "SE",
+               "SUEDOISE": "SE", "FINLANDE": "FI", "FINLANDAISE": "FI", "IRLANDE": "IE", "IRLANDAISE": "IE", "GRECE": "GR", "GRECQUE": "GR",
+               "POLOGNE": "PL", "POLONAISE": "PL", "REPUBLIQUE TCHEQUE": "CZ", "TCHEQUIE": "CZ", "SLOVAQUIE": "SK", "HONGRIE": "HU", "ROUMANIE": "RO",
+               "BULGARIE": "BG", "CROATIE": "HR", "SLOVENIE": "SI", "ESTONIE": "EE", "LETTONIE": "LV", "LITUANIE": "LT", "CHYPRE": "CY", "MALTE": "MT"}
+    _FZN = [("BJ", r"benin"), ("BF", r"burkina"), ("CI", r"cote d.?ivoire"), ("GW", r"guinee[- ]bissau"), ("ML", r"\bmali\b"), ("NE", r"\bniger\b"),
+            ("SN", r"senegal"), ("TG", r"\btogo\b"), ("CM", r"cameroun"), ("CF", r"centrafrique|centrafricaine"), ("TD", r"tchad"),
+            ("GQ", r"guinee equatoriale"), ("GA", r"gabon"), ("CG", r"\bcongo\b")]
+    _plain = lambda t: unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().upper().strip()
+    def _fz(country):
+        c = _plain(country).lower()
+        if re.search(r"democratique|\brdc\b|kinshasa|conakry", c) or re.fullmatch(r"\s*guinee\s*", c):
+            return None
+        return next((cc for cc, rx in _FZN if re.search(rx, c)), None)
+    _firms = {}
+    if _cpath.exists():
+        for r in json.load(open(_cpath, encoding="utf-8")):
+            cc = _fz(r.get("pays_beneficiaire"))
+            if not cc:
+                continue
+            nats = [p.strip() for p in re.split(r"[/,;]| ET | - ", _plain(r.get("nationalite_de_l_attributaire")))]
+            ms = next((_EU_NAT[p] for p in nats if p in _EU_NAT), None)
+            if not ms:
+                continue
+            try:
+                k = float(r.get("montant_en_keur") or 0)
+            except ValueError:
+                k = 0
+            what = _plain((r.get("nature_et_finalite_du_marche") or "") + " " + (r.get("titre_du_contrat_marche_titre_du_projet") or "")).lower()
+            service = re.search(r"etude|study|assistance|appui|support|preparation|structuration|coordination|termes de reference|capacit|formation|conseil|"
+                                r"expertise|audit|evaluation|supervision|controle|maitrise d.oeuvre|analyse|diagnostic|cartographie|recherche|communication|accompagnement", what)
+            eur = k if (k > 100000 or (k > 10000 and service)) else k * 1000
+            firm = re.sub(r"\s+", " ", (r.get("nom_de_l_attributaire") or "").strip())[:90]
+            key = re.sub(r"[^a-z0-9]+", "-", _plain(firm).lower()).strip("-")[:60]   # same grouping as the network: spelling variants merge
+            f = _firms.setdefault(key, {"f": firm, "ms": ms, "c": set(), "v": 0.0, "n": 0})
+            f["c"].add(cc); f["v"] += eur; f["n"] += 1
+    CONTRACTORS = [{"f": f["f"], "ms": f["ms"], "c": sorted(f["c"]), "v": round(f["v"]), "n": f["n"]} for f in _firms.values()]
+    print(len(CONTRACTORS), "European contractor firms (AFD contract list)")
+
     # compact bundle for the website
     bundle = {"generated": TODAY, "programmes": PROGRAMMES,
               "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()},
@@ -1770,7 +1820,7 @@ def step_normalize():
               "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
                                                    "instrument", "instrument_detail", "tags", "impl_agency", "impl_ms", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
                                                    "source_url", "note", "multi_country", "source_id")} for inv in investments],
-              "sources": SOURCES_OUT, "link_checks": LINK_CHECKS,
+              "sources": SOURCES_OUT, "link_checks": LINK_CHECKS, "contractors": CONTRACTORS,
               "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
                                                  "lat", "lon", "geo_precision")} for a in allocations]}
     json.dump(bundle, open(OUT / "tracker.json", "w"), ensure_ascii=False, separators=(",", ":"))
@@ -1933,7 +1983,14 @@ aside{background:var(--panel);border-left:1px solid var(--line);display:flex;fle
 .reset:hover{background:linear-gradient(#8e1a28,#661220);border-color:#ff5f73}
 .reset:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 0 #2b060b}
 .reset:focus-visible{outline:2px solid #ff8a98;outline-offset:3px}
-.views{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border:1px solid var(--line-hi)}
+.views{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-hi)}
+.views button{padding-left:4px!important;padding-right:4px!important}
+.abt{padding:8px 18px 18px;font-size:13.5px}
+.abt p{color:var(--muted)}
+.abt h3{margin:16px 0 4px;font-size:14px}
+.abt ul{list-style:none;padding:0;margin:4px 0 10px}
+.abt li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:4px 0}
+.abt li .amt{margin-left:auto}
 .srcgrp{margin:14px 0 4px;font:600 12.5px var(--sans);color:var(--muted);text-transform:none}
 .srcrow{border-top:1px solid var(--line);padding:9px 18px;font-size:13px}
 .srcrow b{font-weight:600}
@@ -2068,6 +2125,7 @@ button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(
         <button type="button" data-view="prog" aria-pressed="false">Programmes</button>
         <button type="button" data-view="ana" aria-pressed="false">Analysis</button>
         <button type="button" data-view="src" aria-pressed="false">Sources</button>
+        <button type="button" data-view="abt" aria-pressed="false">About</button>
       </div>
       <details class="filterbox" id="filterbox"><summary>Filters <span id="fcount"></span></summary><div class="filtergrid">
       <div id="inv-filters">
@@ -2227,8 +2285,8 @@ for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr",
 document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
   state.view = b.dataset.view; state.focus = null;
   document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-pressed", x === b));
-  document.getElementById("inv-filters").hidden = state.view === "prog" || state.view === "src";
-  document.getElementById("inv-filters-2").hidden = state.view === "prog" || state.view === "src";
+  document.getElementById("inv-filters").hidden = state.view === "prog" || state.view === "src" || state.view === "abt";
+  document.getElementById("inv-filters-2").hidden = state.view === "prog" || state.view === "src" || state.view === "abt";
   document.getElementById("prog-filters").hidden = state.view !== "prog";
   document.getElementById("est-wrap").hidden = state.view !== "ana";
   document.getElementById("q").placeholder = state.view === "prog" ? "Search programmes by name, goal or participant" : "Search deals by name, client or institution";
@@ -2605,7 +2663,7 @@ function update(resetList = true) {
   const ids = [...new Set(arcs.map(a => a.inst))];
   setPins(ids.map(id => { const i = INST[id]; return {lat:+i.hq_lat, lng:+i.hq_lon, color: "#ffffff", seed: seedOf(id),
     text: "", title: `${i.name}, ${i.hq_city}`, onclick: () => { state.focus = {inst:id}; update(); }}; }));
-  if (state.view === "ana") renderAnalysis(rows); else if (state.view === "src") renderSources(); else renderDeals(rows);
+  if (state.view === "ana") renderAnalysis(rows); else if (state.view === "src") renderSources(); else if (state.view === "abt") renderAbout(); else renderDeals(rows);
 }
 // [instrument: kind of capital] shown next to every deal
 const CAPITAL = {"Loan": "Loan: debt capital, repayable", "Equity": "Equity: ownership capital", "Guarantee": "Guarantee: contingent cover, not disbursed capital",
@@ -2679,6 +2737,61 @@ function renderDeals(rows) {
   }).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
   const m = document.getElementById("more");
   if (m) m.onclick = () => { state.shown += 40; renderDeals(filtered()); };
+}
+
+// ---------- about view: what the tracker covers, and every actor by category in alphabetical order
+function renderAbout() {
+  document.getElementById("s-total").textContent = "About";
+  document.getElementById("s-text").textContent = "What this tracker covers, and every actor in it.";
+  const byInst = {};
+  for (const a of DATA.allocations) { const id = a.investment_id.split(":")[0]; byInst[id] = (byInst[id] || 0) + (a.amount_attributed_eur || 0); }
+  const nDeals = {}; DATA.investments.forEach(i => nDeals[i.institution_id] = (nDeals[i.institution_id] || 0) + 1);
+  const abc = (a, b) => a.name.localeCompare(b.name, "fr", {sensitivity: "base"});
+  const insts = DATA.institutions.map(i => ({name: i.name, ms: i.member_state, type: i.type, cov: i.coverage || "", v: byInst[i.institution_id] || 0, n: nDeals[i.institution_id] || 0}));
+  const amount = x => x.note ? `<span class="meta">${esc(x.note)}</span>` : x.v ? `<span class="amt">${fmt(x.v)}</span>` : x.n ? `<span class="meta">deals recorded, amounts not published</span>` : "";
+  const msName = c => MS[c] || c;
+  const withDeals = x => x.n > 0;
+  // member states and the EU: totals of their institutions
+  const ms = {};
+  // same rule as the network: EU institutions, EU-financed World Bank trust funds and the EU-held 54.4% of the EBRD; humanitarian and foreign-policy grants excluded
+  insts.filter(i => !["Non-EU", "Humanitarian aid", "Foreign policy instrument"].includes(i.type) && (i.n || /programme|curated|manual/.test(i.cov))).forEach(i => {
+    let k = i.ms, share = 1; if (!k || k === "NONEU") return;
+    if (i.type === "World Bank trust fund") k = "EU";
+    if (i.type === "Multilateral") { k = "EU"; share = 0.544; }
+    ms[k] = ms[k] || {name: k === "EU" ? "European Union" : msName(k), v: 0, n: 0}; ms[k].v += i.v * share; ms[k].n += i.n; });
+  // implementing agencies of EU funds
+  const ag = {};
+  DATA.investments.forEach(inv => { if (!inv.impl_agency || !inv.impl_ms || inv.impl_ms === "EU") return;
+    const k = inv.impl_agency; ag[k] = ag[k] || {name: k, ms: inv.impl_ms, v: 0, n: 0}; ag[k].n++; });
+  const invById = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i]));
+  Object.values(ms).forEach(m => { if (!m.n) m.note = "programmes only, no individual deals published"; });
+  Object.values(ag).forEach(a => { if (!ms[a.ms]) ms[a.ms] = {name: msName(a.ms), v: 0, n: 0, note: "linked through its implementing agency only (it implements EU money)"}; });
+  for (const a of DATA.allocations) { const inv = invById[a.investment_id]; if (inv && ag[inv.impl_agency] && inv.impl_ms !== "EU") ag[inv.impl_agency].v += a.amount_attributed_eur || 0; }
+  // recipient countries
+  const ct = {}; for (const a of DATA.allocations) { const t = (INST[a.investment_id.split(":")[0]] || {}).type; if (t === "Humanitarian aid" || t === "Foreign policy instrument") continue; ct[a.country] = (ct[a.country] || 0) + (a.amount_attributed_eur || 0); }
+  const list = (items, extra) => `<ul>${items.slice().sort(abc).map(x => `<li><b>${esc(x.name)}</b>${extra ? extra(x) : ""} ${amount(x)}</li>`).join("")}</ul>`;
+  const msTag = x => x.ms ? ` <span class="meta">${esc(msName(x.ms))}</span>` : "";
+  const T = t => insts.filter(i => i.type === t && withDeals(i));
+  const cats = [
+    ["Member states and the European Union", "Totals of their institutions' Franc Zone investment.", Object.values(ms), null],
+    ["EU institutions", "", T("EU institution"), msTag],
+    ["Development banks", "", T("Bilateral development bank"), msTag],
+    ["Development finance institutions (DFIs)", "", T("DFI"), msTag],
+    ["Promotional banks", "", T("NPB"), msTag],
+    ["Export credit agencies", "", T("ECA"), msTag],
+    ["Multilateral bank with an EU majority", "The EU, the EIB and the 27 member states hold 54.4% of the EBRD's capital.", T("Multilateral"), null],
+    ["World Bank trust funds financed by European donors", "", T("World Bank trust fund"), null],
+    ["Other EU public channels (not in the investment total)", "EU humanitarian aid and foreign-policy instruments.", [...T("Humanitarian aid"), ...T("Foreign policy instrument")], null],
+    ["Implementing agencies (EU funds)", "Member-state agencies entrusted with EU money; amounts are EU funds they implement, counted under the EU.", Object.values(ag), msTag],
+    ["Contractors (European firms)", "Firms of EU nationality that won contracts under AFD projects co-financed by the EU (AFD open data); amounts are contract values, not added to any total.",
+      (DATA.contractors || []).map(c => ({name: c.f, ms: c.ms, v: c.v, n: c.n, c: c.c})), x => `${msTag(x)} <span class="meta">${x.c.map(c => esc((DATA.countries[c] || {}).name || c)).join(", ")}</span>`],
+    ["Recipient countries", "", Object.entries(ct).map(([k, v]) => ({name: (DATA.countries[k] || {}).name || k, v, n: 1})), null],
+    ["Institutions checked, no Franc Zone deals found in public sources", "Listed so their absence is not mistaken for an omission.", insts.filter(i => !i.n && /^checked/.test(i.cov)), msTag],
+    ["Non-EU comparison (Analysis only)", "Never included in European totals.", insts.filter(i => i.type === "Non-EU"), null]];
+  document.getElementById("list").innerHTML = `<div class="abt">
+    <p>The EU-CFA Public finance tracker maps European public investment in the 14 CFA franc countries of the WAEMU and CEMAC since the 1999 XOF/XAF–euro peg: European development banks and DFIs, promotional banks, export credit agencies, EU institutions and EU-majority or EU-financed multilateral channels, with the Team Europe and national programmes they run. Every deal links to its source record; the Sources tab lists every source, and "About the data" below explains the methods.</p>
+    <h2 style="margin:14px 0 2px;font-size:16px">All actors</h2><p>By category, in alphabetical order.</p>` +
+    cats.filter(c => c[2].length).map(([t, note, items, extra]) => `<h3>${esc(t)} (${items.length})</h3>${note ? `<p>${esc(note)}</p>` : ""}${list(items, extra)}`).join("") + `</div>`;
 }
 
 // ---------- sources view
