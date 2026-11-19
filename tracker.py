@@ -1,3079 +1,1154 @@
-"""EU public financial institutions in the WAEMU - complete tracker in one file.
+"""EU-CFA Network tracker: network, overlap and events views built from the EU-CFA Public finance tracker's data.
 
-Run everything:      python tracker.py
-Run some steps only: python tracker.py eib normalize build
-Steps: reference iati iati_regional proparco bio wp eib cofides noneu oeeb eutf edfimc normalize build
+Run:  python network.py
+Reads the tracker's data (TRACKER_DATA_URL below, or data/tracker.json) and data/events.csv; writes site/index.html.
 """
-import os, sys, csv, json, pathlib, datetime
+import csv, json, re, pathlib, urllib.request, datetime, unicodedata, collections
+
+# ---------------------------------------------------------------- settings you can edit
+# Address of your EU-CFA Public finance tracker website, for example "https://yourname.github.io/EU-WAEMU-PFI-TRACKER/".
+# This one setting connects the two sites: the network then reads the tracker's own data file (published next to its page)
+# at every build, so both sites always show the same totals.
+TRACKER_SITE_URL = ""
+# Optional: a different address for the tracker's data file. Leave empty to use TRACKER_SITE_URL + "tracker.json".
+TRACKER_DATA_URL = ""
+
 ROOT = pathlib.Path(__file__).resolve().parent
-os.chdir(ROOT)
-for _d in ["raw/iati", "raw/proparco", "raw/bio", "raw/deg", "raw/finnfund", "raw/ifu", "raw/eib", "raw/cofides", "raw/nonEU", "raw/oeeb", "raw/iati_regional", "raw/eutf", "raw/edfimc", "ref", "data", "site"]:
-    (ROOT / _d).mkdir(parents=True, exist_ok=True)
+DATA, SITE, REF = ROOT / "data", ROOT / "site", ROOT / "ref"
+for d in (DATA, SITE, REF):
+    d.mkdir(exist_ok=True)
+UA = {"User-Agent": "Mozilla/5.0 (EU-CFA network tracker)"}
+TODAY = datetime.date.today()
+warnings = []
 
-def step_reference():
-    """Download reference files: DEG CSV, ECB FX rates, IATI sector codes, world map shapes."""
-    import pathlib, urllib.request
-    ROOT = pathlib.Path(__file__).parent
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    def dl(url, path):
-        path = ROOT / path; path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=180).read())
-        print("saved", path)
-    dl("https://deginvest-investments.de/deginvest.csv", "raw/deg/deginvest.csv")
-    dl("https://iatistandard.org/reference_downloads/203/codelists/downloads/clv3/json/en/Sector.json", "ref/Sector.json")
-    for c in ["USD", "GBP", "CHF", "ZAR", "JPY", "SEK", "DKK", "NOK"]:
-        dl(f"https://data-api.ecb.europa.eu/service/data/EXR/M.{c}.EUR.SP00.A?format=csvdata&startPeriod=1995-01", f"ref/ecb_{c}.csv")
-    if not (ROOT / "ref/countries-110m.json").exists():
-        dl("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", "ref/countries-110m.json")
-    # Map libraries, embedded into the page at build time so visitors never need to reach an outside server
-    for name, url in [("topojson-client.min.js", "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"),
-                      ("globe.gl.min.js", "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js")]:
-        if not (ROOT / "ref" / name).exists():
-            dl(url, f"ref/{name}")
+# ---------------------------------------------------------------- 1. load the tracker's data
+def get(url, timeout=120):
+    return urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout).read()
 
-def step_iati():
-    """Fetch full IATI XML (via d-portal, no API key) for target publishers x WAEMU countries."""
-    import urllib.request, urllib.parse, pathlib, time
-    WAEMU = ["BJ","BF","CI","GW","ML","NE","SN","TG","CM","CF","TD","CG","GQ","GA"]  # WAEMU + CEMAC (Franc Zone, without the Comoros)
-    PUBLISHERS = {
-     "FR-3":"AFD group", "NL-KVK-27078545":"FMO", "XM-DAC-918-3":"EIB",
-     "XI-IATI-EBRD":"EBRD", "NL-KVK-33226495":"Atradius DSB",
-     "NL-KVK-83517626":"Invest International", "NL-KVK-61172863":"DGGF Lokaal MKB",
-     "DE-1":"BMZ (filtered to KfW later)",
-     "XI-IATI-EC_INTPA":"European Commission DG INTPA",
-     "XM-DAC-46002":"African Development Bank Group (non-EU comparison)", "XM-DAC-903":"IFC (non-EU comparison)",
-     "XI-IATI-EC_ECHO":"EU humanitarian aid", "XI-IATI-EC_FPI":"EU foreign policy instruments", "XI-IATI-WBTF":"World Bank trust funds (EU-financed kept)",
-    }
-    def main():
-      out = pathlib.Path("raw/iati")
-      for ref in PUBLISHERS:
-        for cc in WAEMU:
-            q = urllib.parse.urlencode({"from":"act,country","reporting_ref":ref,"country_code":cc,"limit":-1})
-            f = out/f"{ref}_{cc}.xml"
-            try:
-                data = urllib.request.urlopen(f"https://d-portal.org/q.xml?{q}", timeout=180).read()
-                f.write_bytes(data); print(ref, cc, len(data))
-            except Exception as e: print("ERR", ref, cc, e)
-            time.sleep(0.3)
-    main()
-    """Fetch d-portal's pre-computed EUR commitment/spend per activity and country share."""
-    import json, urllib.request, urllib.parse, pathlib
-    rows=[]
-    for ref in PUBLISHERS:
-        for cc in WAEMU:
-            q=urllib.parse.urlencode({"from":"act,country","reporting_ref":ref,"country_code":cc,"limit":-1,
-               "select":"aid,commitment_eur,spend_eur,country_code,country_percent,status_code"})
-            rows+=json.load(urllib.request.urlopen(f"https://d-portal.org/q.json?{q}",timeout=120))["rows"]
-    json.dump(rows,open("raw/iati_amounts.json","w")); print(len(rows))
-
-def step_proparco():
-    """Scrape Proparco's public project list (paged HTML) -> raw/proparco/projects.json"""
-    import re, json, time, urllib.request, html as H
-    UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    def get(p):
-        r=urllib.request.Request(f"https://www.proparco.fr/en/projects/list?page={p}",headers=UA)
-        return urllib.request.urlopen(r,timeout=60).read().decode("utf-8","replace")
-    card=re.compile(r'<h3 class="fr-card__title">\s*<a href="([^"]+)"[^>]*>(.*?)</a>(.*?)(?=<h3 class="fr-card__title">|<nav|$)',re.S)
-    def clean(s): return H.unescape(re.sub(r"\s+"," ",re.sub("<[^>]+>"," ",s))).strip()
-    out=[]; p=0
-    while True:
-        h=get(p); cards=card.findall(h)
-        if not cards: break
-        for href,title,body in cards:
-            tags=[clean(t) for t in re.findall(r'class="fr-tag">(.*?)</p>',body,re.S)]
-            det=[clean(d) for d in re.findall(r'class="fr-card__detail[^"]*">(.*?)</p>',body,re.S)]
-            year=next((d for d in det if re.fullmatch(r"\d{4}",d)),None)
-            amt=next((d for d in det if "Financing amount" in d),None)
-            ctry=next((d for d in det if d not in (year,amt)),None)
-            out.append({"url":"https://www.proparco.fr"+href,"title":clean(title),"tags":tags,"year":year,
-                        "countries":ctry,"amount_raw":amt})
-        p+=1; time.sleep(0.5)
-    json.dump(out,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0)
-    print(p,"pages",len(out),"projects")
-    """Fetch Proparco detail pages for WAEMU-related (or possibly truncated) cards and extract labelled fields."""
-    import json,re,urllib.request,time,html as H
-    W=["Benin","Burkina Faso","Côte d'Ivoire","Guinea-Bissau","Mali","Niger","Senegal","Togo","Cameroon","Central African Republic","Chad","Congo","Equatorial Guinea","Gabon"]
-    LABELS=["Financing tool","Financing amount (Euro)","Financing details","Customer","Type of customer",
-            "Country of headquarters","Project number","Environmental and social ranking"]
-    UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    def txt(url):
-        h=urllib.request.urlopen(urllib.request.Request(url,headers=UA),timeout=60).read().decode("utf-8","replace")
-        return H.unescape(re.sub(r"\s+"," ",re.sub("<[^>]+>"," ",h)))
-    def fields(t):
-        f={}
-        for i,l in enumerate(LABELS):
-            m=re.search(re.escape(l)+r" (.*?)(?= "+"| ".join(map(re.escape,LABELS+["Download the report","This information is given"]))+r" )",t)
-            if m: f[l]=m.group(1).strip()[:300]
-        m=re.search(r"Country (.*?) Financing tool",t)
-        if m: f["Countries_full"]=m.group(1).strip()[-400:]
-        return f
-    d=json.load(open("raw/proparco/projects.json"))
-    n=0
-    for x in d:
-        c=x.get("countries") or ""
-        if any(w in c for w in W) or c.count(",")>=5:
-            if "fields" in x: continue
-            try: x["fields"]=fields(x.pop("detail_text",None) or txt(x["url"])); n+=1
-            except Exception as e: x["detail_error"]=str(e)
-            if n % 20 == 0:  # save progress so an interrupted run can resume
-                json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0)
-            time.sleep(0.3)
-    json.dump(d,open("raw/proparco/projects.json","w"),ensure_ascii=False,indent=0); print("details",n)
-
-def step_bio():
-    """BIO (Belgium): list investments per WAEMU country via the site's filter, then read each detail page."""
-    import re,json,time,urllib.request,urllib.parse,html as H
-    UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    C={"BJ":359,"BF":371,"CI":390,"GW":259517,"ML":473,"NE":497,"SN":530,"TG":558,
-       "CM":374,"CF":259502,"TD":259511,"CG":259513}  # BIO has no filter for Equatorial Guinea or Gabon
-    def get(u): return urllib.request.urlopen(urllib.request.Request(urllib.parse.quote(u,safe=":/?=&%[]"),headers=UA),timeout=60).read().decode("utf-8","replace")
-    def clean(s): return H.unescape(re.sub(r"\s+"," ",re.sub("<[^>]+>"," ",s))).strip()
-    links={}
-    for cc,v in C.items():
-        p=1
-        while True:
-            h=get(f"https://www.bio-invest.be/en/investments{'/p'+str(p) if p>1 else ''}?country%5B0%5D={v}")
-            L={l for l in re.findall(r'href="(https://www\.bio-invest\.be/en/investments/[^"?#]+)"',h) if not re.search(r"/p\d+$",l)}
-            new=[l for l in L if l not in links or cc not in links[l]]
-            for l in L: links.setdefault(l,set()).add(cc)
-            if not new or p>40: break
-            p+=1
-    out=[]
-    for url,ccs in links.items():
-        t=clean(get(url)); time.sleep(0.3)
-        out.append({"url":url,"countries_filter":sorted(ccs),"text":t[:12000]})
-    json.dump(out,open("raw/bio/projects.json","w"),ensure_ascii=False)
-    print(len(out),"BIO investments",{cc:sum(cc in x["countries_filter"] for x in out) for cc in C})
-
-def step_wp():
-    """Generic WordPress REST fetcher for DFIs that publish portfolios as WP post types (Finnfund, IFU)."""
-    import json,urllib.request,re,unicodedata,pathlib
-    UA={"User-Agent":"Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    WAEMU={"BJ":["benin","bénin"],"BF":["burkina"],"CI":["ivoire","divoire","ivory","elfenben\\w*"],"GW":["bissau"],
-           "ML":["mali"],"NE":["niger"],"SN":["senegal","sénégal"],"TG":["togo"],
-           "CM":["cameroon","cameroun","kamerun"],"CF":["central african"],"TD":["chad","tchad"],"GQ":["equatorial guinea"],"GA":["gabon"],
-           "CG":["republic of congo","congo-brazzaville","congo brazzaville"]}
-    SITES={"finnfund":("https://www.finnfund.fi","venture","country"),
-           "ifu":("https://impactfund.dk","investment","region")}
-    def g(u):
-        r=urllib.request.urlopen(urllib.request.Request(u,headers=UA),timeout=90)
-        return json.load(r), int(r.headers.get("X-WP-TotalPages",1))
-    def terms(base,tax):
-        out,p=[],1
-        while True:
-            d,tp=g(f"{base}/wp-json/wp/v2/{tax}?per_page=100&page={p}"); out+=d
-            if p>=tp: return out
-            p+=1
-    def match(name):
-        n=unicodedata.normalize("NFKD",name.lower())
-        if "democratic" in n or "demokratiske" in n:
-            return []  # never the DR Congo
-        return [cc for cc,keys in WAEMU.items() if any(re.search(r"\b"+k+r"\b",n) for k in keys)]
-    for key,(base,ptype,tax) in SITES.items():
-        T=terms(base,tax); tid={t["id"]:t["name"] for t in T}
-        ids=[t["id"] for t in T if match(t["name"])]
-        posts,p={},1
-        while True:
-            d,tp=g(f"{base}/wp-json/wp/v2/{ptype}?{tax}={','.join(map(str,ids))}&per_page=100&page={p}&_embed=wp:term")
-            for x in d: posts[x["id"]]=x
-            if p>=tp: break
-            p+=1
-        pathlib.Path(f"raw/{key}").mkdir(exist_ok=True)
-        json.dump({"terms":tid,"posts":list(posts.values())},open(f"raw/{key}/posts.json","w"),ensure_ascii=False)
-        print(key,"WAEMU terms:",[tid[i] for i in ids],"posts:",len(posts))
-
-def step_eib():
-    """EIB signed loans in WAEMU countries, from the JSON API behind eib.org/en/projects/loans."""
-    import json, time, urllib.request, pathlib
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)", "Accept": "application/json"}
-    BASE = ("https://www.eib.org/provider-eib-plr/app/loans/list?sortColumn=loanParts.loanPartStatus.statusDate"
-            "&sortDir=desc&itemPerPage=100&pageable=true&language=EN&defaultLanguage=EN&orCountries=true")
-    pathlib.Path("raw/eib").mkdir(parents=True, exist_ok=True)
-    out = {}
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
-        page = 0
-        while True:
-            r = urllib.request.Request(f"{BASE}&countries={cc}&pageNumber={page}", headers=UA)
-            d = json.load(urllib.request.urlopen(r, timeout=90))
-            for item in d.get("data") or []:
-                out.setdefault(item["id"], item)
-            if (page + 1) * 100 >= d.get("totalItems", 0):
-                break
-            page += 1
-            time.sleep(0.5)
-        print(cc, d.get("totalItems"))
-    json.dump(list(out.values()), open("raw/eib/loans.json", "w"), ensure_ascii=False)
-    print(len(out), "unique EIB projects")
-    # Regional loans: Regional - Africa (A1), West Africa (A2), Central Africa (A4)
-    reg = {}
-    for code in ["A1", "A2", "A4"]:
-        page = 0
-        while True:
-            r = urllib.request.Request(f"{BASE}&countries={code}&pageNumber={page}", headers=UA)
-            d = json.load(urllib.request.urlopen(r, timeout=90))
-            for item in d.get("data") or []:
-                item["_region"] = code
-                reg.setdefault(item["id"], item)
-            if (page + 1) * 100 >= d.get("totalItems", 0):
-                break
-            page += 1
-            time.sleep(0.5)
-    json.dump(list(reg.values()), open("raw/eib/regional.json", "w"), ensure_ascii=False)
-    print(len(reg), "EIB regional African loans")
-
-def step_cofides():
-    """COFIDES (Spain): project list filtered by WAEMU country (plain HTML, no JavaScript needed)."""
-    import re, json, html as H, urllib.request, pathlib, time
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    pathlib.Path("raw/cofides").mkdir(parents=True, exist_ok=True)
-    out = []
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
-        url = f"https://www.cofides.es/en/projects?field_direccion_country_code={cc}&field_sector_target_id=All"
-        s = urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90).read().decode("utf-8", "replace")
-        t = H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", "\n", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
-        i, j = t.find("Textile - Footwear Transport"), t.find("Paseo de la Castellana")
-        block = t[i + 28:j] if i > 0 and j > i else ""
-        for m in re.finditer(r"(.+?) Activity: (.+?) Sector: (.+?) Instrument: (.+?) Country: (.+?)(?= [A-Z0-9][^:]{2,80} Activity:|$)", block.strip()):
-            out.append({"cc": cc, "name": m.group(1).strip(), "activity": m.group(2).strip(), "sector": m.group(3).strip(),
-                        "instrument": m.group(4).strip(), "country": m.group(5).strip(), "url": url})
-        time.sleep(0.5)
-    json.dump(out, open("raw/cofides/projects.json", "w"), ensure_ascii=False, indent=0)
-    print(len(out), "COFIDES projects in WAEMU")
-
-def step_noneu():
-    """Non-EU comparison layer: World Bank (IBRD/IDA) projects API and AIIB project list.
-    AfDB (incl. African Development Fund) and IFC come through the IATI step."""
-    import json, re, time, urllib.request, pathlib
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    pathlib.Path("raw/nonEU").mkdir(parents=True, exist_ok=True)
-    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120).read()
-    wb = []
-    for cc in ["BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "CM", "CF", "TD", "CG", "GQ", "GA"]:
-        start = 0
-        while True:
-            d = json.loads(get("https://search.worldbank.org/api/v2/projects?format=json&countrycode_exact=" + cc +
-                               f"&rows=200&os={start}&fl=id,project_name,totalamt,boardapprovaldate,sector1,mjsector1Name,status,url,lendinginstr"))
-            rows = list((d.get("projects") or {}).values())
-            for r in rows:
-                r["cc"] = cc
-            wb += rows
-            start += 200
-            if start >= int(d.get("total", 0)) or not rows:
-                break
-            time.sleep(0.3)
-    json.dump(wb, open("raw/nonEU/worldbank.json", "w"), ensure_ascii=False)
-    js = get("https://www.aiib.org/en/projects/list/.content/all-projects-data.js").decode("utf-8", "replace")
-    aiib = []
-    for m in re.finditer(r"\{[^{}]*\"economy\"[^{}]*\}", js):
-        try:
-            aiib.append(json.loads(m.group(0)))
-        except ValueError:
-            pass
-    json.dump(aiib, open("raw/nonEU/aiib.json", "w"), ensure_ascii=False)
-    print(len(wb), "World Bank projects;", len(aiib), "AIIB projects (all countries)")
-
-def step_oeeb():
-    """OeEB (Austria): read every project page and keep those that name a Franc Zone country (often regional funds)."""
-    import re, json, time, html as H, urllib.request, pathlib
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    BASE = "https://oe-eb.at"
-    pathlib.Path("raw/oeeb").mkdir(parents=True, exist_ok=True)
-    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60).read().decode("utf-8", "replace")
-    def text(h): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", h, flags=re.S))))
-    links = sorted(set(re.findall(r'href="(/en/our-projects/projects-at-a-glance/[^"#?]+\.html)"', get(BASE + "/en/our-projects/projects-at-a-glance.html"))))
-    FZ = re.compile(r"Benin|Burkina|C[oô]te d.?Ivoire|Ivory Coast|Guinea-Bissau|\bMali\b|\bNiger\b|Senegal|\bTogo\b|Cameroon|Central African Rep|\bChad\b|Republic of (the )?Congo|Congo-Brazzaville|Equatorial Guinea|\bGabon\b|West Africa|Central Africa|WAEMU|UEMOA|CEMAC", re.I)
-    out = []
-    for l in links:
-        try:
-            t = text(get(BASE + l))
-        except Exception as e:
-            print("skip", l, e); continue
-        i = t.find("Project name"); body = t[max(0, i - 2500):i + 3000] if i > 0 else t[:6000]
-        if not FZ.search(body):
-            continue
-        fields = {}
-        for lab in ["Project name", "Country", "Region", "Sector", "Service", "OeEB project volume", "Fund domicile", "Project partner(s)"]:
-            m = re.search(re.escape(lab) + r" \| (.*?) \|", body) or re.search(re.escape(lab) + r" (.+?)(?= (?:Project name|Country|Region|Sector|Service|OeEB project volume|International climate|Additionality|Fund domicile|Project partner)|$)", body)
-            if m: fields[lab] = m.group(1).strip()[:200]
-        d = re.search(r"In (January|February|March|April|May|June|July|August|September|October|November|December) (\d{4})", body)
-        out.append({"url": BASE + l, "fields": fields, "date": f"{d.group(2)}-{['January','February','March','April','May','June','July','August','September','October','November','December'].index(d.group(1))+1:02d}" if d else "",
-                    "text": body[:2500]})
-        time.sleep(0.2)
-    json.dump(out, open("raw/oeeb/projects.json", "w"), ensure_ascii=False, indent=0)
-    print(len(links), "OeEB project pages read;", len(out), "mention a Franc Zone country or region")
-
-def step_iati_regional():
-    """IATI regional activities: Africa-wide, Sub-Saharan, West and Central African operations of the same publishers.
-    d-portal cannot filter by region, so each publisher is read page by page and only African regional activities are kept."""
-    import sys, json, time, urllib.request, urllib.parse, pathlib
-    from lxml import etree
-    PUBLISHERS = ["FR-3", "DE-1", "XI-IATI-EC_INTPA", "NL-KVK-27078545", "NL-KVK-83517626", "NL-KVK-61172863", "NL-KVK-33226495", "XI-IATI-EBRD"]
-    AFRICA_REGIONS = {"298": "Africa", "289": "Sub-Saharan Africa", "1030": "West Africa", "1028": "Central Africa"}
-    out_dir = pathlib.Path("raw/iati_regional"); out_dir.mkdir(parents=True, exist_ok=True)
-    PAGE = 500
-    def run(ref, start=0, stop=None, budget=None):
-        t0 = time.time(); off = start; kept = 0
-        f = out_dir / f"{ref}.xml"
-        keep = {}
-        if start and f.exists():
-            for a in etree.parse(str(f)).getroot():
-                keep[a.findtext("iati-identifier")] = a
-        while True:
-            q = urllib.parse.urlencode({"from": "act", "reporting_ref": ref, "limit": PAGE, "offset": off, "orderby": "aid"})
-            data = urllib.request.urlopen(f"https://d-portal.org/q.xml?{q}", timeout=300).read()
-            root = etree.fromstring(data)
-            acts = root.findall(".//iati-activity")
-            for a in acts:
-                regions = [r.get("code") for r in a.findall("recipient-region") if (r.get("vocabulary") in (None, "", "1"))]
-                if any(r in AFRICA_REGIONS for r in regions):
-                    keep[a.findtext("iati-identifier")] = a
-            off += PAGE
-            if len(acts) < PAGE or (stop and off >= stop) or (budget and time.time() - t0 > budget):
-                break
-        root_out = etree.Element("iati-activities")
-        for a in keep.values():
-            root_out.append(a)
-        f.write_bytes(etree.tostring(root_out))
-        done = len(acts) < PAGE
-        print(f"{ref}: read up to offset {off}, {len(keep)} African regional activities kept{'' if done else ' (continue from ' + str(off) + ')'}", flush=True)
-        return off, done
-    ARGS = sys.argv[1:] if sys.argv[0].endswith("fetch_iati_regional.py") else []
-    if ARGS:  # python fetch_iati_regional.py REF START BUDGET_SECONDS (used to resume long downloads)
-        run(ARGS[0], int(ARGS[1]), budget=float(ARGS[2]) if len(ARGS) > 2 else None)
-    else:
-        for ref in PUBLISHERS:
-            run(ref)
-
-def step_eutf():
-    """EU Emergency Trust Fund for Africa: programmes in Franc Zone countries (Sahel & Lake Chad window).
-    Country pages list programmes; each programme page gives locations, EU contribution, duration, theme, partners and reference."""
-    import re, json, time, html as H, urllib.request, pathlib
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    BASE = "https://trust-fund-for-africa.europa.eu"
-    pathlib.Path("raw/eutf").mkdir(parents=True, exist_ok=True)
-    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=90).read().decode("utf-8", "replace")
-    def text(s): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
-    region = get(BASE + "/where-we-work/regions-countries/sahel-lake-chad_en")
-    country_pages = sorted(set(re.findall(r'href="(/where-we-work/regions-countries/sahel-lake-chad/[^"#?]+)"', region)))
-    FZ_SLUG = re.compile(r"burkina|cameroon|cameroun|chad|tchad|ivory|ivoire|mali|niger(?!ia)|senegal|guinea-bissau|guinee-bissau", re.I)
-    progs = {}
-    for cp in country_pages:
-        if not FZ_SLUG.search(cp.rsplit("/", 1)[-1]):
-            continue
-        s = get(BASE + cp)
-        for l in sorted(set(re.findall(r'href="(/our-programmes/[^"#?]+)"', s))):
-            progs.setdefault(l, set()).add(cp.rsplit("/", 1)[-1].replace("_en", ""))
-        time.sleep(0.3)
-    out = []
-    for link, pages in progs.items():
-        try:
-            raw = get(BASE + link)
-            t = text(raw)
-        except Exception as e:
-            print("skip", link, e); continue
-        h1 = re.search(r"<h1[^>]*>(.*?)</h1>", raw, re.S)
-        m = re.search(r"EU contribution\s*€\s*(\d{1,3}(?:[ .,\u00a0]\d{3})+|\d+)(?!\d)", t)
-        amount = float(re.sub(r"[^\d]", "", m.group(1))) if m else None
-        loc = re.search(r"Project locations\s+(.+?)\s+EU contribution", t)
-        dur = re.search(r"Project duration\s+(\d{1,2} \w+ (\d{4}))", t)
-        theme = re.search(r"Thematic\s+(.+?)\s+Partner", t)
-        partner = re.search(r"Partner\s+(.+?)\s+More news", t)
-        ref = re.search(r"t05-eutf-[a-z]+-[a-z]{2,3}-\d+", t, re.I)
-        title = re.search(r"Home\s+Our Programmes\s+(.+?)\s+(?:Summary|Main objectives|Programme)", t)
-        name = text(h1.group(1)) if h1 else (title.group(1) if title else link.rsplit("/", 1)[-1].replace("_en", "").replace("-", " "))
-        out.append({"url": BASE + link, "title": name.strip()[:250],
-                    "country_pages": sorted(pages), "locations": loc.group(1) if loc else "", "amount": amount,
-                    "start_year": dur.group(2) if dur else "", "theme": theme.group(1) if theme else "",
-                    "partner": partner.group(1)[:200] if partner else "", "ref": ref.group(0).upper() if ref else ""})
-        time.sleep(0.25)
-    json.dump(out, open("raw/eutf/programmes.json", "w"), ensure_ascii=False, indent=0)
-    print(len(country_pages), "country pages,", len(out), "EUTF programmes in Franc Zone countries")
-
-def step_edfimc():
-    """ElectriFI and AgriFI (EU-funded facilities managed by EDFI Management Company): projects in Franc Zone countries."""
-    import re, json, time, html as H, urllib.request, pathlib
-    UA = {"User-Agent": "Mozilla/5.0 (EU-PFI-WAEMU tracker; research)"}
-    pathlib.Path("raw/edfimc").mkdir(parents=True, exist_ok=True)
-    def get(u): return urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60).read().decode("utf-8", "replace")
-    def text(s): return H.unescape(re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S))))
-    FZ = r"Benin|Burkina|C[oô]te d.Ivoire|Ivory Coast|Guinea-Bissau|\bMali\b|\bNiger\b|Senegal|\bTogo\b|Cameroon|Central African|\bChad\b|\bCongo\b|Equatorial Guinea|Gabon"
-    out, seen = [], set()
-    for facility in ("electrifi", "agrifi"):
-        s = get(f"https://edfimc.eu/what-we-do/{facility}/")
-        for u, c in re.findall(r'<a[^>]+href="(https://edfimc\.eu/projects?/[^"]+)"[^>]*>(.*?)</a>', s, re.S):
-            card = text(c)
-            if u in seen or not re.search(FZ, card):
-                continue
-            seen.add(u)
-            t = text(get(u))
-            f = {}
-            for lab, nxt in [("Country", "Sector"), ("Sector", "Financial Facility"), ("Financial Facility", "Year of Investment"), ("Year of Investment", "Business Model|Status|Investment type"),
-                             ("Status", "Investment type"), ("Investment type", "EDFI MC|ElectriFI|AgriFI|The |This |[A-Z][a-z]+ is"), ("Financial Instrument", "Amount"), ("Amount", "Year")]:
-                m = re.search(re.escape(lab) + r"\s+(.+?)\s+(?:" + nxt + r")\b", t)
-                if m: f[lab] = m.group(1).strip()[:150]
-            name = re.search(r"Read more\s*$", card) and re.sub(r"\s*Read more\s*$", "", card)
-            out.append({"url": u, "facility": facility, "card": card, "fields": f, "name": u.rstrip("/").rsplit("/", 1)[-1].replace("-", " ")})
-            time.sleep(0.3)
-    json.dump(out, open("raw/edfimc/projects.json", "w"), ensure_ascii=False, indent=0)
-    print(len(out), "ElectriFI/AgriFI projects in Franc Zone countries")
-
-def step_normalize():
-    """Normalise all raw sources into the tracker data model.
-
-    Outputs (data/):
-      institutions.csv, investments.csv, investment_countries.csv, sources.csv, countries.csv
-      tracker.json  -> compact bundle read by the globe page
-    """
-    import csv, io, json, re, glob, datetime, html, pathlib, unicodedata
-    from lxml import etree
-
-    ROOT = pathlib.Path(__file__).parent
-    RAW, REF, OUT = ROOT / "raw", ROOT / "ref", ROOT / "data"
-    OUT.mkdir(exist_ok=True)
-    TODAY = datetime.date.today().isoformat()
-
-    # ---------------------------------------------------------------- reference data
-    COUNTRIES = {  # Franc Zone countries covered: WAEMU (West) and CEMAC (Central); approximate geographic centroids
-        "BJ": ("BEN", "Benin", 9.31, 2.32), "BF": ("BFA", "Burkina Faso", 12.24, -1.56),
-        "CI": ("CIV", "Côte d'Ivoire", 7.54, -5.55), "GW": ("GNB", "Guinea-Bissau", 11.80, -15.18),
-        "ML": ("MLI", "Mali", 17.57, -4.00), "NE": ("NER", "Niger", 17.61, 8.08),
-        "SN": ("SEN", "Senegal", 14.50, -14.45), "TG": ("TGO", "Togo", 8.62, 0.82),
-        "CM": ("CMR", "Cameroon", 6.00, 12.35), "CF": ("CAF", "Central African Republic", 6.61, 20.94),
-        "TD": ("TCD", "Chad", 15.45, 18.73), "CG": ("COG", "Republic of the Congo", -0.66, 15.20),
-        "GQ": ("GNQ", "Equatorial Guinea", 1.60, 10.40), "GA": ("GAB", "Gabon", -0.80, 11.61),
-    }
-    # Union-wide operations (through BOAD, BCEAO, BDEAC, BEAC or the union commissions) stay inside the Franc Zone
-    COUNTRIES["XW"] = ("XWA", "WAEMU-wide (regional institutions)", 14.2, -3.6)
-    COUNTRIES["XC"] = ("XCA", "CEMAC-wide (regional institutions)", 2.4, 15.6)
-    UNION = {cc: ("WAEMU" if cc in ("BJ", "BF", "CI", "GW", "ML", "NE", "SN", "TG", "XW") else "CEMAC") for cc in COUNTRIES}
-    REAL_COUNTRIES = [c for c in COUNTRIES if c not in ("XW", "XC")]
-    _WAEMU_WIDE = re.compile(r"\bBOAD\b|Banque Ouest[- ]Africaine de D[eé]veloppement|West African Development Bank|\bBCEAO\b|Banque Centrale des [EÉ]tats de l.Afrique de l.Ouest|"
-                             r"Central Bank of West African States|\bUEMOA\b|\bWAEMU\b|Union [EÉ]conomique et Mon[eé]taire Ouest|West African Economic and Monetary Union|\bBRVM\b", re.I)
-    _CEMAC_WIDE = re.compile(r"\bBDEAC\b|Banque de D[eé]veloppement des [EÉ]tats de l.Afrique Centrale|Development Bank of Central African States|\bBEAC\b|"
-                             r"Banque des [EÉ]tats de l.Afrique Centrale|Bank of Central African States|\bCEMAC\b|Communaut[eé] [EÉ]conomique et Mon[eé]taire de l.Afrique Centrale|\bCOBAC\b", re.I)
-    def union_wide(text):
-        """'XW' or 'XC' when an operation runs through the WAEMU's or CEMAC's own institutions, else None."""
-        w, c = bool(_WAEMU_WIDE.search(text or "")), bool(_CEMAC_WIDE.search(text or ""))
-        return "XW" if w and not c else "XC" if c and not w else None
-    PEG_YEAR = 1999
-    regional = []  # wider regional operations (West/Central/Sub-Saharan/Africa-wide): kept apart, never in Franc Zone totals
-    def add_regional(inst, src, rec_id, url, title, region, *, year="", amount_eur=None, sector_broad="", instrument="Unknown", note=""):
-        if year and str(year)[:4].isdigit() and int(str(year)[:4]) < PEG_YEAR:
-            return
-        regional.append({"investment_id": f"{inst}:{rec_id}", "institution_id": inst, "source_id": src, "region": region, "title": (title or "")[:250],
-                         "year": str(year)[:4], "amount_eur": round(amount_eur) if amount_eur else None, "sector_broad": sector_broad or OTHER_SECTOR,
-                         "instrument": instrument, "source_url": url, "note": note})
-    _NAMES = [
-        ("BJ", r"b[eé]nin"), ("BF", r"burkina(?: faso)?"),
-        ("CI", r"c[oô]te d[’'`]?\s?ivoire|ivory coast|costa de marfil|costa d.avorio|elfenbenskysten"),
-        ("GW", r"guin(?:ea|[eé]e?)[- ]bissau"), ("ML", r"mali"), ("NE", r"niger"), ("SN", r"s[eé]n[eé]gal"), ("TG", r"togo"),
-        ("CM", r"cameroon|cameroun|camer[uú]n|kamerun"),
-        ("CF", r"central african rep(?:ublic|\.)?|centrafri(?:que|caine)|rep[uú]blica centroafricana"),
-        ("TD", r"chad|tchad|ciad"),
-        ("GQ", r"equatorial guinea|guin[eé]e [eé]quatoriale|guinea ecuatorial|guinea equatoriale"),
-        ("GA", r"gab[oó]n"),
-        ("CG", r"congo"),
-    ]
-    CC_PATTERN = re.compile(r"\b(" + "|".join(f"(?P<{cc}>{rx})" for cc, rx in _NAMES) + r")\b", re.I)
-    _NOT_ROC_BEFORE = re.compile(r"(democratic|dem\.|d\.r\.|\bdr\b|\brd\b|\brdc\b|d[eé]mocratique|bassin du|basin|river|fleuve)"
-                                 r"[\s,]*(republic|rep\.?)?[\s,]*(of)?[\s,]*(the)?[\s,]*(du)?[\s,]*$", re.I)
-    _NOT_ROC_AFTER = re.compile(r"^[\s,(-]*(kinshasa|dem\b|dem\.|democratic|basin|river|drc)", re.I)
-
-    def countries_in(text):
-        """Return Franc Zone ISO2 codes mentioned in free text.
-        Ignores Nigeria, Somalia, Guinea (Conakry); 'Congo' counts only for the Republic of the Congo (never the DRC,
-        the Congo Basin or the Congo River); 'Chad' is not counted when it means Lake Chad."""
-        text = text or ""
-        found = []
-        for m in CC_PATTERN.finditer(text):
-            cc = next(k for k, v in m.groupdict().items() if v)
-            before = text[max(0, m.start() - 45):m.start()]
-            after = text[m.end():m.end() + 25]
-            if cc == "CG" and (_NOT_ROC_BEFORE.search(before) or _NOT_ROC_AFTER.search(after)):
-                continue
-            if cc == "TD" and re.search(r"(lake|lac)\s*$", before, re.I):
-                continue
-            if cc not in found:
-                found.append(cc)
-        return found
-
-    # ECB monthly reference rates: units of currency per 1 EUR
-    FX = {}
-    for f in REF.glob("ecb_*.csv"):
-        cur = f.stem.split("_")[1]
-        for r in csv.DictReader(open(f)):
-            FX[(cur, r["TIME_PERIOD"])] = float(r["OBS_VALUE"])
-    FX_FIXED = {"EUR": 1.0, "XOF": 655.957, "XAF": 655.957}  # both CFA francs are pegged to the euro at the same rate
-
-    def to_eur(amount, cur, ym):
-        """Convert using the ECB monthly average for ym (YYYY-MM); fall back to nearest earlier month."""
-        if amount is None:
-            return None, None
-        cur = (cur or "EUR").upper()
-        if cur in FX_FIXED:
-            return amount / FX_FIXED[cur], FX_FIXED[cur]
-        months = sorted(k[1] for k in FX if k[0] == cur)
-        if not months:
-            return None, None
-        ym = ym or months[-1]
-        cand = [m for m in months if m <= ym] or months[:1]
-        rate = FX[(cur, cand[-1])]
-        return amount / rate, rate
-
-    SECTORS = {d["code"]: d["name"] for d in json.load(open(REF / "Sector.json"))["data"]}
-    SECTOR_LIST = ["Energy and climate", "Transport and corridors", "Digital and telecoms", "Health", "Education and skills",
-                   "Agriculture and food systems", "Water and sanitation", "Financial sector and SMEs", "Industry and trade",
-                   "Governance and budget support", "Other (social, humanitarian, multi-sector)"]
-    OTHER_SECTOR = SECTOR_LIST[-1]
-    def broad_sector(text="", dac=None):
-        """Map a DAC code or free-text label to one of 10 sectors aligned with the EU's Global Gateway priorities."""
-        if dac:
-            c = str(dac)
-            table = {"23": "Energy and climate", "41": "Energy and climate", "21": "Transport and corridors", "22": "Digital and telecoms",
-                     "12": "Health", "13": "Health", "11": "Education and skills", "31": "Agriculture and food systems",
-                     "52": "Agriculture and food systems", "14": "Water and sanitation", "24": "Financial sector and SMEs",
-                     "25": "Financial sector and SMEs", "32": "Industry and trade", "33": "Industry and trade",
-                     "15": "Governance and budget support", "51": "Governance and budget support", "60": "Governance and budget support"}
-            if c[:2] in table:
-                return table[c[:2]]
-            if len(c) >= 3 and c[:1].isdigit():
-                return OTHER_SECTOR
-        t = (text or "").lower()
-        rules = [("Energy and climate", r"energ|solar|power|climate|hydro|electric|renewable|forest|environment"),
-                 ("Water and sanitation", r"water|sanitation|sewer|wastewater"),
-                 ("Transport and corridors", r"transport|road|rail|port\b|corridor|logist|airport|mobility|brt|\bbus"),
-                 ("Digital and telecoms", r"telecom|digital|\bict\b|internet|cable|tech|start-up|startup"),
-                 ("Health", r"health|hospital|pharma|medic|vaccine"),
-                 ("Education and skills", r"educat|school|training|vocational|skills|universit"),
-                 ("Agriculture and food systems", r"agri|food|farm|cocoa|cacao|cashew|fish|livestock|dairy|agro"),
-                 ("Financial sector and SMEs", r"financ|bank|microfin|fund|insur|leasing|payment|credit line|\bsme|\bpme|entrepreneur"),
-                 ("Industry and trade", r"industr|manufact|cement|trade|tourism|real estate|mining|construction|services|export|equipment"),
-                 ("Governance and budget support", r"governance|budget|public finance|decentrali|justice|security|stability|rights|migration")]
-        for name, rx in rules:
-            if re.search(rx, t):
-                return name
-        return OTHER_SECTOR
-
-    def instrument_from(text):
-        """Main financing instrument of a deal. When several tools are listed (e.g. 'Loan, Technical assistance'),
-        the capital instrument wins: loan, then equity, then guarantee; grant only when nothing else is listed."""
-        t = (text or "").lower()
-        for name, rx in [("Loan", r"loan|debt|cr[ée]dit|pr[êe]t|mezzanine|bond|facility"), ("Equity", r"equity|share|fund invest|participation"),
-                         ("Guarantee", r"guarant|insur|cover"), ("Grant", r"grant|subvention|subsid|\bdon\b|technical assistance")]:
-            if re.search(rx, t):
-                return name
-        return "Unknown"
-
-    IATI_FIN = lambda code: ("Grant" if code[:1] == "1" and code != "1100" else
-                             "Loan" if code[:1] == "4" else "Equity" if code[:1] == "5" else
-                             "Guarantee" if code == "1100" else "Debt relief" if code[:1] == "6" else "Unknown")
-    IATI_STATUS = {"1": "Pipeline", "2": "Active", "3": "Completing", "4": "Closed", "5": "Cancelled", "6": "Suspended"}
-
-    # ---------------------------------------------------------------- institutions in scope
-    INST = [  # id, name, member state, type, parent, hq city, lat, lon, website, coverage
-        ("afd", "Agence Française de Développement (AFD)", "FR", "Bilateral development bank", "AFD Group", "Paris", 48.835, 2.383, "https://www.afd.fr", "automated"),
-        ("proparco", "Proparco", "FR", "DFI", "AFD Group", "Paris", 48.871, 2.305, "https://www.proparco.fr", "automated"),
-        ("kfw-db", "KfW Development Bank", "DE", "NPB", "KfW Group", "Frankfurt", 50.110, 8.682, "https://www.kfw-entwicklungsbank.de", "automated"),
-        ("deg", "DEG – Deutsche Investitions- und Entwicklungsgesellschaft", "DE", "DFI", "KfW Group", "Cologne", 50.938, 6.960, "https://www.deginvest.de", "automated"),
-        ("fmo", "FMO – Dutch Entrepreneurial Development Bank", "NL", "DFI", "", "The Hague", 52.080, 4.310, "https://www.fmo.nl", "automated"),
-        ("invest-intl", "Invest International", "NL", "DFI", "Dutch State / FMO", "Amsterdam", 52.370, 4.895, "https://investinternational.nl", "automated"),
-        ("dggf", "Dutch Good Growth Fund – Local SME (DGGF)", "NL", "DFI", "Dutch Ministry of Foreign Affairs", "The Hague", 52.070, 4.300, "https://english.dggf.nl", "automated"),
-        ("bio", "BIO – Belgian Investment Company for Developing Countries", "BE", "DFI", "", "Brussels", 50.850, 4.352, "https://www.bio-invest.be", "automated"),
-        ("finnfund", "Finnfund", "FI", "DFI", "", "Helsinki", 60.170, 24.938, "https://www.finnfund.fi", "automated"),
-        ("ifu", "Impact Fund Denmark (IFU, formerly Investment Fund for Developing Countries)", "DK", "DFI", "", "Copenhagen", 55.676, 12.568, "https://impactfund.dk", "automated"),
-        ("swedfund", "Swedfund", "SE", "DFI", "", "Stockholm", 59.329, 18.069, "https://www.swedfund.se", "not yet covered"),
-        ("oeeb", "OeEB – Development Bank of Austria", "AT", "DFI", "OeKB Group", "Vienna", 48.208, 16.374, "https://www.oe-eb.at", "not yet covered"),
-        ("cofides", "COFIDES", "ES", "DFI", "", "Madrid", 40.417, -3.704, "https://www.cofides.es", "not yet covered"),
-        ("simest", "SIMEST", "IT", "DFI", "CDP Group", "Rome", 41.903, 12.496, "https://www.simest.it", "not yet covered"),
-        ("sofid", "SOFID", "PT", "DFI", "", "Lisbon", 38.722, -9.139, "https://www.sofid.pt", "not yet covered"),
-        ("cdp", "Cassa Depositi e Prestiti (CDP)", "IT", "NPB", "CDP Group", "Rome", 41.900, 12.480, "https://www.cdp.it", "manual"),
-        ("bpifrance", "Bpifrance", "FR", "NPB", "", "Paris", 48.880, 2.330, "https://www.bpifrance.fr", "manual"),
-        ("ico", "Instituto de Crédito Oficial (ICO)", "ES", "NPB", "", "Madrid", 40.410, -3.690, "https://www.ico.es", "manual"),
-        ("bgk", "Bank Gospodarstwa Krajowego (BGK)", "PL", "NPB", "", "Warsaw", 52.230, 21.012, "https://www.bgk.pl", "curated"),
-        ("atradius-dsb", "Atradius Dutch State Business", "NL", "ECA", "Atradius", "Amsterdam", 52.340, 4.870, "https://atradiusdutchstatebusiness.nl", "automated"),
-        ("allianz-trade-de", "Allianz Trade (Euler Hermes) for the German Federal Government", "DE", "ECA", "", "Hamburg", 53.551, 9.994, "https://www.exportkreditgarantien.de", "manual"),
-        ("bpifrance-ae", "Bpifrance Assurance Export", "FR", "ECA", "Bpifrance", "Paris", 48.890, 2.300, "https://www.bpifrance.fr", "manual"),
-        ("sace", "SACE", "IT", "ECA", "", "Rome", 41.910, 12.500, "https://www.sace.it", "manual"),
-        ("credendo", "Credendo", "BE", "ECA", "", "Brussels", 50.840, 4.370, "https://credendo.com", "manual"),
-        ("cesce", "CESCE", "ES", "ECA", "", "Madrid", 40.440, -3.690, "https://www.cesce.es", "manual"),
-        ("ekn", "EKN – Swedish Export Credit Agency", "SE", "ECA", "", "Stockholm", 59.340, 18.050, "https://www.ekn.se", "manual"),
-        ("eifo", "EIFO – Export and Investment Fund of Denmark", "DK", "ECA", "", "Copenhagen", 55.690, 12.590, "https://www.eifo.dk", "manual"),
-        ("finnvera", "Finnvera", "FI", "ECA", "", "Helsinki", 60.180, 24.950, "https://www.finnvera.fi", "manual"),
-        ("oekb", "OeKB – Oesterreichische Kontrollbank", "AT", "ECA", "OeKB Group", "Vienna", 48.215, 16.365, "https://www.oekb.at", "manual"),
-        ("kuke", "KUKE – Export Credit Insurance Corporation", "PL", "ECA", "", "Warsaw", 52.240, 21.000, "https://www.kuke.com.pl", "curated"),
-        ("eu-intpa", "European Commission – DG International Partnerships (NDICI-Global Europe, EDF)", "EU", "EU institution", "European Union", "Brussels", 50.843, 4.382, "https://international-partnerships.ec.europa.eu", "automated"),
-        ("eib", "European Investment Bank (EIB)", "EU", "EU institution", "EIB Group", "Luxembourg", 49.627, 6.155, "https://www.eib.org", "automated"),
-        ("eu-eutf", "EU Emergency Trust Fund for Africa (EUTF)", "EU", "EU institution", "European Commission trust fund", "Brussels", 50.846, 4.375, "https://trust-fund-for-africa.europa.eu", "automated"),
-        ("edfi-mc", "ElectriFI and AgriFI (EU-funded, managed by EDFI Management Company)", "EU", "EU institution", "EDFI Management Company", "Brussels", 50.838, 4.360, "https://edfimc.eu", "automated"),
-        ("eu-echo", "European Commission – humanitarian aid (DG ECHO)", "EU", "Humanitarian aid", "European Union", "Brussels", 50.842, 4.388, "https://civil-protection-humanitarian-aid.ec.europa.eu", "automated"),
-        ("eu-fpi", "European Commission – Foreign Policy Instruments (FPI)", "EU", "Foreign policy instrument", "European Union", "Brussels", 50.840, 4.378, "https://fpi.ec.europa.eu", "automated"),
-        ("wbtf", "World Bank-managed trust funds financed by the EU or EU member states", "WBTF", "World Bank trust fund", "World Bank Group", "Washington", 38.897, -77.040, "https://www.worldbank.org", "automated"),
-        ("eu-blending", "EU blending grants (Africa Investment Platform / Africa Investment Facility)", "EU", "EU institution", "European Commission", "Brussels", 50.844, 4.384, "https://international-partnerships.ec.europa.eu", "curated"),
-        ("eu-aitf", "EU-Africa Infrastructure Trust Fund (EU-AITF)", "EU", "EU institution", "Managed by the EIB; funded by the Commission and contributing member states", "Luxembourg", 49.640, 6.180, "https://www.eu-africa-infrastructure-tf.net", "curated"),
-        ("ebrd", "European Bank for Reconstruction and Development (EBRD)", "INT", "Multilateral", "", "London", 51.507, -0.128, "https://www.ebrd.com", "automated"),
-    ]
-    # Coverage status after the round-2 research (automated feed, curated from public sources, programme level only, or checked with nothing found)
-    COVERAGE = {"swedfund": "curated", "cofides": "automated", "oeeb": "automated", "sace": "curated", "credendo": "curated",
-                "eifo": "curated", "bpifrance-ae": "curated", "cdp": "curated", "cesce": "programme level", "sofid": "programme level",
-                "simest": "programme level", "bpifrance": "programme level"}
-    INST = [i[:9] + (COVERAGE.get(i[0], i[9]),) for i in INST]
-    CHECKED = "checked: no Franc Zone deals found"
-    INST += [  # member states added in round 4: institutions researched, no published Franc Zone deals found so far
-        ("bpf", "Banco Português de Fomento (BPF)", "PT", "NPB", "", "Lisbon", 38.725, -9.150, "https://www.bpfomento.pt", CHECKED),
-        ("egap", "EGAP – Export Guarantee and Insurance Corporation", "CZ", "ECA", "", "Prague", 50.083, 14.420, "https://www.egap.cz", CHECKED),
-        ("ceb", "Czech Export Bank (ČEB)", "CZ", "ECA", "", "Prague", 50.075, 14.440, "https://www.ceb.cz", CHECKED),
-        ("eximbanka-sr", "Eximbanka SR – Export-Import Bank of the Slovak Republic", "SK", "ECA", "", "Bratislava", 48.148, 17.107, "https://www.eximbanka.sk", CHECKED),
-        ("hbor", "HBOR – Croatian Bank for Reconstruction and Development", "HR", "NPB", "", "Zagreb", 45.815, 15.982, "https://www.hbor.hr", CHECKED),
-        ("ecg", "Export Credit Greece (ECG)", "GR", "ECA", "", "Athens", 37.984, 23.728, "https://www.ecg.gr", CHECKED),
-        ("sid", "SID Banka – Slovenian Export and Development Bank", "SI", "NPB", "", "Ljubljana", 46.056, 14.506, "https://www.sid.si", CHECKED),
-        ("exim-hu", "EXIM Hungary (Eximbank and MEHIB)", "HU", "ECA", "", "Budapest", 47.498, 19.040, "https://exim.hu", CHECKED),
-        ("exim-ro", "Exim Banca Românească (state export credit agent)", "RO", "ECA", "", "Bucharest", 44.427, 26.103, "https://www.eximbank.ro", CHECKED),
-        ("baez", "BAEZ – Bulgarian Export Insurance Agency", "BG", "ECA", "", "Sofia", 42.698, 23.322, "https://www.baez.bg", CHECKED),
-        ("bdb", "Bulgarian Development Bank (BDB)", "BG", "NPB", "", "Sofia", 42.690, 23.330, "https://www.bbr.bg", CHECKED),
-        ("eis-ee", "EIS – Enterprise Estonia and KredEx (state export guarantees)", "EE", "ECA", "", "Tallinn", 59.437, 24.754, "https://eis.ee", CHECKED),
-        ("altum", "ALTUM – Development Finance Institution of Latvia", "LV", "NPB", "", "Riga", 56.949, 24.105, "https://www.altum.lv", CHECKED),
-        ("invega", "INVEGA – Lithuanian Development Promotion Agency", "LT", "NPB", "", "Vilnius", 54.687, 25.279, "https://invega.lt", CHECKED),
-    ]
-    INST += [  # non-EU comparison layer: shown only in the overlap analysis, never added to European totals
-        ("worldbank", "World Bank (IBRD/IDA)", "NONEU", "Non-EU", "World Bank Group", "Washington", 38.899, -77.042, "https://projects.worldbank.org", "automated"),
-        ("ifc", "International Finance Corporation (IFC)", "NONEU", "Non-EU", "World Bank Group", "Washington", 38.902, -77.044, "https://disclosures.ifc.org", "automated"),
-        ("afdb", "African Development Bank Group (incl. African Development Fund)", "NONEU", "Non-EU", "AfDB Group", "Abidjan", 5.320, -4.020, "https://www.afdb.org", "automated"),
-        ("aiib", "Asian Infrastructure Investment Bank (AIIB)", "NONEU", "Non-EU", "", "Beijing", 39.990, 116.390, "https://www.aiib.org", "automated"),
-    ]
-    INST_FIELDS = ["institution_id", "name", "member_state", "type", "parent_group", "hq_city", "hq_lat", "hq_lon", "website", "coverage"]
-
-    # ---------------------------------------------------------------- collectors
-    investments, allocations = [], []
-
-    IMPL_AGENCIES = [  # (pattern, short name, member state) - agencies that implement EU funds under indirect management
-        (r"agence fran[cç]aise de d[ée]veloppement|\bAFD\b|french development agency", "AFD", "FR"), (r"expertise france", "Expertise France", "FR"),
-        (r"civipol", "Civipol", "FR"), (r"proparco", "Proparco", "FR"), (r"deutsche gesellschaft|\bGIZ\b", "GIZ", "DE"),
-        (r"\bkfw\b|kreditanstalt", "KfW", "DE"), (r"enabel|belgian development agency|agence belge de d[ée]veloppement", "Enabel", "BE"),
-        (r"lux[- ]?dev|luxembourg development|lux-development", "LuxDev", "LU"), (r"\bAECID\b|agencia espa[ñn]ola de cooperaci", "AECID", "ES"),
-        (r"\bFIIAPP\b", "FIIAPP", "ES"), (r"\bCOFIDES\b", "COFIDES", "ES"), (r"\bAICS\b|agenzia italiana", "AICS", "IT"),
-        (r"cassa depositi|\bCDP\b", "CDP", "IT"), (r"cam[õo]es", "Camões", "PT"), (r"austrian development agency", "ADA", "AT"),
-        (r"\bFMO\b|nederlandse financierings", "FMO", "NL"), (r"belgian investment|\bBIO\b", "BIO", "BE"), (r"\bDEG\b", "DEG", "DE"),
-        (r"european investment bank|\bEIB\b|\bBEI\b|banque europ[ée]enne d.investissement", "EIB", "EU")]
-    EU_FUND_INST = {"eu-intpa", "eu-eutf", "eu-blending", "eu-aitf", "eu-echo", "eu-fpi"}
-    def impl_agency(text):
-        for rx, short, ms in IMPL_AGENCIES:
-            if re.search(rx, text or "", re.I):
-                return short, ms
-        return "", ""
-
-    def add(inst, src, rec_id, url, title, *, desc="", client="", client_domicile="", instrument="Unknown",
-            sector_broad="Other", sector_detail="", status="", date="", amount=None, currency="EUR",
-            amount_eur=None, es="", shares=None, method="", note="", points=None, basis=None, instrument_detail=""):
-        """shares: dict cc -> pct (or None for unknown); method as in the data model."""
-        if not shares:
-            return
-        inv_id = f"{inst}:{rec_id}"
-        if date and date[:4].isdigit() and int(date[:4]) > datetime.date.today().year + 3:
-            date = ""  # placeholder dates in some IATI files
-        if date and date[:4].isdigit() and int(date[:4]) < PEG_YEAR:
-            return  # the tracker covers operations since the XOF/XAF-euro peg (1 January 1999)
-        ym = (date or "")[:7] if re.match(r"\d{4}-\d{2}", date or "") else (f"{date[:4]}-06" if date else None)
-        fx_rate = None
-        if amount_eur is None and amount is not None:
-            amount_eur, fx_rate = to_eur(amount, currency, ym)
-        investments.append({
-            "investment_id": inv_id, "institution_id": inst, "source_id": src, "source_record_id": rec_id,
-            "source_url": url, "title": (title or "").strip()[:250], "description": re.sub(r"\s+", " ", desc or "").strip()[:600],
-            "client": client, "client_domicile": client_domicile, "instrument": instrument,
-            "sector_broad": sector_broad, "sector_detail": sector_detail, "status": status, "date": date, "instrument_detail": instrument_detail, "tags": "",
-            "impl_agency": impl_agency(re.sub(r"^Lead financier:\s*", "", client))[0] if inst in EU_FUND_INST else "",
-            "impl_ms": impl_agency(re.sub(r"^Lead financier:\s*", "", client))[1] if inst in EU_FUND_INST else "",
-            "year": (date or "")[:4], "amount_original": amount, "currency_original": currency,
-            "fx_rate_per_eur": fx_rate, "amount_eur": round(amount_eur) if amount_eur is not None else None,
-            "amount_basis": basis or ("commitment" if amount_eur is not None else "not disclosed"),
-            "es_category": es, "countries": "|".join(shares), "multi_country": len(shares) > 1,
-            "note": note, "retrieved_at": TODAY})
-        n = len(shares)
-        for cc, pct in shares.items():
-            if method == "iati_percentage":
-                share = pct if pct is not None else 100.0 / n
-            elif method in ("single_country",):
-                share = 100.0
-            elif method == "equal_split_estimate":
-                share = pct if pct is not None else 100.0 / n
-            else:
-                share = None  # regional_unallocated
-            att = round(amount_eur * share / 100) if (amount_eur is not None and share is not None) else None
-            _, name, lat, lon = COUNTRIES[cc]
-            pt = (points or {}).get(cc)
-            allocations.append({"investment_id": inv_id, "institution_id": inst, "country": cc,
-                                "share_pct": round(share, 2) if share is not None else None,
-                                "amount_attributed_eur": att, "attribution_method": method,
-                                "lat": pt[0] if pt else lat, "lon": pt[1] if pt else lon,
-                                "geo_precision": "site" if pt else "country_centroid"})
-
-    # ---- IATI (AFD, KfW via BMZ, FMO, EIB, EBRD, Atradius DSB, Invest International, DGGF)
-    IATI_INST = {"FR-3": "afd", "NL-KVK-27078545": "fmo", "XM-DAC-918-3": "eib", "XI-IATI-EBRD": "ebrd",
-                 "NL-KVK-33226495": "atradius-dsb", "NL-KVK-83517626": "invest-intl",
-                 "NL-KVK-61172863": "dggf", "DE-1": "kfw-db", "XI-IATI-EC_INTPA": "eu-intpa",
-                 "XM-DAC-46002": "afdb", "XM-DAC-903": "ifc",
-                 "XI-IATI-EC_ECHO": "eu-echo", "XI-IATI-EC_FPI": "eu-fpi", "XI-IATI-WBTF": "wbtf"}
-    amounts = {}
-    for r in json.load(open(RAW / "iati_amounts.json")):
-        amounts[r["aid"]] = r
-    # EU money implemented by a member-state agency: classify a record (or one component) as delegated EU funds
-    _WHOLE = re.compile(r"d[ée]l[ée]gation (europ[ée]enne|de l.UE|de l.Union europ\w*|UE)|sur d[ée]l[ée]gation (de l.)?(UE|Union)|"
-                        r"programme de l.Union europ[ée]enne|initiative financ[ée]e par l.Union europ[ée]enne|nom du projet (à|a) l.UE|"
-                        r"le financement de l.Union europ[ée]enne \(UE\)|financ[ée]e? (int[ée]gralement )?par l.(UE|Union europ[ée]enne)|"
-                        r"fonds (de l.UE|europ[ée]ens) d[ée]l[ée]gu|EU[- ]funded|funded by the (EU|European Union)|on behalf of the (EU|European Union)", re.I)
-    _COFI = re.compile(r"cofinanc\w* avec l.(UE|Union)|en compl[ée]ment du projet .{0,40}financ[ée] par l.UE|cofinancement", re.I)
-    _PART = re.compile(r"(\d+(?:[,.]\d+)?)\s*M\s?(?:€|EUR|euros?)\s*(?:\))?\s*(?:de l.UE\s*)?(?:d[ée]l[ée]gu[ée]s?|d[ée]l[ée]gation)|"
-                       r"(?:UE|Union europ[ée]enne)\s*\((\d+(?:[,.]\d+)?)\s*M\s?(?:€|EUR)\s*d[ée]l[ée]gu|top[ -]?up\s*(\d+(?:[,.]\d+)?)\s*M?EUR\s*UE", re.I)
-    def eu_delegated(title, desc, amount_eur):
-        """True when this record's own amount is EU money that the agency implements on the EU's behalf."""
-        text = f"{title} || {desc}"
-        if re.match(r"\s*d[ée]l[ée]gation (europ[ée]enne|UE|de l.UE)", title, re.I):
-            return True
-        parts = [float((a or b or c).replace(",", ".")) * 1e6 for a, b, c in _PART.findall(text)]
-        if parts and amount_eur:
-            return any(abs(amount_eur - p) <= 0.06 * p for p in parts)   # only the component that equals the delegated sum
-        if _WHOLE.search(text) and not _COFI.search(text):
-            return True
-        return False
-
-    eu_delegated_text = eu_delegated
-    EU_DONOR = re.compile(r"EU-Commission|European Commission|European Union|Commission of the European|Netherlands|Dutch|Germany|German|BMZ|Bundesministerium|"
-                          r"KfW|Italy|Itali|France|French|Agence Fran|Denmark|Danish|DANIDA|Belgi|Spain|Spanish|AECID|Finland|Finnish|Sweden|Swedish|SIDA|"
-                          r"Austria|Austrian|Ireland|Irish|Luxembourg|Portugal|Portuguese|Czech|Slovak|Poland|Polish|Hungar|Romania|Bulgaria|Greece|Hellenic|"
-                          r"Sloven|Croatia|Estonia|Latvia|Lithuania|Cyprus|Malta", re.I)
-    NON_EU_DONOR = re.compile(r"Japan|United Kingdom|\bUK\b|DFID|FCDO|Canada|Norway|Norweg|NORAD|Australia|Swiss|Switzerland|SDC|SECO|United States|USAID|"
-                              r"Gates|Korea|China|Russia|Saudi|Kuwait|Qatar|Emirates|New Zealand|Iceland", re.I)
-
-    # Parent activities whose sub-activities are also published (AFD projects, Commission decisions) are skipped:
-    # the money is counted once, at the sub-activity (contract) level.
-    _ids, _kids = set(), {}
-    for f in sorted(glob.glob(str(RAW / "iati" / "*.xml"))):
-        try:
-            for a in etree.parse(f).iter("iati-activity"):
-                aid = (a.findtext("iati-identifier") or "").strip()
-                _ids.add(aid)
-                _kids.setdefault(aid, set()).update(r.get("ref") for r in a.findall("related-activity") if r.get("type") == "2")
-        except etree.XMLSyntaxError:
-            pass
-    PARENTS_WITH_CHILDREN = {aid for aid, kids in _kids.items() if kids & _ids}
-    seen = set()
-    for f in sorted(glob.glob(str(RAW / "iati" / "*.xml"))):
-        ref = pathlib.Path(f).stem.rsplit("_", 1)[0]
-        try:
-            tree = etree.parse(f)
-        except etree.XMLSyntaxError:
-            continue
-        for a in tree.iter("iati-activity"):
-            aid = (a.findtext("iati-identifier") or "").strip()
-            if not aid or aid in seen or aid in PARENTS_WITH_CHILDREN:
-                continue
-            inst = IATI_INST[ref]
-            if inst == "eib" and (RAW / "eib" / "loans.json").exists():
-                continue  # EIB's own project list is more complete and already contains every IATI record
-            porgs = a.findall("participating-org")
-            if ref == "DE-1":  # keep only KfW-implemented financial cooperation
-                if not any(p.get("ref") == "XM-DAC-5-2" or "kfw" in (p.findtext("narrative") or "").lower() for p in porgs):
-                    continue
-            seen.add(aid)
-            shares = {}
-            for rc in a.findall("recipient-country"):
-                cc = rc.get("code", "").upper()
-                if cc in COUNTRIES:
-                    p = rc.get("percentage")
-                    shares[cc] = float(p) if p not in (None, "") else None
-            if not shares:
-                continue
-            n_all = len(a.findall("recipient-country")) + len(a.findall("recipient-region"))
-            method = "single_country" if n_all == 1 and len(shares) == 1 else "iati_percentage"
-            if method == "iati_percentage" and all(v is None for v in shares.values()):
-                method = "equal_split_estimate"
-            title = (a.findtext("title/narrative") or "").strip()
-            desc = " ".join(n.text or "" for n in a.findall("description/narrative"))[:600]
-            if desc.strip() == "Description not provided":
-                desc = ""
-            receivers = [p.findtext("narrative") for p in porgs if p.get("role") == "4" and p.findtext("narrative")]
-            dates = {d.get("type"): d.get("iso-date") for d in a.findall("activity-date")}
-            start = dates.get("2") or dates.get("1") or ""
-            sec = a.find("sector[@vocabulary='1']")
-            if sec is None:
-                sec = a.find("sector")
-            dac = sec.get("code") if sec is not None else None
-            fin = a.find("default-finance-type")
-            fin_code = fin.get("code") if fin is not None else (a.findtext("transaction/finance-type") or "")
-            if fin is None:
-                t_fin = a.find("transaction/finance-type")
-                fin_code = t_fin.get("code") if t_fin is not None else ""
-            status_el = a.find("activity-status")
-            am = amounts.get(aid, {})
-            total, basis = None, None
-            if float(am.get("commitment_eur") or 0):
-                total, basis = float(am["commitment_eur"]), "commitment"
-            elif float(am.get("spend_eur") or 0):
-                total, basis = float(am["spend_eur"]), "disbursement"
-            else:
-                cur0 = a.get("default-currency") or "EUR"
-                def _sum(elems):
-                    tot = 0.0
-                    for v in elems:
-                        try:
-                            val = float(v.text)
-                        except (TypeError, ValueError):
-                            continue
-                        eur, _ = to_eur(val, v.get("currency") or cur0, (v.get("value-date") or "")[:7] or None)
-                        tot += eur or 0
-                    return tot or None
-                buds = a.findall("budget")
-                revised = [b for b in buds if b.get("type") == "2"]
-                total = _sum([b.find("value") for b in (revised or buds) if b.find("value") is not None])
-                basis = "budget" if total else None
-                if not total:
-                    total = _sum([pd.find("value") for pd in a.findall("planned-disbursement") if pd.find("value") is not None])
-                    basis = "planned disbursement" if total else None
-            eu_delegated = inst in ("afd", "fmo", "invest-intl", "dggf") and eu_delegated_text(
-                a.findtext("title/narrative") or "", " ".join(n.text or "" for n in a.findall("description/narrative")), total)
-            facility_contribution = inst == "eu-intpa" and bool(re.search(r"\b(electri ?fi|agrifi)\b", (a.findtext("title/narrative") or ""), re.I)) \
-                and not re.search(r"[ée]lectrification", (a.findtext("title/narrative") or ""), re.I)
-            mixed_donor = False
-            if inst == "wbtf":  # World Bank trust funds: keep only those financed by the EU or EU member states
-                donors = [(p.findtext("narrative") or p.get("ref") or "") for p in a.findall("participating-org[@role='1']")] + \
-                         [(p.findtext("narrative") or p.get("ref") or "") for p in a.findall("transaction/provider-org")]
-                eu_d = [x for x in donors if EU_DONOR.search(x)]
-                non_eu = [x for x in donors if NON_EU_DONOR.search(x) and not EU_DONOR.search(x)]
-                if not eu_d:
-                    continue
-                mixed_donor = bool(non_eu)
-            # d-portal's commitment_eur is the whole-activity total (verified); country split happens in add()
-            pts = {}
-            for loc in a.findall("location"):
-                pos = loc.findtext("point/pos")
-                if pos:
-                    try:
-                        la, lo = map(float, pos.split())
-                    except ValueError:
-                        continue
-                    for cc in shares:
-                        _, _, cla, clo = COUNTRIES[cc]
-                        if abs(la - cla) < 8 and abs(lo - clo) < 9 and cc not in pts:
-                            pts[cc] = (la, lo)
-            add(inst, "iati", aid, f"https://d-portal.org/ctrack.html#view=act&aid={aid}", title or aid,
-                desc=desc, client="; ".join(dict.fromkeys(receivers))[:200], instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
-                sector_broad=broad_sector(dac=dac), sector_detail=SECTORS.get(dac, dac or ""),
-                status=IATI_STATUS.get(status_el.get("code") if status_el is not None else "", ""),
-                date=start, amount_eur=total, shares=shares,
-                method="eu_delegated" if eu_delegated else "facility_contribution" if facility_contribution else "mixed_donor" if mixed_donor else method,
-                points=pts, basis=basis,
-                note=("EU money implemented by this agency on the EU's behalf: counted under the European Commission to avoid double counting. "
-                      if eu_delegated else "Commission payment into an ElectriFI/AgriFI window: counted through that facility's own deals. "
-                      if facility_contribution else "World Bank trust fund with European and non-European donors: the European share is not published, so not counted. "
-                      if mixed_donor else "") + {"commitment": "Amount: commitment in EUR (d-portal).",
-                      "disbursement": "Amount: disbursements in EUR (no commitment reported).",
-                      "budget": "Amount: budget figure from the publisher's IATI record (no commitment or disbursement reported).",
-                      "planned disbursement": "Amount: planned disbursements from the IATI record (no commitment reported).",
-                      None: "No amount reported in IATI."}[basis])
-
-    # ---- IATI regional activities (Commission, KfW via BMZ): Africa-wide, Sub-Saharan, West and Central African operations
-    REGION_NAMES = {"1030": "West Africa", "1028": "Central Africa", "289": "Sub-Saharan Africa", "298": "Africa"}
-    reg_dir = RAW / "iati_regional"
-    if reg_dir.exists():
-        reg_files = sorted(reg_dir.glob("*.xml"))
-        reg_acts = []
-        for f in reg_files:
-            try:
-                reg_acts += [(f.stem, a) for a in etree.parse(str(f)).getroot()]
-            except etree.XMLSyntaxError:
-                pass
-        reg_ids = {a.findtext("iati-identifier") for _, a in reg_acts}
-        reg_parents = {a.findtext("iati-identifier") for _, a in reg_acts
-                       if {r.get("ref") for r in a.findall("related-activity") if r.get("type") == "2"} & (reg_ids | _ids)}
-        for ref, a in reg_acts:
-            aid = (a.findtext("iati-identifier") or "").strip()
-            inst = IATI_INST.get(ref)
-            if not inst or aid in reg_parents or aid in seen:
-                continue
-            if any(rc.get("code", "").upper() in COUNTRIES for rc in a.findall("recipient-country")):
-                continue  # already counted through its Franc Zone country shares
-            porgs = a.findall("participating-org")
-            if ref == "DE-1" and not any(p.get("ref") == "XM-DAC-5-2" or "kfw" in (p.findtext("narrative") or "").lower() for p in porgs):
-                continue
-            regs = [(r.get("code"), r.get("percentage")) for r in a.findall("recipient-region") if r.get("code") in REGION_NAMES]
-            pct = sum(float(p) for _, p in regs if p not in (None, "")) or 100.0
-            pct = min(pct, 100.0)
-            cur0 = a.get("default-currency") or "EUR"
-            def _tx(codes):
-                tot = 0.0
-                for t in a.findall("transaction"):
-                    tt = t.find("transaction-type")
-                    if tt is None or tt.get("code") not in codes:
-                        continue
-                    v = t.find("value")
-                    try:
-                        val = float(v.text)
-                    except (TypeError, ValueError, AttributeError):
-                        continue
-                    d = (v.get("value-date") or (t.find("transaction-date").get("iso-date") if t.find("transaction-date") is not None else "") or "")[:7]
-                    eur, _ = to_eur(val, v.get("currency") or cur0, d or None)
-                    tot += eur or 0
-                return tot or None
-            total = _tx({"2", "C"})
-            basis = "commitment"
-            if not total:
-                total, basis = _tx({"3", "4", "D", "E"}), "disbursement"
-            if not total:
-                buds = a.findall("budget"); rev = [b for b in buds if b.get("type") == "2"]
-                tot = 0.0
-                for b in (rev or buds):
-                    v = b.find("value")
-                    try:
-                        eur, _ = to_eur(float(v.text), v.get("currency") or cur0, (v.get("value-date") or "")[:7] or None); tot += eur or 0
-                    except (TypeError, ValueError, AttributeError):
-                        pass
-                total, basis = (tot or None), "budget"
-            amount = total * pct / 100 if total else None
-            title = (a.findtext("title/narrative") or aid).strip()
-            text = title + " " + " ".join(n.text or "" for n in a.findall("description/narrative")) + " " + " ".join(p.findtext("narrative") or "" for p in porgs)
-            dates = {d.get("type"): d.get("iso-date") for d in a.findall("activity-date")}
-            start = dates.get("2") or dates.get("1") or ""
-            sec = a.find("sector[@vocabulary='1']")
-            if sec is None:
-                sec = a.find("sector")
-            dac = sec.get("code") if sec is not None else None
-            fin = a.find("default-finance-type"); fin_code = fin.get("code") if fin is not None else ""
-            uw = union_wide(text)
-            url = f"https://d-portal.org/ctrack.html#view=act&aid={aid}"
-            if uw:
-                add(inst, "iati-regional", aid, url, title, desc=text[:600], instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
-                    sector_broad=broad_sector(dac=dac) if dac else broad_sector(text), sector_detail=SECTORS.get(dac, dac or ""), status="",
-                    date=start, amount_eur=amount, shares={uw: None}, method="single_country", basis=basis if amount else None,
-                    note=f"Regional operation through the {UNION[uw]}'s own institutions; counted {COUNTRIES[uw][1].split(' (')[0]}.")
-            else:
-                region = next((REGION_NAMES[c] for c in ("1030", "1028", "289", "298") if c in dict(regs)), "Africa")
-                add_regional(inst, "iati-regional", aid, url, title, region, year=start[:4], amount_eur=amount,
-                             sector_broad=broad_sector(dac=dac) if dac else broad_sector(text), instrument=IATI_FIN(fin_code) if fin_code else "Unknown",
-                             note=f"Amount: {basis} for the African regional share of the activity.")
-
-    # ---- EIB (its own signed-loans API; replaces the smaller IATI feed)
-    eib_file = RAW / "eib" / "loans.json"
-    if eib_file.exists():
-        for x in json.load(open(eib_file, encoding="utf-8")):
-            tags = x.get("primaryTags") or []
-            ccs = [t["value"] for t in tags if t.get("subType") == "countries" and t.get("value") in COUNTRIES]
-            if not ccs:
-                continue
-            info = x.get("additionalInformation") or []
-            amt = re.sub(r"[^\d]", "", info[0]) if info and isinstance(info[0], str) else ""
-            ts = info[1] if len(info) > 1 and isinstance(info[1], (int, float)) else x.get("startDate")
-            date = datetime.datetime.fromtimestamp(ts / 1000, datetime.UTC).strftime("%Y-%m") if ts else ""
-            sector = ", ".join(t["label"] for t in tags if t.get("subType") == "sectors")
-            title = x.get("title") or x["id"]
-            add("eib", "eib-api", x["id"], f"https://www.eib.org/en/projects/all/{x['id']}", title,
-                desc=x.get("description") or "", instrument="Equity" if re.search(r"\bFUND\b", title.upper()) else "Loan",
-                sector_broad=broad_sector(sector + " " + title), sector_detail=sector, status="Signed", date=date,
-                amount=float(amt) if amt else None, currency="EUR", shares={c: None for c in ccs},
-                method="single_country" if len(ccs) == 1 else "equal_split_estimate",
-                note="Signed amount as allocated to this country by the EIB. Instrument inferred: fund investments shown as equity, everything else as loans.")
-
-    # ---- EIB regional loans (Regional - Africa / West Africa / Central Africa)
-    eib_reg = RAW / "eib" / "regional.json"
-    if eib_reg.exists():
-        EIB_REG = {"A2": "West Africa", "A4": "Central Africa", "A1": "Africa"}
-        for x in json.load(open(eib_reg, encoding="utf-8")):
-            info = x.get("additionalInformation") or []
-            amt = re.sub(r"[^\d]", "", info[0]) if info and isinstance(info[0], str) else ""
-            ts = info[1] if len(info) > 1 and isinstance(info[1], (int, float)) else x.get("startDate")
-            date = datetime.datetime.fromtimestamp(ts / 1000, datetime.UTC).strftime("%Y-%m") if ts else ""
-            sector = ", ".join(t["label"] for t in (x.get("primaryTags") or []) if t.get("subType") == "sectors")
-            title = x.get("title") or x["id"]
-            text = title + " " + (x.get("description") or "")
-            uw = union_wide(text)
-            url = f"https://www.eib.org/en/projects/all/{x['id']}"
-            instr = "Equity" if re.search(r"\bFUND\b", title.upper()) else "Loan"
-            if uw:
-                add("eib", "eib-api", x["id"], url, title, desc=x.get("description") or "", instrument=instr,
-                    sector_broad=broad_sector(sector + " " + title), sector_detail=sector, status="Signed", date=date,
-                    amount=float(amt) if amt else None, currency="EUR", shares={uw: None}, method="single_country",
-                    note=f"EIB regional loan through the {UNION[uw]}'s own institutions; counted {COUNTRIES[uw][1].split(' (')[0]}.")
-            else:
-                add_regional("eib", "eib-api", x["id"], url, title, EIB_REG.get(x.get("_region"), "Africa"), year=date[:4],
-                             amount_eur=float(amt) if amt else None, sector_broad=broad_sector(sector + " " + title), instrument=instr,
-                             note="EIB regional loan; the share reaching Franc Zone countries is not published.")
-
-    # ---- Proparco
-    _proparco_ids = set()
-    for p in json.load(open(RAW / "proparco" / "projects.json")):
-        f = p.get("fields", {})
-        ctext = f.get("Countries_full") or p.get("countries") or ""
-        ccs = countries_in(ctext)
-        if not ccs:
-            if "Multi-country Africa" in ctext:
-                _a = re.sub(r"[^\d.]", "", (f.get("Financing amount (Euro)") or re.sub(r"[^\d.,]", "", p.get("amount_raw") or "")).replace(",", ""))
-                uw = union_wide(p["title"] + " " + " ".join(f.values()))
-                if uw:
-                    ccs = [uw]
-                else:
-                    add_regional("proparco", "proparco-web", f.get("Project number") or p["url"].rsplit("/", 1)[-1], p["url"], p["title"], "Africa",
-                                 year=p.get("year") or "", amount_eur=float(_a) if _a else None, sector_broad=broad_sector(" ".join(p["tags"])),
-                                 instrument=instrument_from(f.get("Financing tool", "")), note="Proparco multi-country Africa operation.")
-                    continue
-            else:
-                continue
-        amt = f.get("Financing amount (Euro)") or re.sub(r"[^\d.,]", "", p.get("amount_raw") or "")
-        amt = amt.replace(" ", "")
-        if "," in amt and "." not in amt:
-            amt = amt.split(",")[0]
-        amt = re.sub(r"[^\d.]", "", amt)
-        amount = float(amt) if amt else None
-        multi = len([c for c in ctext.split(",") if c.strip()]) > 1
-        method = "single_country" if not multi else "equal_split_estimate"
-        rec = f.get("Project number") or p["url"].rsplit("/", 1)[-1]
-        if rec in _proparco_ids:  # Proparco sometimes reuses a project number for a renewal: keep both deals
-            rec = rec + "-" + p["url"].rstrip("/").rsplit("/", 1)[-1][:40]
-        _proparco_ids.add(rec)
-        add("proparco", "proparco-web", rec, p["url"], p["title"], client=f.get("Customer", ""), instrument_detail=(f.get("Financing tool") or "")[:80],
-            client_domicile=f.get("Country of headquarters", ""),
-            instrument=instrument_from(f.get("Financing tool", "")), sector_broad=broad_sector(" ".join(p["tags"])),
-            sector_detail=", ".join(p["tags"]), status="Signed", date=p.get("year") or "",
-            amount=amount, currency="EUR", es=f.get("Environmental and social ranking", "")[:20],
-            shares={c: None for c in ccs}, method=method,
-            note=("Multi-country deal; countries listed: " + ctext[:300]) if multi else "")
-
-    # ---- BIO
-    MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
-                                          "september", "october", "november", "december"], 1)}
-    for p in json.load(open(RAW / "bio" / "projects.json")):
-        t = p["text"]
-        i = t.find("BIO investment portfolio")
-        body = t[i + len("BIO investment portfolio"):] if i >= 0 else t
-        m = re.match(r"\s*(.+?)\s+\1\s+(Debt|Equity|Mezzanine|Guarantee|Grant|[A-Za-z ]+?)\s*:\s*([A-Za-z]+)\s+(\d{4})", body)
-        title = m.group(1) if m else p["url"].rsplit("/", 1)[-1]
-        date = f"{m.group(4)}-{MONTHS.get(m.group(3).lower(), 6):02d}" if m else ""
-        am = re.search(r"Amount\s+([€$£]|[A-Z]{3})\s*([\d,\.]+)", body)
-        cur = {"€": "EUR", "$": "USD", "£": "GBP"}.get(am.group(1), am.group(1)) if am else "EUR"
-        amount = float(am.group(2).replace(",", "")) if am else None
-        loc = re.search(r"Beneficiary locations (.*?) Investment field", body)
-        ccs = countries_in(loc.group(1)) if loc else p["countries_filter"]
-        n_countries = len([x for x in re.split(r"[,:]", loc.group(1)) if x.strip() and x.strip() not in
-                           ("Africa", "Asia", "Latin America and Caribbean", "Middle East")]) if loc else len(ccs)
-        field = re.search(r"Investment field (.*?) Activity (.*?) Organisation (.*?) (?:Website|Domicile)", body)
-        dom = re.search(r"Domicile (.+?)(?: More investments| [A-Z][a-z]+ [a-z])", body)
-        typ = re.search(r"Type of investment (\w+)", body)
-        add("bio", "bio-web", p["url"].rsplit("/", 1)[-1], p["url"], title,
-            desc=body[body.find(date[:4]) + 4:][:400] if m else "", client=field.group(3) if field else title,
-            client_domicile=dom.group(1).strip()[:60] if dom else "",
-            instrument=instrument_from(typ.group(1) if typ else ""), sector_broad=broad_sector(
-                (field.group(1) + " " + field.group(2)) if field else ""),
-            sector_detail=(field.group(2) if field else "")[:100], status="Signed", date=date,
-            amount=amount, currency=cur, shares={c: None for c in ccs},
-            method="single_country" if n_countries <= 1 and len(ccs) == 1 else "equal_split_estimate",
-            note=f"Beneficiary locations span {n_countries} countries; WAEMU share estimated by equal split." if n_countries > 1 else "")
-
-    # ---- DEG (official CSV)
-    rows = list(csv.DictReader(io.StringIO(open(RAW / "deg" / "deginvest.csv", encoding="utf-8-sig").read()), delimiter=";"))
-    for i, r in enumerate(rows):
-        direct = countries_in(r["Country"])
-        mentioned = countries_in(" ".join([r["Customer description"] or "", r["Funding Objective"] or "", r["Reasons for financing"] or ""]))
-        if direct:
-            shares, method = {c: None for c in direct}, "single_country" if len(direct) == 1 else "equal_split_estimate"
-        elif r["Country"].strip().lower() in ("supraregional", "") and mentioned:
-            shares, method = {c: None for c in mentioned}, "regional_unallocated"
-        elif r["Country"].strip().lower() in ("supraregional", "") and "africa" in (r["Region"] or "").lower():
-            fm2 = re.match(r"([A-Z]{3})\s*([\d\.]+)", (r["Funding"] or "").strip())
-            sd2 = re.match(r"(\d{2})-(\d{4})", r["Signing Date"] or "")
-            eur2 = to_eur(float(fm2.group(2)), fm2.group(1), f"{sd2.group(2)}-{sd2.group(1)}" if sd2 else None)[0] if fm2 else None
-            uw = union_wide(" ".join(v or "" for v in r.values()))
-            if uw:
-                shares, method = {uw: None}, "single_country"
-            else:
-                add_regional("deg", "deg-csv", f"{i}-{re.sub(r'[^a-z0-9]+', '-', r['Customer Name'].lower())[:40]}", "https://deginvest-investments.de/",
-                             r["Customer Name"], "Sub-Saharan Africa", year=sd2.group(2) if sd2 else "", amount_eur=eur2,
-                             sector_broad=broad_sector(r["Sector"]), instrument=instrument_from(r["Investment Instrument"]),
-                             note="DEG supraregional Sub-Saharan Africa commitment.")
-                continue
-        else:
-            continue
-        fm = re.match(r"([A-Z]{3})\s*([\d\.]+)", (r["Funding"] or "").strip())
-        sd = re.match(r"(\d{2})-(\d{4})", r["Signing Date"] or "")
-        add("deg", "deg-csv", f"{i}-{re.sub(r'[^a-z0-9]+', '-', r['Customer Name'].lower())[:40]}",
-            "https://deginvest-investments.de/", r["Customer Name"], desc=r["Funding Objective"],
-            client=r["Customer Name"], client_domicile=r["Domiciliation"] or r["Country"],
-            instrument=instrument_from(r["Investment Instrument"]), sector_broad=broad_sector(r["Sector"]),
-            sector_detail=r["Sector"], status="Signed", date=f"{sd.group(2)}-{sd.group(1)}" if sd else "",
-            amount=float(fm.group(2)) if fm else None, currency=fm.group(1) if fm else "EUR",
-            es=r["Environmental & Social Category"], shares=shares, method=method,
-            note="Supraregional commitment; WAEMU countries mentioned in DEG's description, amount not allocated."
-            if method == "regional_unallocated" else "")
-
-    # ---- Finnfund & IFU (WordPress)
-    for key, inst in (("finnfund", "finnfund"), ("ifu", "ifu")):
-        d = json.load(open(RAW / key / "posts.json"))
-        seen_titles = set()
-        for p in d["posts"]:
-            terms = [(t["taxonomy"], html.unescape(t["name"])) for grp in p.get("_embedded", {}).get("wp:term", []) if isinstance(grp, list) for t in grp if isinstance(t, dict)]
-            if not terms:  # some sites don't embed terms: resolve ids via the saved term table
-                terms = [(tx, html.unescape(d["terms"].get(str(i), ""))) for tx in ("country", "region") for i in p.get(tx, []) or []]
-            title = html.unescape(p["title"]["rendered"])
-            if title.lower() in seen_titles:
-                continue  # Finnish/English duplicates
-            seen_titles.add(title.lower())
-            ctry = [n for tx, n in terms if tx in ("country", "region")]
-            ccs = countries_in(", ".join(ctry))
-            if not ccs:
-                continue
-            other = [c for c in ctry if not countries_in(c) and c not in ("Africa", "Afrika", "Africa (Regional)", "Global")]
-            amt = next((n for tx, n in terms if tx == "sum_of_investment"), None)
-            year = next((n for tx, n in terms if tx == "year_category"), "") or p["date"][:4]
-            sect = ", ".join(n for tx, n in terms if tx in ("venture_sector", "sector"))
-            inst_t = ", ".join(n for tx, n in terms if tx in ("venture_category", "instrument"))
-            # IFU's data feed still returns old addresses that its website now answers with "Page not found": link its live portfolio instead
-            link = "https://impactfund.dk/investment-portfolio/" if key == "ifu" else p["link"]
-            add(inst, f"{key}-wp", str(p["id"]), link, title, client=title,
-                instrument=instrument_from(inst_t + (" fund" if "fund" in inst_t.lower() else "")),
-                sector_broad=broad_sector(sect), sector_detail=sect, status="Signed", date=str(year),
-                amount=float(amt) if amt and amt.isdigit() else None, currency="EUR", basis="band estimate" if (key == "finnfund" and amt and amt.isdigit()) else None,
-                shares={c: None for c in ccs}, method="single_country" if len(ccs) == 1 and not other else "equal_split_estimate",
-                note="Amount is the band published by Finnfund." if key == "finnfund" and amt else
-                     ("Amount not disclosed." if not amt else ""))
-
-    # ---- Editable templates: created once so they can be filled in directly on GitHub
-    for _name, _header in [("manual_entries.csv", "institution_id,title,client,countries,year,instrument,sector,amount,currency,source_url,note"),
-                           ("programmes_manual.csv", "programme_id,name,kind,countries,participants,amount_eur,period,description,source_url,note")]:
-        if not (OUT / _name).exists():
-            (OUT / _name).write_text(_header + "\n", encoding="utf-8")
-
-    # ---- Manual research sheet (ECAs, NPBs, JavaScript-only DFI sites). One row per deal.
-    # countries: ISO2 codes separated by | (e.g. SN|CI). Keep a source_url for every row.
-    manual = OUT / "manual_entries.csv"
-    KNOWN_INST = {i[0] for i in INST}
-    rejected = []
-    if manual.exists():
-        for i, r in enumerate(csv.DictReader(open(manual, encoding="utf-8-sig"))):
-            r = {k.strip(): (v or "").strip() for k, v in r.items() if k}
-            if not any(r.values()):
-                continue
-            ccs = [c.strip().upper() for c in (r.get("countries") or "").split("|") if c.strip().upper() in COUNTRIES]
-            problems = []
-            if r.get("institution_id") not in KNOWN_INST:
-                problems.append(f"unknown institution_id '{r.get('institution_id')}' (see data/institutions.csv)")
-            if not ccs:
-                problems.append(f"no valid country code in '{r.get('countries')}' (use codes such as SN or CM|TD)")
-            amt_txt = (r.get("amount") or "").replace(" ", "")
-            if amt_txt and not amt_txt.replace(".", "", 1).isdigit():
-                problems.append(f"amount '{r.get('amount')}' must be digits only")
-            if (r.get("currency") or "EUR").upper() not in set(FX_FIXED) | {c for c, _ in FX}:
-                problems.append(f"currency '{r.get('currency')}' not supported")
-            if problems:
-                rejected.append({"row": i + 2, "title": r.get("title", ""), "problems": "; ".join(problems)})
-                continue
-            r["currency"] = (r.get("currency") or "EUR").upper()
-            r["amount"] = amt_txt
-            amt = float(r["amount"]) if (r.get("amount") or "").replace(".", "", 1).isdigit() else None
-            add(r["institution_id"], "manual", f"m{i}", r.get("source_url", ""), r.get("title", ""),
-                client=r.get("client", ""), instrument=r.get("instrument") or "Unknown",
-                sector_broad=broad_sector(r.get("sector", "")), sector_detail=r.get("sector", ""), status="Signed",
-                date=r.get("year", ""), amount=amt, currency=r.get("currency") or "EUR",
-                shares={c: None for c in ccs}, method="single_country" if len(ccs) == 1 else "equal_split_estimate",
-                note=r.get("note", ""))
-
-    # ---- Curated deals from press releases (institutions that publish no deal database). Amounts only when published.
-    CURATED_DEALS = [
-        # inst, record id, title, countries, year, instrument, sector, client, source, note
-        ("bgk", "wielton-ci-2020", "Export of 25 Wielton trailers to Côte d'Ivoire (purchase of export receivables)", "CI", "2020",
-         "Export finance", "Transport equipment", "Wielton S.A. (Polish exporter)", "https://kuke.com.pl/wiedza/bgk-i-kuke-wspieraja-afrykanski-kontrakt-wieltonu/",
-         "BGK bought the receivables of the export contract; amount not published."),
-        ("kuke", "wielton-ci-2020", "Insurance of Wielton's export contract for 25 trailers to Côte d'Ivoire", "CI", "2020",
-         "Guarantee", "Transport equipment", "Wielton S.A. (Polish exporter)", "https://kuke.com.pl/wiedza/bgk-i-kuke-wspieraja-afrykanski-kontrakt-wieltonu/",
-         "Export credit insurance; amount not published."),
-        ("bgk", "wielton-wa-buyer-credit", "Buyer credit for Wielton trailers and tractors sold to transport companies in Mali, Côte d'Ivoire, Togo and Benin", "ML CI TG BJ", "",
-         "Export finance", "Transport equipment", "West African transport companies", "https://www.trade.gov.pl/wiedza/biznesowy-wymiar-wspolpracy-polski-z-afryka-czesc-3-3/",
-         "Financing of foreign buyers of Polish goods; amounts and dates not published."),
-        ("bgk", "senegal-deferred-payment", "Two-year deferred payment financing for Senegalese buyers of Polish goods, including food products", "SN", "",
-         "Export finance", "Trade", "Senegalese importers", "https://www.trade.gov.pl/wiedza/biznesowy-wymiar-wspolpracy-polski-z-afryka-czesc-3-3/",
-         "Amount and date not published."),
-    ]
-    for inst, rid, title, ccs, year, instrument, sector, client, src, note in CURATED_DEALS:
-        cc_list = ccs.split()
-        add(inst, "curated", rid, src, title, client=client, instrument=instrument, sector_broad=broad_sector(sector),
-            sector_detail=sector, status="Signed", date=year, amount=None, shares={c: None for c in cc_list},
-            method="single_country" if len(cc_list) == 1 else "equal_split_estimate", note=note)
-
-    # ---- COFIDES (Spain), from its filtered project list
-    cof_file = RAW / "cofides" / "projects.json"
-    if cof_file.exists():
-        seen_cof = set()
-        for r in json.load(open(cof_file, encoding="utf-8")):
-            ccs = countries_in(r["country"]) or [r["cc"]]
-            key = r["name"]
-            if key in seen_cof:
-                continue
-            seen_cof.add(key)
-            add("cofides", "cofides-web", re.sub(r"[^a-z0-9]+", "-", key.lower())[:50], r["url"], key, desc=r["activity"], client=key,
-                instrument=instrument_from(r["instrument"]), sector_broad=broad_sector(r["sector"] + " " + r["activity"]),
-                sector_detail=r["sector"], status="Signed", shares={c: None for c in ccs},
-                method="single_country" if len(ccs) == 1 else "equal_split_estimate", note="Amount not published by COFIDES.")
-
-    # ---- More curated deals from public sources (round 2). Amounts as published; None when not published.
-    CURATED_DEALS_2 = [
-        # inst, id, title, countries, year, instrument, sector, client, amount, currency, source, note
-        ("swedfund", "cofina-2024", "Loan to COFINA for MSME and women-entrepreneur finance in Côte d'Ivoire and Senegal", "CI SN", "2024", "Loan",
-         "Financial inclusion SME", "Compagnie Financière Africaine (COFINA)", 20e6, "EUR",
-         "https://www.mynewsdesk.com/swedfund/pressreleases/closing-msme-finance-gap-in-cote-divoire-and-senegal-3354367", "Split equally between the two countries."),
-        ("swedfund", "bbm-2024", "Loan to Teyliom Finance for Bridge Bank Microfinance, Côte d'Ivoire", "CI", "2024", "Loan",
-         "Microfinance SME", "Teyliom Finance / Bridge Bank Microfinance", 5e6, "USD",
-         "https://www.avca.africa/news-insights/member-news/swedfunds-investment-fuels-financial-inclusion-in-west-africa/", "Co-investment with BluePeak (USD 25m in total)."),
-        ("bpifrance-ae", "air-senegal-2019", "Export credit guarantee for Airbus aircraft delivered to Air Sénégal", "SN", "2019", "Guarantee",
-         "Air transport", "Air Sénégal", None, "EUR", "https://www.bpifrance.fr/download/media-file/69978", "Amount not published in the source."),
-        ("sace", "benin-push-2024", "Guarantee on a €120m financing for Benin's Ministry of Finance (Push Strategy)", "BJ", "2024", "Guarantee",
-         "Budget public finance", "Ministry of Finance of Benin", 120e6, "EUR",
-         "https://www.teleborsa.it/News/2024/07/24/sace-prima-operazione-di-push-strategy-in-benin-garanzia-su-finanziamento-da-120-milioni-di-euro-83.html", "Amount is the guaranteed financing."),
-        ("sace", "togo-agri-machinery", "Guarantee on a €78.3m financing for Italian agricultural machinery (€100m contract)", "TG", "", "Guarantee",
-         "Agriculture equipment", "Togolese buyer", 78.3e6, "EUR",
-         "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", "Under the Mattei Plan; date not stated in the source."),
-        ("cdp", "ci-agropole-north", "Co-financing of an agropole in northern Côte d'Ivoire", "CI", "2026", "Loan",
-         "Agriculture agro-industry", "Government of Côte d'Ivoire", None, "EUR",
-         "https://news.abidjan.net/articles/749230/financement-du-developpement-la-cassa-depositi-e-prestiti-ouvre-un-bureau-a-abidjan", "Amount and instrument not published; CDP opened an Abidjan office in 2026."),
-        ("eifo", "taiba-ndiaye-2018", "Guarantee on a €140m export loan for the Taiba N'Diaye wind farm (Vestas turbines)", "SN", "2018", "Guarantee",
-         "Wind energy", "Parc Eolien Taiba N'Diaye (Lekela)", 140e6, "EUR",
-         "https://www.nsenergybusiness.com/projects/taiba-ndiaye-wind-farm-senegal/", "Guaranteed by EKF, now EIFO."),
-        ("credendo", "cotonou-coast-2018", "Insurance of a €43.5m financing for coastal protection works in Cotonou", "BJ", "2018", "Guarantee",
-         "Coastal protection climate adaptation", "Republic of Benin", 43.5e6, "EUR",
-         "https://iciec.isdb.org/wp-content/uploads/2020/12/2018-en.pdf", "Listed in ICIEC's 2018 annual report with Credendo as client."),
-    ]
-    for inst, rid, title, ccs, year, instrument, sector, client, amount, cur, src, note in CURATED_DEALS_2:
-        cc_list = ccs.split()
-        add(inst, "curated", rid, src, title, client=client, instrument=instrument, sector_broad=broad_sector(sector), sector_detail=sector,
-            status="Signed", date=year, amount=amount, currency=cur, shares={c: None for c in cc_list},
-            method="single_country" if len(cc_list) == 1 else "equal_split_estimate", note=note,
-            basis="published in press release" if amount else None)
-
-    # ---- OeEB (Austria): project pages that name a Franc Zone country
-    oeeb_file = RAW / "oeeb" / "projects.json"
-    if oeeb_file.exists():
-        WAEMU_CC = [c for c in COUNTRIES if UNION[c] == "WAEMU"]
-        for pjt in json.load(open(oeeb_file, encoding="utf-8")):
-            t, f = pjt["text"], pjt["fields"]
-            name = f.get("Project name") or pjt["url"].rsplit("/", 1)[-1]
-            ccs = countries_in(t)
-            is_boad = "BOAD" in name or "Ouest Africaine" in name
-            if is_boad:
-                ccs = ["XW"]
-            if not ccs:
-                continue  # supra-regional facilities that name no Franc Zone country
-            m = re.search(r"(?:OeEB project volume|Project volume)\s+(EUR|USD)\s+([\d.,]+)\s*(million|thousand)?", t, re.I)
-            amount = float(m.group(2).replace(",", "")) * {"million": 1e6, "thousand": 1e3}.get((m.group(3) or "").lower(), 1) if m else None
-            cur = m.group(1).upper() if m else "EUR"
-            pc = re.search(r"Project country\s+([A-Z][A-Za-z' -]+?)(?:\s+Project|\s+OeEB|$)", t)
-            country_field = f.get("Country") or (pc.group(1) if pc else "")
-            listed = [x for x in re.split(r",|\band\b", re.sub(r"\(.*?\)", "", country_field)) if x.strip()]
-            if is_boad:
-                shares, method, note = {"XW": None}, "single_country", "Credit line to the WAEMU's development bank; counted WAEMU-wide."
-            elif country_field and len(listed) == 1 and len(ccs) == 1:
-                shares, method, note = {ccs[0]: None}, "single_country", ""
-            elif country_field:
-                shares, method = {c: 100.0 / len(listed) for c in ccs}, "equal_split_estimate"
-                note = f"OeEB lists {len(listed)} countries ({country_field}); the Franc Zone share is estimated by equal split."
-            else:
-                n_named = len(ccs)
-                for sent in re.split(r"(?<=[.;])\s+", t):  # the sentence that lists the countries: "... in X, Y and Z."
-                    if countries_in(sent):
-                        seg = re.split(r"\bin\s+(?=[A-ZÀ-Ý])", sent)[-1]
-                        seg = re.split(r"\.|;|, as well| as well|\(", seg)[0]
-                        items = [x.strip() for x in re.split(r",|\band\b", seg) if x.strip()[:1].isupper()]
-                        n_named = max(n_named, len(items))
-                        break
-                if n_named and n_named <= 3 and "other countries" not in t and "including countries such as" not in t:
-                    shares, method = {c: 100.0 / n_named for c in ccs}, "equal_split_estimate"
-                    note = f"Operation spans {n_named} named countries; the Franc Zone share is estimated by equal split."
-                else:
-                    shares, method = {c: None for c in ccs}, "regional_unallocated"
-                    note = "Regional or pan-African operation that names Franc Zone countries; amount not allocated to them."
-            add("oeeb", "oeeb-web", pjt["url"].rsplit("/", 1)[-1].replace(".html", ""), pjt["url"], name,
-                desc=t[:400], client=(f.get("Project partner(s)") or name)[:80], instrument=instrument_from(f.get("Service", "")),
-                sector_broad=broad_sector(f.get("Sector", "") + " " + name + " " + t[:600]), sector_detail=f.get("Sector", "")[:80],
-                status="Signed", date=pjt.get("date", ""), amount=amount, currency=cur, shares=shares, method=method, note=note)
-
-    # ---- EU-Africa Infrastructure Trust Fund (EU-AITF): every grant whose countries the fund's 2019 annual report lists,
-    # with net approved amounts; grants approved later and cancellations taken from the fund's grant list.
-    AITF_SRC = "https://www.eu-africa-infrastructure-tf.net/activities/grant-operations.pdf"
-    AITF_REPORT = "https://www.eib.org/attachments/country/eu_africa_infrastructure_trust_fund_annual_report_2019_en.pdf"
-    AITF_TYPE = {"IG": "Investment grant", "TA": "Technical assistance grant", "IRS": "Interest rate subsidy", "DG": "Direct grant",
-                 "FI": "Financial instrument", "MS": "Grant"}
-    AITF_RECS = [{'name': 'CLSG Interconnection Project', 'type': 'TA', 'lead': 'EIB', 'amount': 2951980.0, 'year': '2007', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Felou Hydropower plant', 'type': 'IRS', 'lead': 'EIB', 'amount': 6319083.5, 'year': '2007', 'status': 'Completed', 'kind': 'split', 'shares': {'ML': 33.33, 'SN': 33.33}, 'n': 3, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Update of the WAPP Masterplan', 'type': 'TA', 'lead': 'EIB', 'amount': 1306623.75, 'year': '2009', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 14, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Benin - Togo Power Rehabilitation', 'type': 'IRS', 'lead': 'EIB', 'amount': 2250000.0, 'year': '2009', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'BJ': 50.0, 'TG': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'ECOWAS Electricity Regulation (ERERA)', 'type': 'TA', 'lead': 'AFD', 'amount': 1700000.0, 'year': '2009', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 15, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Port de Pointe Noire (PAPN)', 'type': 'IRS', 'lead': 'AFD', 'amount': 5592803.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CF': 25.0, 'TD': 25.0, 'CG': 25.0}, 'n': 4, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Sambangalou Hydro Power Plant', 'type': 'TA', 'lead': 'AFD', 'amount': 290415.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'GW': 25.0, 'SN': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Port de Pointe Noire (PAPN)', 'type': 'TA', 'lead': 'AFD', 'amount': 1719287.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CF': 25.0, 'TD': 25.0, 'CG': 25.0}, 'n': 4, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'WAPP - Coastal Backbone transmission line', 'type': 'TA', 'lead': 'EIB', 'amount': 1753979.0, 'year': '2009', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Feasibility study for the Western part of Umojanet', 'type': 'TA', 'lead': 'AFD', 'amount': 1104961.88, 'year': '2010', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 10, 'sector': 'ICT', 'region': 'West Africa'}, {'name': 'AXIS - The African Internet Exchange System', 'type': 'TA', 'lead': 'Lux-Dev', 'amount': 5100000.0, 'year': '2010', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 23, 'sector': 'ICT', 'region': 'Sub-Saharan Africa'}, {'name': 'Capacity building for BOAD (focused on climate change, environmental and social issues in project financing)', 'type': 'TA', 'lead': 'EIB', 'amount': 900000.0, 'year': '2010', 'status': 'Ongoing', 'kind': 'union', 'shares': {'XW': None}, 'n': 8, 'sector': 'Multisector', 'region': 'West Africa'}, {'name': 'Satellite enhanced Telemedicine and e-Health for Sub- Saharan Africa (eHSA)', 'type': 'TA', 'lead': 'Lux-Dev', 'amount': 4000000.0, 'year': '2010', 'status': 'Completed', 'kind': 'regional', 'shares': {}, 'n': 1, 'sector': 'ICT', 'region': 'Sub-Saharan Africa'}, {'name': 'Access to Douala', 'type': 'IRS', 'lead': 'AFD', 'amount': 1314257.88, 'year': '2010', 'status': 'Completed', 'kind': 'single', 'shares': {'CM': None}, 'n': 1, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'IRS', 'lead': 'AFD', 'amount': 169702.63, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'IRS', 'lead': 'EIB', 'amount': 231703.31, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Interconnection Bolgatanga- Ouagadougou', 'type': 'TA', 'lead': 'AFD', 'amount': 4800000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'split', 'shares': {'BF': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'TA', 'lead': 'EIB', 'amount': 1500000.0, 'year': '2011', 'status': 'Completed', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'WAPP Power Interconnection in West Africa (Ghana-Burkina Faso-Mali)', 'type': 'TA', 'lead': 'AFD', 'amount': 1200000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'split', 'shares': {'BF': 33.33, 'ML': 33.33}, 'n': 3, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Development and implementation of a Social and Environmental Management System (SEMS) at BOAD', 'type': 'TA', 'lead': 'AfDB', 'amount': 400000.0, 'year': '2011', 'status': 'Ongoing', 'kind': 'union', 'shares': {'XW': None}, 'n': 8, 'sector': 'Multisector', 'region': 'West Africa'}, {'name': 'Togo-Burkina Faso Road Corridor: Lome- Ouaga Road and Transport Facilitation Project', 'type': 'TA', 'lead': 'AfDB', 'amount': 2340000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'BF': 50.0, 'TG': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'ASECNA', 'type': 'TA', 'lead': 'EIB', 'amount': 2000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 17, 'sector': 'Transport', 'region': 'Sub-Saharan Africa'}, {'name': 'Africa Energy Guarantee Facility (AEGF)', 'type': 'TA', 'lead': 'EIB', 'amount': 1000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 11, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'DG', 'lead': 'AfDB', 'amount': 10000000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'CLSG Interconnection Project', 'type': 'IRS', 'lead': 'EIB', 'amount': 12500000.0, 'year': '2012', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CI': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Congo-Gabon: Brazzaville- Libreville road Transport Facilitation Project', 'type': 'TA', 'lead': 'AfDB', 'amount': 3402100.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'GA': 50.0, 'CG': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'Rural Roads Infrastructures Development (2RID)', 'type': 'TA', 'lead': 'CDP', 'amount': 4579050.0, 'year': '2015', 'status': 'Ongoing', 'kind': 'split', 'shares': {'NE': 50.0}, 'n': 2, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'ASECNA - Programme EGNOS', 'type': 'TA', 'lead': 'AFD', 'amount': 5000000.0, 'year': '2016', 'status': 'Ongoing', 'kind': 'regional', 'shares': {}, 'n': 17, 'sector': 'Transport', 'region': 'Sub-Saharan Africa'}, {'name': 'Niger Electricity Access II (NELACEP II)', 'type': 'IG', 'lead': 'EIB', 'amount': 18200000.0, 'year': '2018', 'status': 'Cancelled', 'kind': 'single', 'shares': {'NE': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Extension of NIGELEC Networks', 'type': 'IG', 'lead': 'AFD', 'amount': 11000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'single', 'shares': {'NE': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'SUNREF – West Africa Phase I', 'type': 'IG', 'lead': 'AFD', 'amount': 3000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'CI': 14.29, 'SN': 14.29, 'BF': 14.29, 'TG': 14.29, 'BJ': 14.29, 'GW': 14.29, 'NE': 14.29}, 'n': 7, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'SUNREF – West Africa Phase I', 'type': 'TA', 'lead': 'AFD', 'amount': 1500000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'allfz', 'shares': {'CI': 14.29, 'SN': 14.29, 'BF': 14.29, 'TG': 14.29, 'BJ': 14.29, 'GW': 14.29, 'NE': 14.29}, 'n': 7, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Clean Cooking Program for Africa (GLPGP)', 'type': 'TA', 'lead': 'KfW', 'amount': 1700000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'split', 'shares': {'CM': 25.0}, 'n': 4, 'sector': 'Energy', 'region': 'Central Africa'}, {'name': 'Access to Electricity in the Atlantique Province in Benin', 'type': 'IG', 'lead': 'AFD', 'amount': 20000000.0, 'year': '2013', 'status': 'Ongoing', 'kind': 'single', 'shares': {'BJ': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Solar Hybridization to Increase National Electrification - SHINE', 'type': 'IG', 'lead': 'AFD', 'amount': 14400000.0, 'year': '2015', 'status': 'Cancelled', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Solar Hybridization to Increase National Electrification - SHINE', 'type': 'TA', 'lead': 'AFD', 'amount': 3600000.0, 'year': '2015', 'status': 'Ongoing', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Djermaya Solar', 'type': 'FI', 'lead': 'PIDG', 'amount': 6350000.0, 'year': '2016', 'status': 'Ongoing', 'kind': 'single', 'shares': {'TD': None}, 'n': 1, 'sector': 'Energy', 'region': 'Central Africa'}, {'name': 'Rehabilitation of the Cotton Road Djougou- Pehunco-Kérou- Banikoara', 'type': 'IG', 'lead': 'AfDB', 'amount': 9400000.0, 'year': '2019', 'status': 'Ongoing', 'kind': 'single', 'shares': {'BJ': None}, 'n': 1, 'sector': 'Transport', 'region': 'West Africa'}, {'name': 'Togo Cizo Pay- As-You-Go Solar Electrification Project For Rural Populations', 'type': 'IG', 'lead': 'AfDB', 'amount': 9990000.0, 'year': '2019', 'status': 'Ongoing', 'kind': 'single', 'shares': {'TG': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'Rehabilitation of RN1 and RN2 road sections and construction of the Maroua bypass routes', 'type': 'IG', 'lead': 'AfDB', 'amount': 30000000.0, 'year': '2022', 'status': 'Approved', 'kind': 'single', 'shares': {'CM': None}, 'n': 1, 'sector': 'Transport', 'region': 'Central Africa'}, {'name': 'EIB technical assistance in sub-Saharan Africa', 'type': 'TA', 'lead': 'EIB', 'amount': 14700000.0, 'year': '2020', 'status': 'Approved', 'kind': 'regional', 'shares': {}, 'n': 0, 'sector': 'Multisector', 'region': 'Sub-Saharan Africa'}, {'name': 'Mauritania - Senegal interconnection', 'type': 'TA', 'lead': '', 'amount': 5500000.0, 'year': '', 'status': 'Cancelled', 'kind': 'split', 'shares': {'SN': 50.0}, 'n': 2, 'sector': 'Energy', 'region': 'West Africa'}, {'name': 'ESIA for the Gouina hydropower plant (Mali)', 'type': 'TA', 'lead': '', 'amount': 1000000.0, 'year': '', 'status': 'Cancelled', 'kind': 'single', 'shares': {'ML': None}, 'n': 1, 'sector': 'Energy', 'region': 'West Africa'}]
-    AITF_FZ = []  # used for the Programmes view
-    for r in AITF_RECS:
-        rid = re.sub(r"[^a-z0-9]+", "-", (r["name"] + " " + r["type"] + " " + r["year"]).lower())[:70]
-        src = AITF_REPORT if r["year"] and int(r["year"]) <= 2019 and r["status"] != "Cancelled" else AITF_SRC
-        detail = AITF_TYPE.get(r["type"], "Grant")
-        lead = f", lead financier {r['lead']}" if r["lead"] else ""
-        if r["kind"] == "regional":
-            add_regional("eu-aitf", "eu-aitf", rid, src, r["name"], r["region"], year=r["year"], amount_eur=r["amount"],
-                         sector_broad=broad_sector(r["sector"] + " " + r["name"]), instrument="Grant", note=f"EU-AITF {detail.lower()}{lead}.")
-            continue
-        shares = r["shares"] if r["kind"] != "union" else {"XW": None}
-        method = "single_country" if r["kind"] in ("single", "union") else "equal_split_estimate"
-        if r["status"] == "Cancelled":
-            add("eu-aitf", "eu-aitf", rid, src, r["name"], client=f"Lead financier: {r['lead'] or 'not stated'}", instrument="Grant",
-                instrument_detail=detail, sector_broad=broad_sector(r["sector"] + " " + r["name"]), sector_detail=r["sector"], status="Cancelled",
-                date=r["year"], amount=None, shares=shares, method="cancelled",
-                note=f"Cancelled: approved for €{r['amount'] / 1e6:.2f}m but never paid, so not counted in any total.")
-            continue
-        if r["kind"] == "union":
-            note = "Through the WAEMU's development bank (BOAD): counted WAEMU-wide."
-        elif method == "equal_split_estimate":
-            note = f"The fund lists {r['n']} countries; the Franc Zone share is estimated by equal split."
-        else:
-            note = ""
-        add("eu-aitf", "eu-aitf", rid, src, r["name"], client=f"Lead financier: {r['lead']}", instrument="Grant" if r["type"] != "FI" else "Loan",
-            instrument_detail=detail, sector_broad=broad_sector(r["sector"] + " " + r["name"]), sector_detail=r["sector"], status=r["status"],
-            date=r["year"], amount=r["amount"], currency="EUR", shares=shares, method=method,
-            basis="net approved grant (EU-AITF annual report)" if src == AITF_REPORT else "approved grant (EU-AITF grant list)",
-            note=(f"EU-AITF {detail.lower()}{lead}. " + note).strip())
-        AITF_FZ.append((r, shares, detail))
-    for r in regional:  # contributions INTO the fund: part of this money is the grants listed above
-        if re.search(r"infrastructure trust fund", r["title"], re.I) and r["institution_id"] != "eu-aitf":
-            r["note"] = (r["note"] + " Contribution to the EU-Africa Infrastructure Trust Fund: its Franc Zone grants are listed separately under EU-AITF, so do not add the two.").strip()
-
-    # ---- EU Emergency Trust Fund for Africa (EUTF): programmes in Franc Zone countries
-    SLC_OTHERS = re.compile(r"Mauritani|Nigeria|Ghana|\bGuin[eé]e?\b(?!-| Bissau| [EÉ]quatoriale| Equatorial)|Gambi|Liberia|Sierra Leone|Morocco|Libya|Algeria|Tunisia|Egypt", re.I)
-    EUTF_PAGE = {"burkina-faso": "BF", "mali": "ML", "niger": "NE", "tchad": "TD", "cote-divoire": "CI", "senegal": "SN", "cameroun": "CM"}
-    eutf_file = RAW / "eutf" / "programmes.json"
-    if eutf_file.exists():
-        for pr in json.load(open(eutf_file, encoding="utf-8")):
-            locs = pr.get("locations") or ""
-            ccs = [c for c in countries_in(locs) if c in COUNTRIES]
-            n_other = len(set(m.group(0).lower()[:5] for m in SLC_OTHERS.finditer(locs)))
-            if not ccs:
-                ccs = [EUTF_PAGE[p] for p in pr.get("country_pages", []) if p in EUTF_PAGE]
-                n_other = 0
-            if not ccs:
-                continue
-            n_total = len(ccs) + n_other
-            shares = {c: (None if n_total == 1 else round(100.0 / n_total, 2)) for c in ccs}
-            add("eu-eutf", "eutf-web", pr.get("ref") or re.sub(r"[^a-z0-9]+", "-", pr["url"].rsplit("/", 1)[-1].lower())[:60], pr["url"], pr["title"],
-                client=(pr.get("partner") or "")[:150], instrument="Grant", instrument_detail="Trust fund grant",
-                sector_broad=broad_sector((pr.get("theme") or "") + " " + pr["title"]), sector_detail=(pr.get("theme") or "")[:100], status="Approved",
-                date=pr.get("start_year") or "", amount=pr.get("amount"), currency="EUR", shares=shares,
-                method="single_country" if n_total == 1 else "equal_split_estimate", basis="EU contribution (EUTF programme page)",
-                note=("EU Emergency Trust Fund for Africa programme" + (f"; implemented by {pr['partner'][:80]}" if pr.get("partner") else "") + ". "
-                      + ("" if n_total == 1 else f"Covers {n_total} countries; the Franc Zone share is estimated by equal split.")).strip())
-
-    # ---- ElectriFI and AgriFI (EU-funded investment facilities managed by EDFI Management Company)
-    OTHER_CTRY = re.compile(r"Burundi|Zambia|Kenya|\bDRC\b|Haiti|India|Myanmar|Ecuador|Nicaragua|Peru|Ghana|Nigeria|Rwanda|Uganda|Cambodia|Indonesia|Madagascar|"
-                            r"Tanzania|Mozambique|Malawi|Ethiopia|Sierra Leone|Liberia|Guinea(?!-Bissau)|Somalia|Sudan|Zimbabwe|Namibia|Pacific|Philippines", re.I)
-    def _eur_amount(txt, year):
-        txt = txt or ""
-        m = re.search(r"\(EUR\s*([\d.,]+)\s*m", txt)
-        if m:
-            return float(m.group(1).replace(",", "")) * 1e6
-        tot = 0.0
-        for cur, num, unit in re.findall(r"(EUR|USD|€)\s*([\d.,]+)\s*(million|m\b|M\b)?", txt):
-            val = float(num.replace(",", "")) if num.count(",") != 1 or "." in num else float(num.replace(",", ""))
-            val = val * 1e6 if (unit or val < 1000) else val
-            tot += to_eur(val, "USD", f"{year}-06")[0] if cur == "USD" else val
-        return tot or None
-    edfi_file = RAW / "edfimc" / "projects.json"
-    if edfi_file.exists():
-        for pjt in json.load(open(edfi_file, encoding="utf-8")):
-            f = pjt["fields"]
-            ctext = f.get("Country") or pjt["card"]
-            ccs = [c for c in countries_in(ctext) if c in COUNTRIES]
-            if not ccs:
-                continue
-            n_total = len(ccs) + len(set(m.group(0).lower() for m in OTHER_CTRY.finditer(ctext)))
-            year = (re.search(r"20\d\d", f.get("Year of Investment", "") or pjt["card"]) or re.search(r"", "")).group(0)
-            instr_txt = f.get("Financial Instrument") or f.get("Investment type") or ""
-            instrument = "Equity" if re.search(r"equity", instr_txt, re.I) else "Loan" if re.search(r"debt|loan|financ", instr_txt, re.I) else "Unknown"
-            amount = _eur_amount(f.get("Amount", ""), year or "2020")
-            shares = {c: (None if n_total == 1 else round(100.0 / n_total, 2)) for c in ccs}
-            name = pjt["name"].title()
-            add("edfi-mc", "edfimc-web", pjt["url"].rstrip("/").rsplit("/", 1)[-1], pjt["url"], f"{name} ({'ElectriFI' if pjt['facility'] == 'electrifi' else 'AgriFI'})",
-                client=name, instrument=instrument, instrument_detail=instr_txt[:60], sector_broad=broad_sector((f.get("Sector") or "") + " " + pjt["facility"]),
-                sector_detail=f.get("Sector", ""), status=f.get("Status", "")[:20], date=year or "", amount_eur=amount, shares=shares,
-                method="single_country" if n_total == 1 else "equal_split_estimate", basis="investment amount (EDFI MC project page)" if amount else None,
-                note=("EU-funded facility managed by EDFI Management Company; the Commission's payments into its country windows are not counted separately. "
-                      + ("" if n_total == 1 else f"Covers {n_total} countries; the Franc Zone share is estimated by equal split.")).strip())
-
-    # ---- EU blending grants (Commission's list of board-approved blending operations): tag records already counted, add the rest
-    BLENDING_SRC = "https://international-partnerships.ec.europa.eu/document/download/555e79f7-177a-44c9-82a7-925240597c68_en?filename=board-approved-intpa-blending-operations-as-of-2021_en.pdf"
-    BLENDING = [{'facility': 'AIP', 'country': 'Guinea-Bissau', 'year': '2024', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Top-up of Investment Grant for Guinea-Bissau: Safim-', 'total_m': 30.55, 'eu_m': 7.55, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Gabon', 'year': '2024', 'lead': 'AFD', 'sector': 'Transport', 'title': 'Programme de Remise à Niveau du Transgabonais (phase', 'total_m': 595.0, 'eu_m': 30.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Cameroon', 'year': '2024', 'lead': 'EIB', 'sector': 'Agriculture', 'title': 'Grant to Cameroon Green African Agriculture Value Chain', 'total_m': 53.0, 'eu_m': 3.0, 'type': 'Interest Rate Subsidy'}, {'facility': 'AIP', 'country': 'Ivory Coast', 'year': '2024', 'lead': 'KfW', 'sector': 'Energy', 'title': 'Renewable Energy and Energy Efficiency in Côte d´Ivoire -', 'total_m': 220.16, 'eu_m': 44.41, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Ivory Coast', 'year': '2024', 'lead': 'KfW', 'sector': 'Energy', 'title': 'Energy for the sustainable development of Eastern Côte', 'total_m': 39.99, 'eu_m': 9.9, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'AFD', 'sector': 'Agriculture', 'title': 'Financement agricole et transition durable - La Banque', 'total_m': 24.99, 'eu_m': 4.99, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'AFD', 'sector': 'Environment', 'title': 'Projet de dépollution de la Baie de Hann à Dakar - TOP UP', 'total_m': 102.99, 'eu_m': 6.5, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Togo', 'year': '2023', 'lead': 'FMO', 'sector': 'Mixed', 'title': 'Togo Nexus Country Window (“Nexus”)', 'total_m': 24.8, 'eu_m': 10.0, 'type': 'Equity/Technical Assistance'}, {'facility': 'AIP', 'country': 'Guinea-Bissau', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Investment Grant for the Guinea-Bissau Section of the', 'total_m': 182.9, 'eu_m': 30.6, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'Investment Grant for Dakar Public Transport Network', 'total_m': 354.9, 'eu_m': 20.0, 'type': 'Investment Grant'}, {'facility': 'AIP', 'country': 'Benin', 'year': '2023', 'lead': 'AFD', 'sector': 'Agriculture', 'title': 'Projet d’appui au développement et aux investissements', 'total_m': 38.01, 'eu_m': 8.01, 'type': 'Technical Assistance'}, {'facility': 'AIP', 'country': 'Chad', 'year': '2023', 'lead': 'EIB', 'sector': 'Transport', 'title': 'EU Support for Modernisation du Reseau Routier au Tchad', 'total_m': 283.83, 'eu_m': 35.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Niger', 'year': '2022', 'lead': 'AFD', 'sector': 'Energy', 'title': 'PREDAC', 'total_m': 77.02, 'eu_m': 10.94, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Benin', 'year': '2022', 'lead': 'FMO', 'sector': 'Energy', 'title': 'Second EDFI ElectriFI Country Window for Bénin(11thEDF)', 'total_m': 12.0, 'eu_m': 12.0, 'type': 'Equity/Technical Assistance'}, {'facility': 'AIP', 'country': 'Senegal', 'year': '2022', 'lead': 'AFD', 'sector': 'Social', 'title': 'Appui à la relance du secteur pharmaceutique sénégalais', 'total_m': 30.0, 'eu_m': 5.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AIP', 'country': 'Togo', 'year': '2022', 'lead': 'AFD', 'sector': 'Mixed', 'title': 'Projet Environnement Urbain de Lomé (PEUL) IV', 'total_m': 20.0, 'eu_m': 5.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Cameroon', 'year': '2022', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Transition énergétique de la Sodécoton', 'total_m': 47.0, 'eu_m': 10.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Senegal', 'year': '2021', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Energie – Electrification rurale – Accès à l’énergie par', 'total_m': 73.0, 'eu_m': 13.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Senegal', 'year': '2021', 'lead': 'EIB', 'sector': 'Water', 'title': 'Investment Grant for Senegal Eau Potable & COVID-19', 'total_m': 79.6, 'eu_m': 6.0, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Benin', 'year': '2021', 'lead': 'AFD', 'sector': 'Energy', 'title': 'Projet FORSUN de renforcement des réseaux de', 'total_m': 55.95, 'eu_m': 24.7, 'type': 'Investment Grant/Technical'}, {'facility': 'AfIF', 'country': 'Cameroon', 'year': '2021', 'lead': 'EIB', 'sector': 'Private Sector', 'title': 'Cameroon Team Europe COVID-19 Response Access to', 'total_m': 28.8, 'eu_m': 3.8, 'type': 'IRS/Technical Assistance'}]
-    BL_CC = {"Benin": "BJ", "Burkina Faso": "BF", "Ivory Coast": "CI", "Côte d'Ivoire": "CI", "Guinea-Bissau": "GW", "Mali": "ML", "Niger": "NE", "Senegal": "SN",
-             "Togo": "TG", "Cameroon": "CM", "Central African Republic": "CF", "Chad": "TD", "Congo": "CG", "Equatorial Guinea": "GQ", "Gabon": "GA"}
-    def _words(t):
-        t = unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().lower()
-        return {w for w in re.findall(r"[a-z]{5,}", t) if w not in ("projet", "programme", "project", "support", "appui", "grant", "investment", "phase")}
-    _alloc_cc = {}
-    for al in allocations:
-        _alloc_cc.setdefault(al["investment_id"], set()).add(al["country"])
-    for b in BLENDING:
-        cc = BL_CC.get(b["country"])
-        if not cc:
-            continue
-        eu = (b["eu_m"] or 0) * 1e6
-        bw = _words(b["title"])
-        best, best_score = None, 0
-        for inv in investments:
-            if inv["institution_id"] != "eu-intpa" or cc not in _alloc_cc.get(inv["investment_id"], ()):
-                continue
-            ov = len(bw & _words(inv["title"]))
-            close = inv["amount_eur"] and abs(inv["amount_eur"] - eu) <= max(60000, 0.03 * eu)
-            score = ov + (2 if close else 0)
-            if (ov >= 2 and close) or ov >= 3:
-                if score > best_score:
-                    best, best_score = inv, score
-        tag = f"EU blending ({b['facility']}) with {b['lead']}: EU €{b['eu_m']:.2f}m in a €{b['total_m']:.1f}m project"
-        if best:
-            best["tags"] = tag
-            best["note"] = (best["note"] + " " + tag + ".").strip()
-        else:
-            add("eu-blending", "eu-blending-list", re.sub(r"[^a-z0-9]+", "-", (b["title"] + " " + b["year"]).lower())[:60], BLENDING_SRC, b["title"],
-                client=f"Lead financier: {b['lead']}", instrument="Grant", instrument_detail=b["type"][:60], sector_broad=broad_sector(b["sector"] + " " + b["title"]),
-                sector_detail=b["sector"], status="Approved", date=b["year"], amount=eu, currency="EUR", shares={cc: None}, method="single_country",
-                basis="EU contribution (blending list)", note=f"From the Commission's list of approved blending operations; no matching record in its IATI data. {tag}.")
-            investments[-1]["tags"] = tag
-    for r in regional:  # contributions INTO the EUTF stay in the regional layer
-        if re.search(r"emergency trust fund|fonds fiduciaire d.urgence|\bEUTF\b", r["title"], re.I) and r["institution_id"] != "eu-eutf":
-            r["note"] = (r["note"] + " Contribution to the EU Emergency Trust Fund for Africa: its Franc Zone programmes are listed under EUTF, so do not add the two.").strip()
-
-    # ---- World Bank (IBRD/IDA): non-EU comparison layer
-    wb_file = RAW / "nonEU" / "worldbank.json"
-    if wb_file.exists():
-        seen_wb = set()
-        for r in json.load(open(wb_file, encoding="utf-8")):
-            if r.get("id") in seen_wb or r.get("cc") not in COUNTRIES:
-                continue
-            seen_wb.add(r["id"])
-            amt = float(re.sub(r"[^0-9.]", "", r.get("totalamt") or "") or 0) or None
-            date = (r.get("boardapprovaldate") or "")[:7]
-            sect = r.get("sector1") if isinstance(r.get("sector1"), str) else (r.get("sector1") or {}).get("Name", "")
-            if isinstance(sect, str) and sect.startswith("{"):
-                m = re.search(r"'Name': '([^']*)'", sect); sect = m.group(1) if m else ""
-            add("worldbank", "wb-api", r["id"], r.get("url") or f"https://projects.worldbank.org/en/projects-operations/project-detail/{r['id']}",
-                r.get("project_name") or r["id"], instrument="Loan", sector_broad=broad_sector(f"{sect} {r.get('project_name', '')}"),
-                sector_detail=sect, status=r.get("status") or "", date=date, amount=amt, currency="USD", shares={r["cc"]: None},
-                method="single_country", note="IBRD/IDA commitment in USD converted with ECB rates.")
-
-    # ---- AIIB: non-EU comparison layer
-    aiib_file = RAW / "nonEU" / "aiib.json"
-    if aiib_file.exists():
-        for r in json.load(open(aiib_file, encoding="utf-8")):
-            ccs = countries_in(r.get("economy", ""))
-            if not ccs:
-                continue
-            money = r.get("approved_funding") or r.get("committed_funding") or r.get("proposed_funding") or ""
-            m = re.search(r"(USD|EUR)\s*([\d.,]+)\s*(million|billion)", money, re.I)
-            amt = float(m.group(2).replace(",", "")) * (1e9 if m.group(3).lower() == "billion" else 1e6) if m else None
-            add("aiib", "aiib-web", r.get("path", r.get("name"))[-60:], "https://www.aiib.org" + r.get("path", ""), r.get("name", ""),
-                instrument="Loan", sector_broad=broad_sector(r.get("sector", "") + " " + r.get("name", "")), sector_detail=r.get("sector", ""),
-                status=r.get("status", ""), date=r.get("date") if (r.get("date") or "").isdigit() else "", amount=amt,
-                currency=(m.group(1).upper() if m else "USD"), shares={c: None for c in ccs},
-                method="single_country" if len(ccs) == 1 else "equal_split_estimate", note=f"AIIB status: {r.get('status', '')}.")
-
-    # ---- Separate the non-EU comparison layer from European data
-    NONEU = {i[0] for i in INST if i[3] == "Non-EU"}
-    comp_inv = {v["investment_id"]: v for v in investments if v["institution_id"] in NONEU}
-    # IFC Global Trade Finance Program records carry the worldwide programme limit, not a country amount: left out
-    comparators = [a for a in allocations if a["institution_id"] in NONEU
-                   and not (a["institution_id"] == "ifc" and comp_inv[a["investment_id"]]["title"].upper().startswith("GTFP"))]
-    investments[:] = [v for v in investments if v["institution_id"] not in NONEU]
-    allocations[:] = [a for a in allocations if a["institution_id"] not in NONEU]
-    with open(OUT / "comparators.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        w.writerow(["institution_id", "country", "sector_broad", "amount_attributed_eur", "year", "instrument", "title", "source_url"])
-        for a in comparators:
-            v = comp_inv[a["investment_id"]]
-            w.writerow([a["institution_id"], a["country"], v["sector_broad"], a["amount_attributed_eur"], v["year"], v["instrument"], v["title"], v["source_url"]])
-
-    # ---------------------------------------------------------------- write tables
-    def write(name, rows, fields):
-        with open(OUT / f"{name}.csv", "w", newline="", encoding="utf-8") as fh:
-            w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(rows)
-
-    inst_rows = [dict(zip(INST_FIELDS, x)) for x in INST]
-    write("institutions", inst_rows, INST_FIELDS)
-    write("investments", investments, list(investments[0].keys()))
-    write("investment_countries", allocations, list(allocations[0].keys()))
-    write("countries", [{"iso2": k, "iso3": v[0], "name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()],
-          ["iso2", "iso3", "name", "lat", "lon", "union"])
-    counts = {}
-    for inv in investments:
-        counts[inv["source_id"]] = counts.get(inv["source_id"], 0) + 1
-
-    # ---------------------------------------------------------------- programmes (curated, sourced)
-    # Team Europe Initiatives, Global Gateway flagships, EU country envelopes and national programmes that
-    # publish no deal-level data. Participants are institution ids or ISO codes of member states ("EU" = European Commission).
-    PARTICIPANT_PLACES = {
-        "EU": ("European Commission", 50.843, 4.382), "EIB": ("European Investment Bank", 49.627, 6.155),
-        "AT": ("Austria", 48.208, 16.374), "BE": ("Belgium", 50.850, 4.352), "CZ": ("Czechia", 50.076, 14.438),
-        "DE": ("Germany", 52.520, 13.405), "DK": ("Denmark", 55.676, 12.568), "ES": ("Spain", 40.417, -3.704),
-        "FI": ("Finland", 60.170, 24.938), "FR": ("France", 48.857, 2.352), "GR": ("Greece", 37.984, 23.728),
-        "HU": ("Hungary", 47.498, 19.040), "IE": ("Ireland", 53.350, -6.260), "IT": ("Italy", 41.903, 12.496),
-        "LU": ("Luxembourg", 49.611, 6.130), "MT": ("Malta", 35.899, 14.514), "NL": ("Netherlands", 52.370, 4.895),
-        "PL": ("Poland", 52.230, 21.012), "PT": ("Portugal", 38.722, -9.139), "RO": ("Romania", 44.427, 26.103),
-        "SE": ("Sweden", 59.329, 18.069),
-    }
-    for _i in INST:  # institutions can also be programme participants (e.g. Bpifrance, AFD)
-        PARTICIPANT_PLACES.setdefault(_i[0], (_i[1], _i[6], _i[7]))
-    TE_COUNTRY = {  # Team Europe members per country, exactly as named on the European Commission's public country pages
-        "CI": "EU EIB BE FI FR DE IT ES NL", "SN": "EU EIB",  # Senegal page: "the EU, the EIB, and 16 EU Member States" (not named)
-        "BJ": "EU EIB BE FR DE LU NL", "BF": "EU EIB BE NL DE IT", "ML": "EU DE BE ES IT NL",
-        "NE": "EU FR DE BE ES IT LU NL", "TG": "EU FR DE", "GW": "EU EIB FR PT ES",
-        "CM": "EU EIB BE FR DE IT ES", "CF": "EU BE ES FR DE", "TD": "EU EIB FR DE IT NL ES", "CG": "EU FR DE", "GA": "EU FR"}
-    EC = "https://international-partnerships.ec.europa.eu/countries/"
-    TRACKER_FR = "https://capacity4dev.europa.eu/resources/team-europe-tracker/team-europe-actors/france/tei_en"
-    TRACKER_EU = "https://capacity4dev.europa.eu/resources/team-europe-tracker/team-europe-actors/eu/tei_en"
-    GG_INFO = ("https://international-partnerships.ec.europa.eu/document/download/ed505ccf-18ef-4fe9-816b-587d28f10633_en"
-               "?filename=infographics-global-gateway-flagship-projects-2023-2024-eu-africa_en.pdf")
-    GG_LIST = "https://www.eacea.ec.europa.eu/document/download/cd93ca39-db48-4334-aebe-8bbe2b82a8df_en?filename=country_regional+GG+flagships.pdf"
-    CORR = "https://international-partnerships.ec.europa.eu/policies/global-gateway/transport/eu-africa-strategic-corridors_en"
-    MEMBERS_NOTE = "Participants shown are the Team Europe members the Commission names for the country; membership per initiative is published only behind the Capacity4dev login."
-    SN_NOTE = "The Commission's Senegal page says Team Europe brings together the EU, the EIB and 16 EU member states, without naming them; only the EU and EIB are shown."
-    C4D_NOTE = " Official initiative name as listed in the EU's Team Europe tracker on Capacity4dev, which requires a login; the linked public page describes the country's Team Europe work."
-    MIP = "https://international-partnerships.ec.europa.eu/document/download/b6668f96-ddc3-4750-ab55-9dead1c7e7aa_en?filename=mip-2021-c2021-9242-niger-annex_fr.pdf"
-    TEI, GG, ENV, PART, NAT = "Team Europe Initiative", "Global Gateway flagship", "EU country envelope", "Energy transition partnership", "National programme"
-    AITF_KIND = "EU-Africa Infrastructure Trust Fund"
-    def P(pid, name, kind, countries, participants, desc, source, amount=None, period="", note=""):
-        return {"programme_id": pid, "name": name, "kind": kind, "countries": countries.split(),
-                "participants": participants.split(), "amount_eur": amount, "period": period,
-                "description": desc, "source_url": source, "note": note}
-    PROGRAMMES = [
-        # Country Team Europe Initiatives
-        P("tei-ci-cocoa", "Côte d'Ivoire – Sustainable cocoa", TEI, "CI", TE_COUNTRY["CI"], "Living incomes for farmers, deforestation, child labour and compliance with EU rules in the cocoa value chain.", "https://www.eeas.europa.eu/node/447556_en", note=MEMBERS_NOTE + " The EEAS page refuses automated link checks; open it in a browser."),
-        P("tei-ci-lowcarbon", "Côte d'Ivoire – Low-carbon transition", TEI, "CI", TE_COUNTRY["CI"], "Renewable power (Boundiali and Sérébou solar plants), the 400 kV eastern backbone line, clean cooking, energy efficiency and cleaner transport.", EC + "cote-divoire_en", note=MEMBERS_NOTE),
-        P("tei-ci-peace", "Côte d'Ivoire – Peace, stability and social cohesion", TEI, "CI", TE_COUNTRY["CI"], "Keeping Côte d'Ivoire a pole of stability in West Africa, especially in the northern border regions.", EC + "cote-divoire_en", note=MEMBERS_NOTE),
-        P("tei-sn-green", "Senegal – Green economy", TEI, "SN", TE_COUNTRY["SN"], "Green agriculture and sustainable, digital cities.", EC + "senegal_en", note=SN_NOTE),
-        P("tei-bj-port", "Benin – Investing for a sustainable port", TEI, "BJ", TE_COUNTRY["BJ"], "Port of Cotonou, coastline and the sustainable port economy.", EC + "benin_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-bj-energy", "Benin – Investing in green energy", TEI, "BJ", "EU FR DE", "Renewables, energy efficiency, access to energy and regional cooperation through the West African Power Pool.", EC + "benin_en"),
-        P("tei-bj-jobs", "Benin – Sustainable growth and jobs", TEI, "BJ", "EU BE FR DE NL", "Vocational training, private-sector support in agriculture and digital, and digitisation of public services.", EC + "benin_en"),
-        P("tei-bf-greendeal", "Burkina Faso – Green Deal for youth", TEI, "BF", TE_COUNTRY["BF"], "Agri-food value chains, rural electrification, digital skills and secondary cities on the Abidjan–Ouagadougou corridor.", EC + "burkina-faso_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-bf-stability", "Burkina Faso – Inclusion for stability", TEI, "BF", TE_COUNTRY["BF"], "Basic services, social protection and support to displaced people and host communities.", EC + "burkina-faso_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-ml-climate", "Mali – Environment and climate change", TEI, "ML", TE_COUNTRY["ML"], "Natural resource management, climate-resilient agriculture, hydropower and off-grid electrification, the Great Green Wall.", EC + "mali_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-ml-youth", "Mali – Youth", TEI, "ML", TE_COUNTRY["ML"], "Skills, jobs and entrepreneurship for young people and women.", EC + "mali_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-ne-futures", "Niger – #NigerGenerationsFutures", TEI, "NE", TE_COUNTRY["NE"], "Education, vocational training and prospects for young people.", MIP, note=MEMBERS_NOTE),
-        P("tei-ne-governance", "Niger – Governance, peace and rights", TEI, "NE", TE_COUNTRY["NE"], "Governance, security and human rights.", MIP, note=MEMBERS_NOTE),
-        P("tei-tg-decentral", "Togo – Decentralisation and local governance", TEI, "TG", TE_COUNTRY["TG"], "Local authorities, civil society and governance processes.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-tg-agri", "Togo – Sustainable agribusiness", TEI, "TG", TE_COUNTRY["TG"], "Pineapple, cashew and soya value chains, smallholder productivity and women's entrepreneurship.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-tg-energy", "Togo – Sustainable energy and digitalisation", TEI, "TG", TE_COUNTRY["TG"], "Renewable electricity distribution for over a million people and digital entrepreneurship.", EC + "togo_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-gw-education", "Guinea-Bissau – Education and training for an inclusive, green transition", TEI, "GW", "EU PT", "Reform of primary and higher education, teacher and student mobility, scientific research.", EC + "guinea-bissau_en"),
-        # CEMAC country Team Europe Initiatives
-        P("tei-cm-north", "Cameroon – Green Deal and resilience in North Cameroon", TEI, "CM", TE_COUNTRY["CM"], "Agri-food systems, rural livelihoods, natural resources, local governance and stability in Cameroon's three northern regions.", EC + "cameroon_en", note=MEMBERS_NOTE + C4D_NOTE),
-        P("tei-cf-court", "Central African Republic – Special Criminal Court", TEI, "CF", "EU BE ES FR DE", "Support for the court trying serious international crimes, with resources and expertise for its independent operation.", EC + "central-african-republic_en"),
-        P("tei-cg-forests", "Republic of the Congo – Congo Basin forests and sustainable development", TEI, "CG", "EU FR DE", "Preserving the Congo Basin's forests and moving the economy away from oil towards a green, diversified path.", EC + "congo_en", note="Name describes the initiative as presented by the Commission."),
-        # Regional Team Europe Initiatives covering WAEMU countries
-        P("tei-atlantic", "Migration – Atlantic and Western Mediterranean routes", TEI, "SN BF CI ML NE", "EU BE CZ DK FR DE IT NL ES", "Regional migration and mobility initiative; also covers Algeria, Mauritania, Morocco, The Gambia, Ghana, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", amount=908e6, period="2022–", note="€908m mobilised at launch across all 12 partner countries, not only WAEMU."),
-        P("tei-centralmed", "Migration – Central Mediterranean route", TEI, "BF NE CI", "EU AT BE DE CZ DK FR IT MT NL ES", "Regional migration initiative; also covers Chad, Egypt, Libya, Ethiopia, Eritrea, Somalia, Sudan, Tunisia, Guinea and Nigeria.", "https://enlargement.ec.europa.eu/news/eu-working-together-african-partners-migration-launch-team-europe-initiatives-2022-12-12_en", period="2022–"),
-        P("tei-iyba", "Investing in Young Businesses in Africa (IYBA)", TEI, "BJ SN TG BF ML NE", "EU", "Finance and technical support for start-ups and small businesses; Benin was the pilot country (launched in Cotonou, March 2024).", "https://international-partnerships.ec.europa.eu/policies/global-gateway/investing-young-businesses-africa_en", period="2021–", note="Country list per the Commission; member-state participants are not verified, so only the EU is shown."),
-        P("tei-opvet", "Opportunity-driven skills and vocational training in Africa (OP-VET)", TEI, "BJ BF ML NE TG CI GW SN TD", "EU", "Aligning vocational training with jobs created by public and private investment.", "https://capacity4dev.europa.eu/countries/nigeria/projects_en", period="2024–", note="The only source found is a Capacity4dev page that requires a login."),
-        P("tei-mav", "Manufacturing and access to vaccines, medicines and health technologies (MAV+)", TEI, "SN", "EU", "Continental initiative; in Senegal it backs the MADIBA vaccine plant at Institut Pasteur de Dakar and the national pharmaceutical plan.", EC + "senegal_en", note="Member-state participants are not verified, so only the EU is shown."),
-        P("tei-water", "Transboundary water management in Africa", TEI, "SN ML NE BJ BF CI TG CM TD", "EU", "Senegal, Gambia, Niger and Volta basins among those targeted.", "https://sdgs.un.org/partnerships/team-europe-initiative-transboundary-water-management-africa", period="2022–"),
-        # Global Gateway flagships
-        P("gg-cm-nachtigal", "Nachtigal hydropower (420 MW) and Cameroon–Chad interconnection", GG, "CM TD", "EU EIB", "Exporting electricity from the Nachtigal plant to Chad through a new interconnection; support also for the 500 MW Kikot dam.", EC + "cameroon_en"),
-        P("gg-cm-logone", "Logone River bridge (Cameroon–Chad)", GG, "CM TD", "EU", "Bridge linking Cameroon and Chad on the Douala–N'Djamena corridor.", EC + "cameroon_en"),
-        P("gg-cm-transcam", "TRANSCAM 2 railway rehabilitation (Belabo–Ngaoundéré)", GG, "CM", "EU EIB afd", "Railway on the Douala–N'Djamena corridor, with planned extensions to Chad; €243m blended scheme including €23.6m of EU grant.", "https://international-partnerships.ec.europa.eu/system/files/2023-10/GG_Factsheet_Africa_Strategic%20Corridors.pdf", amount=243e6, note="Total blended financing, not EU money alone."),
-        P("gg-td-road", "Chad–Cameroon road corridor rehabilitation", GG, "TD", "EU EIB", "229 km road on the corridor giving Chad access to the port of Douala.", "https://www.eib.org/en/press/all/2023-154-global-gateway-l-equipe-europe-finance-a-hauteur-de-176-2meur-le-projet-de-corridor-routier-entre-le-tchad-et-le-cameroun", amount=176.2e6, period="2023"),
-        P("gg-corr-libreville-ndjamena", "Strategic corridor Libreville/Kribi/Douala–N'Djamena", GG, "GA GQ CM TD", "EU EIB afd", "Central African transport corridor; also covers São Tomé and Príncipe.", CORR),
-        P("gg-corr-douala-kampala", "Strategic corridor Douala/Kribi–Kampala", GG, "CM CF", "EU", "Corridor linking Cameroon's ports to the Central African Republic, DR Congo and Uganda.", CORR),
-        P("gg-ga-transgabonais", "Transgabonais railway rehabilitation", GG, "GA", "EU", "Connecting production areas with Libreville's economic zones and sawmills.", EC + "gabon_en", amount=30e6),
-        P("gg-cf-backbone", "Central Africa Backbone fibre network (CAR)", GG, "CF", "EU", "Extension of the fibre-optic network.", EC + "central-african-republic_en"),
-        P("gg-cg-forest", "EU–Republic of the Congo Forest Partnership", GG, "CG", "EU", "Partnership on forest protection and the forest economy (memorandum signed 2022).", EC + "congo_en", period="2022–"),
-        P("gg-ga-forest", "EU–Gabon Forest Partnership", GG, "GA", "EU", "Biodiversity protection with benefits for local populations, protected areas and certified forest concessions.", EC + "gabon_en"),
-        P("gg-sn-hann", "Hann Bay depollution, Dakar", GG, "SN", "EU", "Cleaning up Dakar's Hann Bay and its industrial and household wastewater.", EC + "senegal_en"),
-        P("gg-sn-brt", "Dakar Bus Rapid Transit and bus network", GG, "SN", "EU EIB", "Construction of the BRT line and restructuring of Dakar's public bus network.", GG_INFO),
-        P("gg-sn-ziguinchor", "Port of Ziguinchor upgrade (Casamance)", GG, "SN", "EU", "Upgrade and operation of the port of Ziguinchor.", GG_INFO),
-        P("gg-sn-river", "Senegal River Valley development", GG, "SN", "EU", "Resilience and development in the Senegal River Valley, with irrigation (PARIIS) and rural development (PADAER II).", GG_INFO),
-        P("gg-sn-medusa", "Medusa subsea cable extension to Dakar", GG, "SN", "EU EIB", "Extension of the Medusa Mediterranean cable to West Africa, first landing envisaged in Dakar.", GG_LIST, note="Envisaged; not yet built."),
-        P("gg-bj-wapp", "WAPP solar plant and mini-grids, Benin", GG, "BJ", "EU", "Large-scale solar power plant upgrade and photovoltaic mini-grids with the West African Power Pool.", GG_INFO),
-        P("gg-bj-roads", "Benin roads on strategic corridors", GG, "BJ", "EU", "Includes the 210 km Djougou–Pehunco–Kérou and 152 km Allada–Dassa roads.", EC + "benin_en"),
-        P("gg-bj-cotonou-ww", "Wastewater treatment, west Cotonou", GG, "BJ", "EU", "Sanitation systems and wastewater treatment in the west of Cotonou.", GG_INFO),
-        P("gg-bj-tvet", "Technical and vocational schools, Benin", GG, "BJ", "EU EIB", "Renovation and construction of professional and technical schools.", GG_INFO),
-        P("gg-ci-solar", "Boundiali and Sérébou solar plants", GG, "CI", "EU", "37.5 MWp Boundiali plant (inaugurated April 2024) and 33 MWp Sérébou plant with 14 MW battery storage.", EC + "cote-divoire_en", note="Other financing partners are not listed here; see the source."),
-        P("gg-ci-backbone", "400 kV eastern backbone transmission line", GG, "CI", "EU", "Line from north of Abidjan to Ferkessédougou at the Mali and Burkina Faso borders.", EC + "cote-divoire_en"),
-        P("gg-ci-300m", "Team Europe €300m package, Côte d'Ivoire (2025)", GG, "CI", "EU EIB", "Climate action, sustainable cocoa and forest restoration; includes a €50m EIB loan to raise Côte d'Ivoire's stake in ATIDI.", "https://www.eib.org/fr/press/all/2025-012-global-gateway-l-equipe-europe-renforce-a-hauteur-de-300-millions-d-euros-son-soutien-a-des-investissements-strategiques-et-durables-en-cote-d-ivoire", amount=300e6, period="2025"),
-        P("gg-tg-coast", "Coastal protection, Togo", GG, "TG", "EU", "Nature-based coastal protection through dune restoration.", GG_LIST),
-        P("gg-dorsale", "North Core (Dorsale Nord) 330 kV interconnector", GG, "NE BJ BF", "EU", "Regional power line Nigeria–Niger–Benin–Burkina Faso.", GG_LIST),
-        P("gg-naturafrica", "NaturAfrica – West Africa landscapes", GG, "BF BJ", "EU", "Transboundary conservation landscapes, including the Sudano-Sahelian savannahs.", GG_LIST),
-        P("gg-corr-abj-lagos", "Strategic corridor Abidjan–Lagos", GG, "CI TG BJ", "EU EIB", "Transport and trade corridor also crossing Ghana and Nigeria.", CORR),
-        P("gg-corr-abj-ouaga", "Strategic corridor Abidjan–Ouagadougou", GG, "CI BF", "EU EIB", "Transport and trade corridor.", CORR),
-        P("gg-corr-dakar-abj", "Strategic corridor Praia/Dakar–Abidjan", GG, "SN GW CI", "EU EIB", "Coastal corridor also crossing Cabo Verde, The Gambia, Guinea, Sierra Leone and Liberia.", CORR),
-        P("gg-corr-cot-niamey", "Strategic corridor Cotonou–Niamey", GG, "BJ NE", "EU", "Transport and trade corridor.", CORR),
-        P("gg-eib-ppf", "EU-Africa Global Gateway Infrastructure Project Delivery Facility", GG, "SN BJ CI", "EIB EU", "Project preparation support so infrastructure becomes ready for EIB financing.", "https://www.eib.org/en/products/mandates-partnerships/eu-africa-global-gateway-infrastructure-facility/index"),
-        # Energy transition partnership
-        P("jetp-sn", "Senegal Just Energy Transition Partnership (JETP)", PART, "SN", "EU FR DE", "Investment and reforms to raise renewables in Senegal's power mix; Canada and the United Kingdom are also partners.", EC + "senegal_en", amount=2.5e9, period="2023–", note="€2.5bn is the total from all international partners, not only European ones."),
-        # EU country envelopes (NDICI-Global Europe grants)
-        P("env-ci", "EU bilateral envelope – Côte d'Ivoire", ENV, "CI", "EU", "NDICI-Global Europe national allocation, complemented by regional programmes, blending and guarantees.", EC + "cote-divoire_en", amount=381e6, period="2021–2027"),
-        P("env-sn", "EU bilateral envelope – Senegal", ENV, "SN", "EU", "NDICI-Global Europe grant funding for the bilateral partnership.", EC + "senegal_en", amount=337e6, period="2021–2027"),
-        P("env-bj", "EU bilateral envelope – Benin", ENV, "BJ", "EU", "NDICI-Global Europe national programme: €255m for 2021–2024 and €172m for 2025–2027.", EC + "benin_en", amount=427e6, period="2021–2027"),
-        P("env-bf", "EU bilateral envelope – Burkina Faso", ENV, "BF", "EU", "Grant funding around inclusive human development and a green, resilient economy.", EC + "burkina-faso_en", amount=283e6, period="2021–2024"),
-        P("env-ml", "EU bilateral envelope – Mali", ENV, "ML", "EU", "Grant funding around green growth and youth; from 2025 Mali draws on funds for central Sahel countries in complex settings.", EC + "mali_en", amount=151e6, period="2021–2024"),
-        P("env-ne", "EU bilateral envelope – Niger", ENV, "NE", "EU", "Governance, education and vocational training, growth and the green economy.", EC + "niger_en", amount=382.34e6, period="2021–2024"),
-        P("env-tg", "EU bilateral envelope – Togo", ENV, "TG", "EU", "Agribusiness, energy, digital and governance.", EC + "togo_en", amount=201e6, period="2021–2027"),
-        P("env-cm", "EU bilateral envelope – Cameroon", ENV, "CM", "EU", "NDICI-Global Europe grant funding for the partnership.", EC + "cameroon_en", amount=244e6, period="2021–2027"),
-        P("env-cf", "EU bilateral envelope – Central African Republic", ENV, "CF", "EU", "Peace and security, education and health, agriculture and governance.", EC + "central-african-republic_en", amount=204e6, period="2021–2024"),
-        P("env-td", "EU bilateral envelope – Chad", ENV, "TD", "EU", "Corridor investments, rural electrification, value chains and vocational training.", EC + "chad_en", amount=280e6, period="2021–2024"),
-        P("env-cg", "EU bilateral envelope – Republic of the Congo", ENV, "CG", "EU", "Green, digital and diversified economy.", EC + "congo_en", amount=110e6, period="2021–2027"),
-        P("env-ga", "EU bilateral envelope – Gabon", ENV, "GA", "EU", "Green transition, sustainable growth and governance.", EC + "gabon_en", amount=11e6, period="2021–2027", note="Amount as stated on the Commission's Gabon page."),
-        P("env-gw", "EU bilateral envelope – Guinea-Bissau", ENV, "GW", "EU", "Health, education and training, economic diversification and governance.", EC + "guinea-bissau_en", amount=155e6, period="2021–2027"),
-        # National programmes without deal-level disclosure
-        P("nat-choose-africa-2", "Choose Africa 2 (AFD Group and Bpifrance)", NAT, "BJ CI SN TG", "afd proparco bpifrance", "Financing and support for African start-ups and small businesses, plus help for states to build public banks for entrepreneurs.", "https://www.afd.fr/fr/actualites/choose-africa-2-le-soutien-lentrepreneuriat-africain-monte-en-regime", period="2023–2027"),
-        P("nat-choose-africa-2-ci", "Choose Africa 2 – Côte d'Ivoire SME financing", NAT, "CI", "afd bpifrance", "XOF 52bn (€80m) loan for credit lines and the SME guarantee fund (SGPME), via Côte d'Ivoire PME.", "https://www.afd.fr/fr/actualites/communique-de-presse/choose-africa-2-un-premier-financement-en-cote-divoire-pour-renforcer-lacces-au-credit-de-plusieurs-milliers-de-tpme-en-particulier-de-lentrepreneuriat-feminin", amount=80e6, period="2024"),
-        P("nat-bpifrance-ae", "Bpifrance Assurance Export – export credit and investment insurance", NAT, "CI SN", "bpifrance-ae", "Export credit insurance, guarantees and foreign investment insurance for French companies on behalf of the French state; deals are not published individually.", "https://www.bpifrance.fr/nos-actualites/bpifrance-en-afrique-25-ans-dengagement-pour-des-partenariats-economiques-durables-et-une-co-industrialisation-ambitieuse", note="Countries shown are those Bpifrance names as its West African hubs; coverage extends further."),
-        P("nat-pl-fwe", "Government programme 'Financial Support for Exports' (BGK and KUKE)", NAT, "CI SN", "bgk kuke", "Polish state programme financing and insuring export contracts on higher-risk markets; BGK names Côte d'Ivoire and Senegal among its African markets.", "https://polskieradio24.pl/artykul/3177646,polscy-przedsiebiorcy-podbijaja-swiatowe-rynki-bgk-umozliwia-im-bezpieczny-start-za-granica", note="Deal-level amounts are not published."),
-        P("nat-bgk-africa-limit", "BGK Africa export financing limit to 2030", NAT, "CI", "bgk kuke", "Credit, guarantee and letter-of-credit limit of PLN 4bn (about USD 1.1bn) for Polish firms exporting to and investing in seven African countries, including Côte d'Ivoire.", "https://www.wnp.pl/rynki/bgk-przeznaczy-miliardy-zlotych-na-wsparcie-polskich-firm-w-afryce,999155.html", period="to 2030", note="The limit covers seven countries (also Angola, Morocco, South Africa, Tanzania, Kenya, Rwanda), so no WAEMU amount is shown."),
-        P("nat-cwa", "G20 Compact with Africa (initiated by Germany)", NAT, "BJ BF CI SN TG", "DE kfw-db deg", "G20 initiative launched under Germany's 2017 presidency to coordinate reforms and attract private investment; Germany backs it with KfW and DEG instruments.", "https://www.compactwithafrica.org/en/programs/g20-compact-with-africa", period="2017–"),
-        P("nat-africaconnect", "AfricaConnect (DEG, BMZ Development Investment Fund)", NAT, "BJ BF CI SN TG", "deg", "Loans of €0.75–4m with risk sharing for European companies investing in Africa, focused on Compact with Africa countries.", "https://www.bmz.de/resource/blob/39670/factsheet-africaconnect-en.pdf", period="2019–"),
-        P("nat-mattei", "Italy's Mattei Plan", NAT, "CI BJ TG CG GA", "IT cdp simest sace", "Italy's Africa strategy, delivered through CDP (a €500m Africa facility), SIMEST (€200m 'Misura Africa') and SACE guarantees.", "https://www.ilviaggiomagazine.it/piano-mattei-sogno-o-realta-il-viceministro-cirielli-tracciata-la-strada-ora-velocizziamo-i-progetti/", period="2024–", note="Côte d'Ivoire and the Republic of the Congo are original priority countries; Gabon joined in 2026; Benin and Togo have documented SACE operations."),
-        P("nat-cesce-ci", "CESCE cover ceiling for the Ivorian public sector", NAT, "CI", "cesce", "Spanish state risk committee ceiling for new medium- and long-term operations of Spanish firms with Ivorian public buyers.", "https://www.monedaunica.net/2018/06/cesce-amplia-la-cobertura-en-costa-de-marfil-y-turkmenistan/", amount=100e6, period="2018–", note="A cover limit, not money spent."),
-        P("nat-finexpo", "Belgian Finexpo mixed credits (with Credendo)", NAT, "CI", "credendo BE", "Belgian state-supported mixed credits for projects with Belgian suppliers.", "https://credendo.com/sites/default/files/media/files/2021-03/annualreports2017.pdf"),
-        P("nat-c2d", "Debt-for-development swaps (C2D) with Côte d'Ivoire", NAT, "CI", "afd ES", "Côte d'Ivoire's debt payments to France and Spain are returned as financing for poverty-reduction projects.", "https://www.cesce.es/documents/20122/0/INFORME+COSTA+DE+MARFIL+-+22+septiembre+2021_compressed.pdf/da7a101b-6d0e-f02a-dbd8-073b8d128721?t=1633361771235"),
-        P("nat-bpifrance-ebid", "Bpifrance and EBID export finance cooperation", NAT, "BJ BF CI GW ML NE SN TG", "bpifrance bpifrance-ae", "Joint identification and financing of public and private buyers of French exports, backed by state export guarantees.", "https://presse.bpifrance.fr/bpifrance-et-la-bidc-banque-dinvestissement-et-de-developpement-de-la-cedeao-renforcent-leur-cooperation-en-faveur-du-developpement-des-exportations-francaises-en-afrique/", period="2024–"),
-        P("nat-sofid", "SOFID investments in Portuguese-speaking Africa", NAT, "GW", "sofid", "Portugal's DFI focuses on Portuguese-speaking countries and lists Guinea-Bissau among countries with approved projects.", "https://pipelineroad.com/directory/sofid", note="Individual deals are not published."),
-        P("nat-lusophone-compact", "Lusophone Compact: Portuguese state guarantee for AfDB private-sector projects", NAT, "GW GQ", "PT",
-          "Portugal guarantees up to €400m of African Development Bank non-sovereign operations in the six Portuguese-speaking African countries, including Guinea-Bissau and Equatorial Guinea.",
-          "https://clubofmozambique.com/news/afdb-and-portugal-sign-eur-400-million-guarantee-agreement-to-underpin-lusophone-compact/",
-          amount=400e6, period="2022–", note="A guarantee cap for six countries (four outside the Franc Zone), not money spent; the guarantor is the Portuguese government."),
-        P("nat-bpifrance-acc", "Bpifrance Africa Accelerator", NAT, "SN CI", "bpifrance", "Support programme for French SMEs expanding in Africa, including business missions to Dakar.", "https://presse.bpifrance.fr/bpifrance-accompagne-la-deuxieme-promotion-de-laccelerateur-afrique-a-dakar-pour-prospecter-le-marche-senegalais/?lang=fra", note="Business support, not a financing commitment."),
-    ]
-    manual_prog = OUT / "programmes_manual.csv"
-    if manual_prog.exists():  # extra programmes you add by hand: same columns, lists separated by spaces
-        for _j, r in enumerate(csv.DictReader(open(manual_prog, encoding="utf-8-sig"))):
-            r = {k.strip(): (v or "").strip() for k, v in r.items() if k}
-            if r.get("programme_id") and r.get("name") and r.get("kind") and r["kind"] not in (TEI, GG, ENV, PART, NAT, AITF_KIND):
-                rejected.append({"file": "programmes_manual.csv", "row": _j + 2, "title": r["name"],
-                                 "problems": f"kind '{r['kind']}' unknown; shown as 'National programme'"})
-                r["kind"] = NAT
-            if r.get("programme_id") and r.get("name"):
-                PROGRAMMES.append(P(r["programme_id"], r["name"], r.get("kind") or NAT, r.get("countries", ""), r.get("participants", "EU"),
-                                    r.get("description", ""), r.get("source_url", ""), float(r["amount_eur"]) if (r.get("amount_eur") or "").replace(".", "", 1).isdigit() else None,
-                                    r.get("period", ""), r.get("note", "")))
-    # EU-Africa Infrastructure Trust Fund grants, shown as programmes right after the Team Europe Initiatives
-    LEAD_PART = {"AFD": "afd", "EIB": "EIB", "KfW": "kfw-db", "CDP": "cdp"}
-    _AITF_SECT = {}
-    for r, shares, detail in AITF_FZ:
-        parts = "eu-aitf" + (" " + LEAD_PART[r["lead"]] if r["lead"] in LEAD_PART else "")
-        PROGRAMMES.append(P("aitf-" + re.sub(r"[^a-z0-9]+", "-", (r["name"] + " " + r["type"] + " " + r["year"]).lower())[:60], r["name"], AITF_KIND,
-                            " ".join(shares), parts, f"{detail} approved in {r['year']}; lead financier {r['lead']}.", AITF_SRC, amount=r["amount"],
-                            period=r["year"], note="Full grant amount (the Investments view counts only the Franc Zone share)."))
-        _AITF_SECT[PROGRAMMES[-1]["programme_id"]] = [broad_sector(r["sector"] + " " + r["name"])]
-    PROGRAMMES = [p for p in PROGRAMMES if any(c in COUNTRIES for c in p["countries"])]
-    PROG_SECTORS = {'tei-ci-cocoa': ['Agriculture and food systems', 'Energy and climate'], 'tei-ci-lowcarbon': ['Energy and climate', 'Transport and corridors'], 'tei-ci-peace': ['Governance and budget support'], 'tei-sn-green': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms'], 'tei-bj-port': ['Transport and corridors'], 'tei-bj-energy': ['Energy and climate'], 'tei-bj-jobs': ['Education and skills', 'Financial sector and SMEs', 'Digital and telecoms'], 'tei-bf-greendeal': ['Agriculture and food systems', 'Energy and climate', 'Digital and telecoms', 'Education and skills'], 'tei-bf-stability': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'tei-ml-climate': ['Energy and climate', 'Agriculture and food systems'], 'tei-ml-youth': ['Education and skills', 'Financial sector and SMEs'], 'tei-ne-futures': ['Education and skills'], 'tei-ne-governance': ['Governance and budget support'], 'tei-tg-decentral': ['Governance and budget support'], 'tei-tg-agri': ['Agriculture and food systems', 'Financial sector and SMEs'], 'tei-tg-energy': ['Energy and climate', 'Digital and telecoms'], 'tei-gw-education': ['Education and skills'], 'tei-atlantic': ['Governance and budget support'], 'tei-centralmed': ['Governance and budget support'], 'tei-iyba': ['Financial sector and SMEs'], 'tei-opvet': ['Education and skills'], 'tei-mav': ['Health', 'Industry and trade'], 'tei-water': ['Water and sanitation'], 'gg-sn-hann': ['Water and sanitation', 'Energy and climate'], 'gg-sn-brt': ['Transport and corridors'], 'gg-sn-ziguinchor': ['Transport and corridors'], 'gg-sn-river': ['Agriculture and food systems', 'Water and sanitation'], 'gg-sn-medusa': ['Digital and telecoms'], 'gg-bj-wapp': ['Energy and climate'], 'gg-bj-roads': ['Transport and corridors'], 'gg-bj-cotonou-ww': ['Water and sanitation'], 'gg-bj-tvet': ['Education and skills'], 'gg-ci-solar': ['Energy and climate'], 'gg-ci-backbone': ['Energy and climate'], 'gg-ci-300m': ['Energy and climate', 'Agriculture and food systems', 'Financial sector and SMEs'], 'gg-tg-coast': ['Energy and climate'], 'gg-dorsale': ['Energy and climate'], 'gg-naturafrica': ['Energy and climate'], 'gg-corr-abj-lagos': ['Transport and corridors'], 'gg-corr-abj-ouaga': ['Transport and corridors'], 'gg-corr-dakar-abj': ['Transport and corridors'], 'gg-corr-cot-niamey': ['Transport and corridors'], 'gg-eib-ppf': ['Transport and corridors', 'Energy and climate'], 'jetp-sn': ['Energy and climate'], 'env-ci': ['Other (social, humanitarian, multi-sector)'], 'env-sn': ['Other (social, humanitarian, multi-sector)'], 'env-bj': ['Other (social, humanitarian, multi-sector)'], 'env-bf': ['Other (social, humanitarian, multi-sector)'], 'env-ml': ['Other (social, humanitarian, multi-sector)'], 'env-ne': ['Other (social, humanitarian, multi-sector)'], 'env-tg': ['Other (social, humanitarian, multi-sector)'], 'env-gw': ['Other (social, humanitarian, multi-sector)'], 'nat-choose-africa-2': ['Financial sector and SMEs'], 'nat-choose-africa-2-ci': ['Financial sector and SMEs'], 'nat-bpifrance-ae': ['Industry and trade'], 'nat-bpifrance-acc': ['Industry and trade'], 'nat-pl-fwe': ['Industry and trade'], 'nat-bgk-africa-limit': ['Industry and trade'], 'nat-cwa': ['Financial sector and SMEs', 'Industry and trade'], 'nat-africaconnect': ['Financial sector and SMEs'], 'nat-mattei': ['Agriculture and food systems', 'Energy and climate', 'Industry and trade'], 'nat-cesce-ci': ['Industry and trade'], 'nat-finexpo': ['Industry and trade'], 'nat-c2d': ['Governance and budget support', 'Other (social, humanitarian, multi-sector)'], 'nat-bpifrance-ebid': ['Industry and trade'], 'nat-sofid': ['Financial sector and SMEs'], 'nat-lusophone-compact': ['Financial sector and SMEs'], 'tei-cm-north': ['Agriculture and food systems', 'Energy and climate', 'Governance and budget support'], 'tei-cf-court': ['Governance and budget support'], 'tei-cg-forests': ['Energy and climate'], 'gg-cm-nachtigal': ['Energy and climate'], 'gg-cm-logone': ['Transport and corridors'], 'gg-cm-transcam': ['Transport and corridors'], 'gg-td-road': ['Transport and corridors'], 'gg-corr-libreville-ndjamena': ['Transport and corridors'], 'gg-corr-douala-kampala': ['Transport and corridors'], 'gg-ga-transgabonais': ['Transport and corridors'], 'gg-cf-backbone': ['Digital and telecoms'], 'gg-cg-forest': ['Energy and climate'], 'gg-ga-forest': ['Energy and climate'], 'env-cm': ['Other (social, humanitarian, multi-sector)'], 'env-cf': ['Other (social, humanitarian, multi-sector)'], 'env-td': ['Other (social, humanitarian, multi-sector)'], 'env-cg': ['Other (social, humanitarian, multi-sector)'], 'env-ga': ['Other (social, humanitarian, multi-sector)']}
-    PROG_SECTORS.update(_AITF_SECT)
-    for _p in PROGRAMMES:  # sector tags for the overlap analysis; manual programmes are tagged from their text
-        _p["sectors"] = PROG_SECTORS.get(_p["programme_id"]) or [broad_sector(_p["name"] + " " + _p["description"])]
-    with open(OUT / "programmes.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(PROGRAMMES[0].keys()))
-        w.writeheader()
-        for p in PROGRAMMES:
-            w.writerow({**p, "countries": " ".join(p["countries"]), "participants": " ".join(p["participants"]), "sectors": "; ".join(p["sectors"])})
-
-    with open(OUT / "manual_rejected.csv", "w", newline="", encoding="utf-8") as fh:  # rows from your manual files that need fixing
-        w = csv.DictWriter(fh, fieldnames=["file", "row", "title", "problems"])
-        w.writeheader()
-        for r in rejected:
-            w.writerow({"file": r.get("file", "manual_entries.csv"), **{k: r[k] for k in ("row", "title", "problems")}})
-    if rejected:
-        print(f"{len(rejected)} manual row(s) set aside: see data/manual_rejected.csv")
-
-    with open(OUT / "regional_programmes.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["investment_id", "institution_id", "source_id", "region", "title", "year", "amount_eur", "sector_broad", "instrument", "source_url", "note"])
-        w.writeheader(); w.writerows(regional)
-
-    import collections, urllib.request
-    # ---- Source register (shown in the Sources tab): every source, what it provides, its licence and how many deals it contributes
-    PUB = "Public website; reuse with attribution"
-    REGISTER = [
-        ("iati", "IATI activity data (via d-portal)", "IATI Standard / d-portal", "https://d-portal.org", "API queries (XML and JSON), monthly",
-         "Activities, commitments, disbursements, budgets, sectors and implementing organisations for AFD, KfW (via BMZ), FMO, Invest International, DGGF, Atradius DSB, the EBRD, the European Commission (DG INTPA, ECHO, FPI) and World Bank trust funds.",
-         ["iati"], "Each publisher's open licence (mostly CC BY 4.0 or ODbL), registered on the IATI Registry", "Figures"),
-        ("iati-regional", "IATI regional activities", "IATI Standard / d-portal", "https://d-portal.org", "Full publisher files read page by page, monthly",
-         "Africa-wide, Sub-Saharan, West and Central African activities of the Commission and KfW.", ["iati-regional"], "As above", "Regional layer"),
-        ("eib-api", "EIB signed loans (country and regional lists)", "European Investment Bank", "https://www.eib.org/en/projects/loans/index", "JSON behind the EIB's project pages, monthly",
-         "Signed loans by country since 1999, and regional loans for Africa, West Africa and Central Africa.", ["eib-api"], PUB + " (EIB legal notice)", "Figures"),
-        ("proparco-web", "Proparco project list and project pages", "Proparco (AFD Group)", "https://www.proparco.fr/en/projects/list", "Web pages read monthly",
-         "Projects with country, year, amount, instrument, client and E&S category.", ["proparco-web"], PUB, "Figures"),
-        ("bio-web", "BIO investment portfolio", "BIO (Belgium)", "https://www.bio-invest.be/en/investments", "Web pages read monthly",
-         "Investments by country with amount, date and type.", ["bio-web"], PUB, "Figures"),
-        ("deg-csv", "DEG investments database (CSV export)", "DEG (KfW Group)", "https://deginvest-investments.de/", "CSV download, monthly",
-         "Commitments since 2021 with country, amount, instrument and E&S category.", ["deg-csv"], PUB, "Figures"),
-        ("finnfund-wp", "Finnfund investments", "Finnfund", "https://www.finnfund.fi/en/investments/", "WordPress data feed, monthly",
-         "Investments by country with amount bands.", ["finnfund-wp"], PUB, "Figures"),
-        ("ifu-wp", "Impact Fund Denmark investments", "Impact Fund Denmark (IFU)", "https://impactfund.dk/investment-portfolio/", "WordPress data feed, monthly",
-         "Investments by country.", ["ifu-wp"], PUB, "Figures"),
-        ("cofides-web", "COFIDES projects", "COFIDES (Spain)", "https://www.cofides.es/en/projects", "Web pages read monthly",
-         "Projects by country with sector and instrument.", ["cofides-web"], PUB, "Figures"),
-        ("oeeb-web", "OeEB projects at a glance", "OeEB (Austria)", "https://www.oe-eb.at/en/our-projects/projects-at-a-glance.html", "All project pages read monthly",
-         "Projects naming a Franc Zone country, with volume and date.", ["oeeb-web"], PUB, "Figures"),
-        ("eutf-web", "EU Emergency Trust Fund for Africa programmes", "European Commission", "https://trust-fund-for-africa.europa.eu/our-programmes_en", "Programme pages read monthly",
-         "EU contribution, locations, duration, theme and implementing partner of each programme.", ["eutf-web"], "European Commission reuse policy (CC BY 4.0)", "Figures"),
-        ("edfimc-web", "ElectriFI and AgriFI projects", "EDFI Management Company", "https://edfimc.eu/what-we-do/electrifi/", "Project pages read monthly",
-         "Deals with country, year, instrument and amount.", ["edfimc-web"], PUB, "Figures"),
-        ("eu-aitf", "EU-Africa Infrastructure Trust Fund grants", "EU-AITF (managed by the EIB)", "https://www.eu-africa-infrastructure-tf.net/activities/grant-operations.pdf", "Annual report 2019 table and grant list (static)",
-         "Every grant with countries, net amount, type, lead financier and status (2019 annual report: eib.org).", ["eu-aitf"], PUB, "Figures"),
-        ("eu-blending-list", "EU blending operations approved by the Commission", "European Commission (DG INTPA)", BLENDING_SRC, "PDF list (static)",
-         "Blending grants with country, lead financier, total project cost and EU contribution; used to tag deals already counted and to add missing ones.", ["eu-blending-list"], "European Commission reuse policy (CC BY 4.0)", "Figures"),
-        ("curated", "Curated deals from public sources", "Press releases, annual reports and specialist press", "", "Hand-checked, each deal links its own source",
-         "Deals by BGK, KUKE, SACE, CDP, EIFO, Credendo, Bpifrance Assurance Export and Swedfund that no data feed covers.", ["curated"], "Per source", "Figures"),
-        ("manual", "Your manual entries", "data/manual_entries.csv", "", "Edited on GitHub",
-         "Deals you add from information requests and reports; each row needs a source link.", ["manual"], "Per source", "Figures"),
-        ("programmes", "Programme sources", "European Commission country pages, EEAS, UN, institutions", "https://international-partnerships.ec.europa.eu/policies/global-gateway_en", "Hand-checked, each programme links its own source",
-         "Team Europe Initiatives, Global Gateway flagships, EU envelopes and national programmes.", [], "Per source", "Programmes"),
-        ("wb-api", "World Bank projects", "World Bank", "https://projects.worldbank.org", "Projects API, monthly",
-         "IBRD/IDA projects for the non-EU comparison.", ["wb-api"], "World Bank open data (CC BY 4.0)", "Non-EU comparison"),
-        ("aiib-web", "AIIB project list", "Asian Infrastructure Investment Bank", "https://www.aiib.org/en/projects/list/index.html", "Project data file, monthly",
-         "Projects for the non-EU comparison.", ["aiib-web"], PUB, "Non-EU comparison"),
-        ("ecb-fx", "ECB reference exchange rates", "European Central Bank", "https://data.ecb.europa.eu", "API, monthly",
-         "Monthly average rates used to convert every amount to euros; XOF and XAF use the fixed peg of 655.957.", [], "ECB statistics, free reuse with attribution", "Reference"),
-        ("iati-codes", "IATI sector codes", "IATI Standard", "https://iatistandard.org/reference_downloads/203/codelists/downloads/clv3/json/en/Sector.json", "Download, monthly",
-         "Names of the OECD-DAC sector codes, grouped into the tracker's ten sectors.", [], "Public domain (IATI codelists)", "Reference"),
-        ("map", "Base map and software", "Natural Earth (via world-atlas), globe.gl, topojson-client", "https://github.com/topojson/world-atlas", "Downloaded once and embedded",
-         "Country shapes (Natural Earth, public domain; Crimea redrawn as part of Ukraine), the 3D globe and the shape decoder (MIT and ISC licences).", [], "Public domain / MIT / ISC", "Map and software"),
-        ("fts", "EU Financial Transparency System", "European Commission", "https://ec.europa.eu/budget/financial-transparency-system/index.html", "Yearly downloads (not yet used)",
-         "Who receives EU budget money each year, including AFD, GIZ and Expertise France as implementers: the best cross-check for EU funds implemented by member-state agencies.", [], "European Commission reuse policy", "Recommended next"),
-        ("oecd-crs", "OECD Creditor Reporting System", "OECD", "https://data-explorer.oecd.org/", "Bulk files (not yet used)",
-         "Official development finance by agency since the 1970s: the route to fill 1999-2010.", [], "OECD terms (free reuse with attribution)", "Recommended next"),
-        ("pwyf", "DFI Transparency Tool", "Publish What You Fund", "https://www.publishwhatyoufund.org/projects/dfi-transparency-tool/", "Reference (not yet used)",
-         "How openly each development finance institution discloses: explains the gaps in this tracker.", [], PUB, "Recommended next"),
-        ("teitracker", "Team Europe tracker", "European Commission (Capacity4dev)", "https://capacity4dev.europa.eu/resources/team-europe-tracker/dashboard/region/tei_en", "Requires a login (not used directly)",
-         "Official names and members of Team Europe Initiatives; only public pages are cited in this tracker.", [], "Login required", "Recommended next"),
-    ]
-    counts = collections.Counter(inv["source_id"] for inv in investments)
-    # check every cited link (register, programmes, curated deals); some sites refuse automated checks but open in a browser
-    import concurrent.futures as _cf
-    _cited = collections.defaultdict(set)
-    for r_ in REGISTER:
-        if r_[3]: _cited[r_[3]].add("source register: " + r_[1])
-    for p_ in PROGRAMMES:
-        if p_.get("source_url"): _cited[p_["source_url"]].add("programme: " + p_["name"][:60])
-    for inv in investments:
-        if inv["source_id"] in ("curated", "manual", "eu-blending-list", "eu-aitf") and inv["source_url"]:
-            _cited[inv["source_url"]].add("deal: " + inv["title"][:60])
-    def _check(u):
-        try:
-            return u, urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124"}), timeout=30).status
-        except Exception as e:
-            return u, getattr(e, "code", None) or type(e).__name__
-    with _cf.ThreadPoolExecutor(12) as _ex:
-        _status = dict(_ex.map(_check, list(_cited)))
-    LINK_CHECKS = {"checked": len(_status), "ok": sum(1 for c in _status.values() if c == 200),
-                   "problems": [[u, str(c), sorted(_cited[u])[:3]] for u, c in sorted(_status.items()) if c not in (200, 202)]}
-    SOURCES_OUT = [{"id": r_[0], "name": r_[1], "provider": r_[2], "url": r_[3], "method": r_[4], "provides": r_[5],
-                    "records": sum(counts.get(x, 0) for x in r_[6]), "licence": r_[7], "role": r_[8], "retrieved": TODAY,
-                    "status": str(_status.get(r_[3], "")) if r_[3] else ""} for r_ in REGISTER]
-    write("sources", SOURCES_OUT, ["id", "name", "provider", "url", "method", "provides", "records", "licence", "role", "retrieved", "status"])
-
-    # ---- Contractors: European firms that won contracts under AFD projects co-financed by the EU (for the About directory only;
-    # these contracts are paid out of financing already counted, so they are never added to any total)
-    import urllib.request as _ur
-    _cpath = RAW / "afd_contracts.json"
+DATA_URL = TRACKER_DATA_URL or (TRACKER_SITE_URL.rstrip("/") + "/tracker.json" if TRACKER_SITE_URL else "")
+data_status = "saved"          # "live" when this build read the tracker's current data
+if DATA_URL:
     try:
-        _raw = _ur.urlopen(_ur.Request("https://opendata.afd.fr/api/explore/v2.1/catalog/datasets/liste-des-marches-finances-par-lafd-avec-la-participation-financiere-de-lunion-e/exports/json?limit=-1",
-                                       headers={"User-Agent": "Mozilla/5.0 (EU-CFA tracker)"}), timeout=120).read()
-        json.loads(_raw); _cpath.write_bytes(_raw)
+        raw = get(DATA_URL)
+        json.loads(raw)
+        (DATA / "tracker.json").write_bytes(raw)
+        data_status = "live"
+        print("downloaded tracker data from", DATA_URL)
     except Exception as e:
-        print("AFD contract list not refreshed:", e)
-    _EU_NAT = {"FRANCE": "FR", "FRANCAISE": "FR", "ALLEMAGNE": "DE", "ALLEMANDE": "DE", "BELGIQUE": "BE", "BELGE": "BE", "ESPAGNE": "ES", "ESPAGNOLE": "ES",
-               "ITALIE": "IT", "ITALIENNE": "IT", "PORTUGAL": "PT", "PORTUGAISE": "PT", "PAYS-BAS": "NL", "PAYS BAS": "NL", "NEERLANDAISE": "NL",
-               "LUXEMBOURG": "LU", "LUXEMBOURGEOISE": "LU", "AUTRICHE": "AT", "AUTRICHIENNE": "AT", "DANEMARK": "DK", "DANOISE": "DK", "SUEDE": "SE",
-               "SUEDOISE": "SE", "FINLANDE": "FI", "FINLANDAISE": "FI", "IRLANDE": "IE", "IRLANDAISE": "IE", "GRECE": "GR", "GRECQUE": "GR",
-               "POLOGNE": "PL", "POLONAISE": "PL", "REPUBLIQUE TCHEQUE": "CZ", "TCHEQUIE": "CZ", "SLOVAQUIE": "SK", "HONGRIE": "HU", "ROUMANIE": "RO",
-               "BULGARIE": "BG", "CROATIE": "HR", "SLOVENIE": "SI", "ESTONIE": "EE", "LETTONIE": "LV", "LITUANIE": "LT", "CHYPRE": "CY", "MALTE": "MT"}
-    _FZN = [("BJ", r"benin"), ("BF", r"burkina"), ("CI", r"cote d.?ivoire"), ("GW", r"guinee[- ]bissau"), ("ML", r"\bmali\b"), ("NE", r"\bniger\b"),
+        warnings.append(f"Could not download the tracker data from {DATA_URL} ({e}); the last saved copy is used, so totals may differ from the tracker.")
+else:
+    warnings.append("Not connected to the tracker: set TRACKER_SITE_URL in network.py. Until then a saved copy of the tracker data is used, so totals may differ from the tracker.")
+if not (DATA / "tracker.json").exists():
+    raise SystemExit("No tracker data: set TRACKER_DATA_URL in network.py or upload data/tracker.json")
+T = json.load(open(DATA / "tracker.json", encoding="utf-8"))
+generated = T.get("generated", "")
+
+# ---------------------------------------------------------------- 2. scope: EU public financial institutions and EU-financed World Bank trust funds
+INCLUDED_TYPES = {"DFI", "Bilateral development bank", "NPB", "ECA", "EU institution", "World Bank trust fund", "Multilateral"}
+EBRD_EU_SHARE = 0.544   # EU (3.03%), EIB (3.03%) and EU27 member states (ca. 48.4%): European Commission, COM(2024)42
+EBRD_SHARE_SRC = "https://eumonitor.eu/9353000/1/j4nvirkkkr58fyw_j9vvik7m1c3gyxp/vma3gbgih4zm"
+INST = {i["institution_id"]: i for i in T["institutions"] if i["type"] in INCLUDED_TYPES}
+COUNTRIES = T["countries"]
+MS_NAMES = {"FR": "France", "DE": "Germany", "NL": "Netherlands", "BE": "Belgium", "FI": "Finland", "DK": "Denmark", "SE": "Sweden",
+            "AT": "Austria", "ES": "Spain", "IT": "Italy", "PT": "Portugal", "PL": "Poland", "CZ": "Czechia", "SK": "Slovakia",
+            "HR": "Croatia", "GR": "Greece", "SI": "Slovenia", "HU": "Hungary", "RO": "Romania", "BG": "Bulgaria", "EE": "Estonia",
+            "LV": "Latvia", "LT": "Lithuania", "IE": "Ireland", "LU": "Luxembourg", "EU": "European Union", "WBTF": "World Bank trust funds"}
+inv_by_id = {i["investment_id"]: i for i in T["investments"] if i["institution_id"] in INST}
+
+# deals with their Franc Zone allocations
+deals = {}
+for a in T["allocations"]:
+    inv = inv_by_id.get(a["investment_id"])
+    if not inv:
+        continue
+    d = deals.setdefault(inv["investment_id"], {"id": inv["investment_id"], "i": inv["institution_id"], "t": inv["title"][:160],
+                                                "y": inv.get("year") or "", "n": inv.get("instrument", ""), "s": inv.get("sector_broad", ""),
+                                                "u": inv.get("source_url", ""), "g": inv.get("impl_agency", ""), "gm": inv.get("impl_ms", ""), "v": 0.0, "c": [], "e": False})
+    d["v"] += a.get("amount_attributed_eur") or 0
+    d["c"].append(a["country"])
+    if a.get("attribution_method") == "equal_split_estimate":
+        d["e"] = True
+deals = {k: v for k, v in deals.items()}
+
+# ---------------------------------------------------------------- 2b. EBRD: which projects involve EU or member-state money (from the EBRD's project summary pages)
+EU_ACTORS = [("eu-intpa", r"European Union|\bEU\b|EU's|Africa Investment Platform|\bAIP\b|EFSD|Global Gateway|European Commission|Team Europe"),
+             ("eib", r"European Investment Bank|\bEIB\b"), ("afd", r"Agence Fran[cç]aise|\bAFD\b"), ("proparco", r"Proparco"),
+             ("kfw-db", r"\bKfW\b"), ("deg", r"\bDEG\b"), ("fmo", r"\bFMO\b"), ("bio", r"\bBIO\b"), ("finnfund", r"Finnfund"),
+             ("swedfund", r"Swedfund"), ("ifu", r"\bIFU\b|Impact Fund Denmark"), ("cofides", r"COFIDES"), ("oeeb", r"OeEB")]
+MONEY = re.compile(r"co-?financ|grant|loan|fund|financ|guarantee|provided|contribut|blend|investment from|support from|alongside|parallel", re.I)
+STANDARD_ONLY = re.compile(r"Directive|Taxonomy|Best Available|in line with the requirements|EU standards|EU requirements|EU regulation", re.I)
+psd_cache = DATA / "ebrd_psd.json"
+psd = json.load(open(psd_cache, encoding="utf-8")) if psd_cache.exists() else {}
+def html_text(s):
+    return re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S)))
+for d in deals.values():
+    if d["i"] != "ebrd":
+        continue
+    m = re.search(r"EBRD-(\d+)", d["id"])
+    if not m:
+        continue
+    pid = m.group(1)
+    try:
+        t = html_text(get(f"https://www.ebrd.com/work-with-us/projects/psd/{pid}.html", 60).decode("utf-8", "replace"))
+        import html as _h
+        t = _h.unescape(t)
+        start = t.find("Project Description")            # read only the project's own text, not the site's menus
+        t = t[start:] if start >= 0 else ""
+        found = {}
+        for sent in re.split(r"(?<=[.;])\s+", t):
+            if len(sent) > 450 or not MONEY.search(sent) or STANDARD_ONLY.search(sent):
+                continue
+            for iid, rx in EU_ACTORS:
+                if re.search(rx, sent) and iid not in found:
+                    found[iid] = sent.strip()[:320]
+        psd[pid] = {"url": f"https://www.ebrd.com/work-with-us/projects/psd/{pid}.html", "eu": found, "checked": TODAY.isoformat()}
+    except Exception as e:
+        warnings.append(f"EBRD project page {pid} could not be read ({e}); the last saved reading is used.")
+    if pid in psd:
+        d["eu"] = psd[pid]["eu"]; d["psd"] = psd[pid]["url"]
+json.dump(psd, open(psd_cache, "w", encoding="utf-8"), ensure_ascii=False, indent=0)
+
+# ---------------------------------------------------------------- 3. network: nodes and weighted links
+nodes, links = {}, collections.defaultdict(lambda: {"v": 0.0, "n": 0})
+def node(nid, kind, label, **kw):
+    if nid not in nodes:
+        nodes[nid] = {"id": nid, "k": kind, "l": label, "v": 0.0, **kw}
+    return nodes[nid]
+for d in deals.values():
+    ins = INST[d["i"]]
+    node("i:" + d["i"], "institution", ins["name"], t=ins["type"], ms=ins["member_state"])
+    nodes["i:" + d["i"]]["v"] += d["v"]
+    share = d["v"] / max(1, len(d["c"]))
+    for cc in d["c"]:
+        node("c:" + cc, "country", COUNTRIES[cc]["name"], u=COUNTRIES[cc].get("union", ""))
+        nodes["c:" + cc]["v"] += share
+        l = links[("i:" + d["i"], "c:" + cc)]; l["v"] += share; l["n"] += 1
+    if d["s"]:
+        node("s:" + d["s"], "sector", d["s"])
+        nodes["s:" + d["s"]]["v"] += d["v"]
+        l = links[("i:" + d["i"], "s:" + d["s"])]; l["v"] += d["v"]; l["n"] += 1
+    if d["g"] and ins["type"] == "EU institution":  # EU money entrusted to an implementing agency
+        node("a:" + d["g"], "agency", d["g"], ms=d.get("gm", ""))
+        nodes["a:" + d["g"]]["v"] += d["v"]
+        l = links[("i:" + d["i"], "a:" + d["g"])]; l["v"] += d["v"]; l["n"] += 1
+for nid, n in list(nodes.items()):
+    if n["k"] == "institution" and n.get("ms"):
+        owner = "EU" if n["ms"] in ("WBTF", "INT") else n["ms"]   # World Bank trust funds and the EBRD hang off the EU, not a separate ball
+        node("m:" + owner, "memberstate", MS_NAMES.get(owner, owner))
+        share = EBRD_EU_SHARE if n["ms"] == "INT" else 1.0          # the EBRD: only the EU-held share of its capital (54.4%)
+        nodes["m:" + owner]["v"] += n["v"] * share
+        l = links[("m:" + owner, nid)]; l["v"] += n["v"] * share; l["n"] += 1
+        if n["ms"] == "INT":
+            l["own"] = round(EBRD_EU_SHARE * 100, 1)
+# each implementing agency belongs to a member state: a "belongs to" link without amount (the money it implements is EU money)
+for nid, n in list(nodes.items()):
+    if n["k"] == "agency" and n.get("ms") and n["ms"] != "EU":
+        node("m:" + n["ms"], "memberstate", MS_NAMES.get(n["ms"], n["ms"]))
+        links[("m:" + n["ms"], nid)]["n"] += 1
+# EBRD co-financing: a dashed link to each EU institution its project pages name as a source of money
+for d in deals.values():
+    for iid in (d.get("eu") or {}):
+        if ("i:" + iid) in nodes and "i:ebrd" in nodes:
+            l = links[("i:ebrd", "i:" + iid)]; l["n"] += 1; l["co"] = True
+# frameworks (programmes): participants and countries, no amounts added up
+for p in T.get("programmes", []):
+    fid = "f:" + p["programme_id"]
+    parts = [("i:" + x) if ("i:" + x) in nodes else ("m:" + x) if ("m:" + x) in nodes else None for x in p["participants"]]
+    parts = [x for x in parts if x]
+    ccs = ["c:" + c for c in p["countries"] if ("c:" + c) in nodes]
+    if not parts or not ccs:
+        continue
+    node(fid, "framework", p["name"][:90], fk=p["kind"], src=p.get("source_url", ""))
+    for x in parts:
+        links[(x, fid)]["n"] += 1
+    for c in ccs:
+        links[(fid, c)]["n"] += 1
+
+# euros each country receives per sector (shown when a country is clicked)
+csec = collections.defaultdict(lambda: collections.defaultdict(float))
+for d in deals.values():
+    if d["s"]:
+        for cc in d["c"]:
+            csec[cc][d["s"]] += d["v"] / max(1, len(d["c"]))
+csec = {cc: {k: round(v) for k, v in sorted(m.items(), key=lambda x: -x[1]) if v > 0} for cc, m in csec.items()}
+
+# ---------------------------------------------------------------- 3b. contractors: European firms that won AFD-financed contracts
+# Source: AFD open data, "Liste des marchés financés par l'AFD avec la participation financière de l'Union européenne"
+AFD_CONTRACTS = ("https://opendata.afd.fr/api/explore/v2.1/catalog/datasets/"
+                 "liste-des-marches-finances-par-lafd-avec-la-participation-financiere-de-lunion-e/exports/json?limit=-1")
+try:
+    raw = get(AFD_CONTRACTS)
+    json.loads(raw)
+    (DATA / "afd_contracts.json").write_bytes(raw)
+except Exception as e:
+    warnings.append(f"Could not download AFD's contract list ({e}); the last saved copy is used.")
+EU_NAT = {"FRANCE": "FR", "FRANCAISE": "FR", "ALLEMAGNE": "DE", "ALLEMANDE": "DE", "BELGIQUE": "BE", "BELGE": "BE", "ESPAGNE": "ES", "ESPAGNOLE": "ES",
+          "ITALIE": "IT", "ITALIENNE": "IT", "PORTUGAL": "PT", "PORTUGAISE": "PT", "PAYS-BAS": "NL", "PAYS BAS": "NL", "NEERLANDAISE": "NL",
+          "LUXEMBOURG": "LU", "LUXEMBOURGEOISE": "LU", "AUTRICHE": "AT", "AUTRICHIENNE": "AT", "DANEMARK": "DK", "DANOISE": "DK", "SUEDE": "SE",
+          "SUEDOISE": "SE", "FINLANDE": "FI", "FINLANDAISE": "FI", "IRLANDE": "IE", "IRLANDAISE": "IE", "GRECE": "GR", "GRECQUE": "GR",
+          "POLOGNE": "PL", "POLONAISE": "PL", "REPUBLIQUE TCHEQUE": "CZ", "TCHEQUIE": "CZ", "SLOVAQUIE": "SK", "HONGRIE": "HU", "ROUMANIE": "RO",
+          "BULGARIE": "BG", "CROATIE": "HR", "SLOVENIE": "SI", "ESTONIE": "EE", "LETTONIE": "LV", "LITUANIE": "LT", "CHYPRE": "CY", "MALTE": "MT"}
+FZ_NAMES = [("BJ", r"benin"), ("BF", r"burkina"), ("CI", r"cote d.?ivoire"), ("GW", r"guinee[- ]bissau"), ("ML", r"\bmali\b"), ("NE", r"\bniger\b"),
             ("SN", r"senegal"), ("TG", r"\btogo\b"), ("CM", r"cameroun"), ("CF", r"centrafrique|centrafricaine"), ("TD", r"tchad"),
             ("GQ", r"guinee equatoriale"), ("GA", r"gabon"), ("CG", r"\bcongo\b")]
-    _plain = lambda t: unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().upper().strip()
-    def _fz(country):
-        c = _plain(country).lower()
-        if re.search(r"democratique|\brdc\b|kinshasa|conakry", c) or re.fullmatch(r"\s*guinee\s*", c):
-            return None
-        return next((cc for cc, rx in _FZN if re.search(rx, c)), None)
-    # European parent groups: subsidiaries and brand names that appear in contract awards -> (group, member state)
-    PARENTS = [(r"EIFFAGE|CLEMESSY", "Eiffage", "FR"), (r"SOGEA|SATOM|VINCI|EUROVIA|CEGELEC|OMEXOM|ENTREPOSE", "Vinci (Sogea-Satom)", "FR"),
-               (r"\bSUEZ\b|DEGREMONT", "Suez", "FR"), (r"VEOLIA|\bOTV\b|\bSADE\b", "Veolia", "FR"), (r"BOUYGUES|\bCOLAS\b|\bETDE\b", "Bouygues (Colas)", "FR"),
-               (r"RAZEL|FAYAT", "Fayat (Razel-Bec)", "FR"), (r"\bENGIE\b|COFELY|INEO", "Engie", "FR"), (r"\bSPIE\b", "Spie", "FR"),
-               (r"SCHNEIDER", "Schneider Electric", "FR"), (r"SAGEMCOM", "Sagemcom", "FR"), (r"VERGNET", "Vergnet", "FR"), (r"\bEGIS\b", "Egis", "FR"),
-               (r"ARTELIA", "Artelia", "FR"), (r"\bSETEC\b", "Setec", "FR"), (r"\bBRL\b", "BRL Ingénierie", "FR"), (r"BOLLORE", "Bolloré", "FR"),
-               (r"\bRMT\b", "RMT Industrie & Elektrotechnik", "DE"), (r"SIEMENS", "Siemens", "DE"), (r"STRABAG", "Strabag", "AT"),
-               (r"BESIX", "Besix", "BE"), (r"JAN DE NUL", "Jan De Nul", "BE"), (r"\bDEME\b", "DEME", "BE"), (r"TRACTEBEL", "Tractebel (Engie)", "BE"),
-               (r"BOSKALIS", "Boskalis", "NL"), (r"VAN OORD", "Van Oord", "NL"), (r"HASKONING", "Royal HaskoningDHV", "NL"), (r"ARCADIS", "Arcadis", "NL"),
-               (r"\bSENER\b", "Sener", "ES"), (r"ELECNOR", "Elecnor", "ES"), (r"ISOLUX", "Isolux Corsán", "ES"),
-               (r"SALINI|WEBUILD|IMPREGILO", "Webuild", "IT"), (r"GHELLA", "Ghella", "IT"), (r"MOTA[- ]ENGIL", "Mota-Engil", "PT")]
-    def contract_members(name, eu_ms, plain):
-        """Split a consortium name into its partners; return ([(group, member state), ...], number of partners).
-        Partners found in PARENTS get their group and nationality; a single firm not in PARENTS keeps its name and the dataset's nationality."""
-        clean = re.sub(r"\b(GROUPEMENT|GPT|CONSORTIUM|JOINT VENTURE|JV)\b\s*:?", " ", plain(name))
-        parts = [p.strip() for p in re.split(r"\s*/\s*|\s+\+\s+|\s+-\s+|;|\s+ET\s+", clean) if p.strip()]
-        found = []
-        for p in parts:
-            hit = next(((g, m) for rx, g, m in PARENTS if re.search(rx, p)), None)
-            if hit and hit not in found:
-                found.append(hit)
-        if found:
-            return found, max(len(parts), len(found))
-        return [(re.sub(r"\s+", " ", name.strip())[:90], eu_ms)], 1
-    _firms = {}
-    if _cpath.exists():
-        for r in json.load(open(_cpath, encoding="utf-8")):
-            cc = _fz(r.get("pays_beneficiaire"))
-            if not cc:
-                continue
-            nats = [p.strip() for p in re.split(r"[/,;]| ET | - ", _plain(r.get("nationalite_de_l_attributaire")))]
-            ms = next((_EU_NAT[p] for p in nats if p in _EU_NAT), None)
-            if not ms:
-                continue
-            try:
-                k = float(r.get("montant_en_keur") or 0)
-            except ValueError:
-                k = 0
-            what = _plain((r.get("nature_et_finalite_du_marche") or "") + " " + (r.get("titre_du_contrat_marche_titre_du_projet") or "")).lower()
-            service = re.search(r"etude|study|assistance|appui|support|preparation|structuration|coordination|termes de reference|capacit|formation|conseil|"
-                                r"expertise|audit|evaluation|supervision|controle|maitrise d.oeuvre|analyse|diagnostic|cartographie|recherche|communication|accompagnement", what)
-            eur = k if (k > 100000 or (k > 10000 and service)) else k * 1000
-            members, n_parts = contract_members(r.get("nom_de_l_attributaire") or "", ms, _plain)   # same rule as the network: parent groups, consortium partners
-            for g, m in members:
-                key = re.sub(r"[^a-z0-9]+", "-", _plain(g).lower()).strip("-")[:60]
-                f = _firms.setdefault(key, {"f": g, "ms": m, "c": set(), "v": 0.0, "n": 0})
-                f["c"].add(cc); f["v"] += eur / n_parts; f["n"] += 1
-    CONTRACTORS = [{"f": f["f"], "ms": f["ms"], "c": sorted(f["c"]), "v": round(f["v"]), "n": f["n"]} for f in _firms.values()]
-    print(len(CONTRACTORS), "European contractor firms (AFD contract list)")
+def plain(t):
+    return unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().upper().strip()
+def fz_code(country):
+    c = plain(country).lower()
+    if re.search(r"democratique|\brdc\b|kinshasa|conakry", c):
+        return None
+    if re.fullmatch(r"\s*guinee\s*", c):
+        return None
+    for cc, rx in FZ_NAMES:
+        if re.search(rx, c):
+            return cc
+    return None
+def contract_date(t):
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", t or "") or None
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    m = re.search(r"(\d{2})/(\d{2})/(\d{4})", t or "")
+    return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else ""
+# European parent groups: subsidiaries and brand names that appear in contract awards -> (group, member state)
+PARENTS = [(r"EIFFAGE|CLEMESSY", "Eiffage", "FR"), (r"SOGEA|SATOM|VINCI|EUROVIA|CEGELEC|OMEXOM|ENTREPOSE", "Vinci (Sogea-Satom)", "FR"),
+           (r"\bSUEZ\b|DEGREMONT", "Suez", "FR"), (r"VEOLIA|\bOTV\b|\bSADE\b", "Veolia", "FR"), (r"BOUYGUES|\bCOLAS\b|\bETDE\b", "Bouygues (Colas)", "FR"),
+           (r"RAZEL|FAYAT", "Fayat (Razel-Bec)", "FR"), (r"\bENGIE\b|COFELY|INEO", "Engie", "FR"), (r"\bSPIE\b", "Spie", "FR"),
+           (r"SCHNEIDER", "Schneider Electric", "FR"), (r"SAGEMCOM", "Sagemcom", "FR"), (r"VERGNET", "Vergnet", "FR"), (r"\bEGIS\b", "Egis", "FR"),
+           (r"ARTELIA", "Artelia", "FR"), (r"\bSETEC\b", "Setec", "FR"), (r"\bBRL\b", "BRL Ingénierie", "FR"), (r"BOLLORE", "Bolloré", "FR"),
+           (r"\bRMT\b", "RMT Industrie & Elektrotechnik", "DE"), (r"SIEMENS", "Siemens", "DE"), (r"STRABAG", "Strabag", "AT"),
+           (r"BESIX", "Besix", "BE"), (r"JAN DE NUL", "Jan De Nul", "BE"), (r"\bDEME\b", "DEME", "BE"), (r"TRACTEBEL", "Tractebel (Engie)", "BE"),
+           (r"BOSKALIS", "Boskalis", "NL"), (r"VAN OORD", "Van Oord", "NL"), (r"HASKONING", "Royal HaskoningDHV", "NL"), (r"ARCADIS", "Arcadis", "NL"),
+           (r"\bSENER\b", "Sener", "ES"), (r"ELECNOR", "Elecnor", "ES"), (r"ISOLUX", "Isolux Corsán", "ES"),
+           (r"SALINI|WEBUILD|IMPREGILO", "Webuild", "IT"), (r"GHELLA", "Ghella", "IT"), (r"MOTA[- ]ENGIL", "Mota-Engil", "PT")]
+def contract_members(name, eu_ms, plain):
+    """Split a consortium name into its partners; return ([(group, member state), ...], number of partners).
+    Partners found in PARENTS get their group and nationality; a single firm not in PARENTS keeps its name and the dataset's nationality."""
+    clean = re.sub(r"\b(GROUPEMENT|GPT|CONSORTIUM|JOINT VENTURE|JV)\b\s*:?", " ", plain(name))
+    parts = [p.strip() for p in re.split(r"\s*/\s*|\s+\+\s+|\s+-\s+|;|\s+ET\s+", clean) if p.strip()]
+    found = []
+    for p in parts:
+        hit = next(((g, m) for rx, g, m in PARENTS if re.search(rx, p)), None)
+        if hit and hit not in found:
+            found.append(hit)
+    if found:
+        return found, max(len(parts), len(found))
+    return [(re.sub(r"\s+", " ", name.strip())[:90], eu_ms)], 1
 
-    # compact bundle for the website
-    bundle = {"generated": TODAY, "programmes": PROGRAMMES,
-              "places": {k: {"name": v[0], "lat": v[1], "lon": v[2]} for k, v in PARTICIPANT_PLACES.items()}, "countries": {k: {"name": v[1], "lat": v[2], "lon": v[3], "union": UNION[k]} for k, v in COUNTRIES.items()},
-              "institutions": inst_rows,
-              "sectors": SECTOR_LIST, "peg_year": PEG_YEAR, "regional": regional,
-              "comparators": [{"i": a["institution_id"], "c": a["country"], "s": comp_inv[a["investment_id"]]["sector_broad"],
-                               "v": a["amount_attributed_eur"], "y": comp_inv[a["investment_id"]]["year"], "n": comp_inv[a["investment_id"]]["instrument"]}
-                              for a in comparators if a["amount_attributed_eur"]],
-              "investments": [{k: inv[k] for k in ("investment_id", "institution_id", "title", "client", "client_domicile",
-                                                   "instrument", "instrument_detail", "tags", "impl_agency", "impl_ms", "sector_broad", "status", "year", "amount_eur", "amount_basis", "es_category",
-                                                   "source_url", "note", "multi_country", "source_id")} for inv in investments],
-              "sources": SOURCES_OUT, "link_checks": LINK_CHECKS, "contractors": CONTRACTORS,
-              "allocations": [{k: a[k] for k in ("investment_id", "country", "amount_attributed_eur", "attribution_method",
-                                                 "lat", "lon", "geo_precision")} for a in allocations]}
-    json.dump(bundle, open(OUT / "tracker.json", "w"), ensure_ascii=False, separators=(",", ":"))
-    print(f"{len(investments)} investments, {len(allocations)} country allocations")
-    by = {}
-    for inv in investments:
-        by[inv["institution_id"]] = by.get(inv["institution_id"], 0) + 1
-    print(by)
-
-def step_build():
-    """Inline the data, the world map and both map libraries into the page -> site/index.html"""
-    data = json.dumps(json.load(open(ROOT / "data" / "tracker.json", encoding="utf-8")), ensure_ascii=False, separators=(",", ":"))
-    world = (ROOT / "ref" / "countries-110m.json").read_text(encoding="utf-8")
-    safe = lambda s: s.replace("</", "<\\/")
-    html = TEMPLATE.replace("/*__DATA__*/null", safe(data)).replace("/*__WORLD__*/null", safe(world))
-    libs = {"/*__LIB_TOPOJSON__*/": ("topojson-client.min.js", "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"),
-            "/*__LIB_GLOBE__*/": ("globe.gl.min.js", "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js")}
-    for mark, (fname, url) in libs.items():
-        f = ROOT / "ref" / fname
-        code = f.read_text(encoding="utf-8") if f.exists() else ""
-        if code and "</script" not in code.lower():
-            html = html.replace(f"<script>{mark}</script>", "<script>" + code + "</script>")
-        else:  # library file missing: fall back to loading it from the CDN
-            html = html.replace(f"<script>{mark}</script>", f'<script src="{url}"></script>')
-    (ROOT / "site" / "index.html").write_text(html, encoding="utf-8")
-    print("site/index.html", round(len(html.encode()) / 1e6, 2), "MB")
-    # the data file is published next to the page, so the network tracker can read exactly the same figures
-    (ROOT / "site" / "tracker.json").write_bytes((ROOT / "data" / "tracker.json").read_bytes())
-    print("site/tracker.json published for the network tracker")
-
-FETCH_STEPS = ["reference", "iati", "iati_regional", "proparco", "bio", "wp", "eib", "cofides", "noneu", "oeeb", "eutf", "edfimc"]
-
-def main(steps):
-    inv = ROOT / "data" / "investments.csv"
-    before = {r["investment_id"]: r for r in csv.DictReader(open(inv, encoding="utf-8"))} if inv.exists() else {}
-    failed = []
-    for s in [x for x in FETCH_STEPS if x in steps]:
-        print(f"== {s}", flush=True)
+contracts = []
+cpath = DATA / "afd_contracts.json"
+if cpath.exists():
+    for r in json.load(open(cpath, encoding="utf-8")):
+        cc = fz_code(r.get("pays_beneficiaire"))
+        if not cc:
+            continue
+        nats = [p.strip() for p in re.split(r"[/,;]| ET | - ", plain(r.get("nationalite_de_l_attributaire")))]
+        ms = next((EU_NAT[p] for p in nats if p in EU_NAT), None)
+        if not ms:
+            continue
         try:
-            globals()["step_" + s]()
-        except Exception as e:  # one broken website must not stop the update: last month's raw files are kept
-            print(f"!! {s} failed: {e!r}", flush=True)
-            failed.append(s)
-    if "normalize" in steps:
-        print("== normalize", flush=True)
-        step_normalize()
-        after = {r["investment_id"]: r for r in csv.DictReader(open(inv, encoding="utf-8"))}
-        added = [k for k in after if k not in before]
-        removed = [k for k in before if k not in after]
-        changed = [k for k in after if k in before and (after[k]["amount_eur"], after[k]["status"]) != (before[k]["amount_eur"], before[k]["status"])]
-        log = ROOT / "data" / "changelog.csv"
-        new = not log.exists()
-        with open(log, "a", newline="", encoding="utf-8") as fh:
-            w = csv.writer(fh)
-            if new:
-                w.writerow(["run_date", "added", "removed", "changed", "failed_sources"])
-            w.writerow([datetime.date.today().isoformat(), len(added), len(removed), len(changed), " ".join(failed)])
-        print(f"added {len(added)}, removed {len(removed)}, changed {len(changed)}, failed sources: {failed or 'none'}")
-    if "build" in steps:
-        print("== build", flush=True)
-        step_build()
+            k = float(r.get("montant_en_keur") or 0)
+        except ValueError:
+            k = 0
+        # The column is in thousand euros, but some services were entered in euros: a study or technical assistance
+        # worth tens of millions is implausible. Such amounts are read as euros and flagged.
+        what = plain((r.get("nature_et_finalite_du_marche") or "") + " " + (r.get("titre_du_contrat_marche_titre_du_projet") or "")).lower()
+        service = re.search(r"etude|study|assistance|appui|support|preparation|avant-projet|structuration|coordination|tor\b|termes de reference|"
+                            r"capacit|roadmap|formation|conseil|expertise|audit|evaluation|supervision|controle|maitrise d.oeuvre|analyse|capitalisation|diagnostic|"
+                            r"cartographie|recherche|communication|animation|accompagnement", what)
+        flagged = k > 100000 or (k > 10000 and bool(service))
+        eur = k if flagged else k * 1000
+        firm = re.sub(r"\s+", " ", (r.get("nom_de_l_attributaire") or "").strip())
+        contracts.append({"f": firm[:90], "ms": ms, "nat": (r.get("nationalite_de_l_attributaire") or "").strip()[:40], "c": cc,
+                          "p": (r.get("titre_du_contrat_marche_titre_du_projet") or "")[:140], "o": (r.get("nature_et_finalite_du_marche") or "")[:160],
+                          "d": contract_date(r.get("date_signature_du_contrat")), "v": round(eur), "flag": flagged, "proj": r.get("id_projet") or ""})
+    flagged_n = sum(1 for c in contracts if c["flag"])
+    if flagged_n:
+        warnings.append(f"AFD contract list: {flagged_n} amount(s) in the 'thousand euro' column were read as euros (studies or technical assistance entered in euros, or values above 100,000); each is flagged in the contractor's panel.")
+# contractor nodes: one per firm, linked to AFD (financier), to the country of the contract and to the firm's member state
+firm_key = lambda f: "x:" + re.sub(r"[^a-z0-9]+", "-", plain(f).lower()).strip("-")[:60]
+for ct in contracts:
+    members, n_parts = contract_members(ct["f"], ct["ms"], plain)
+    ct["g"] = [[g, m] for g, m in members]; ct["share"] = round(1 / n_parts, 4); ct["parts"] = n_parts
+    for g, m in members:
+        fid = firm_key(g)
+        node(fid, "contractor", g, ms=m)
+        val = ct["v"] / n_parts
+        nodes[fid]["v"] += val
+        if "i:afd" in nodes:
+            l = links[("i:afd", fid)]; l["v"] += val; l["n"] += 1
+        if ("c:" + ct["c"]) in nodes:
+            l = links[(fid, "c:" + ct["c"])]; l["v"] += val; l["n"] += 1
+for nid, n in list(nodes.items()):
+    if n["k"] == "contractor" and n.get("ms"):
+        node("m:" + n["ms"], "memberstate", MS_NAMES.get(n["ms"], n["ms"]))
+        links[("m:" + n["ms"], nid)]["n"] += 1
+
+# ---------------------------------------------------------------- 4. overlap: shared countries and sectors, co-financed projects
+cs = collections.defaultdict(lambda: collections.defaultdict(float))  # institution -> (country, sector) -> euros
+for d in deals.values():
+    for cc in d["c"]:
+        cs[d["i"]][(cc, d["s"])] += d["v"] / max(1, len(d["c"]))
+top = sorted(cs, key=lambda i: -sum(cs[i].values()))[:24]
+matrix = []
+for a in top:
+    row = []
+    for b in top:
+        if a == b:
+            row.append(round(sum(cs[a].values())))
+        else:
+            row.append(round(sum(min(v, cs[b].get(k, 0)) for k, v in cs[a].items() if k in cs[b])))
+    matrix.append(row)
+# overlap %: share of the country-sector combinations where at least one of the two is active in which both are active
+cells = collections.defaultdict(set)   # institution -> {(country, sector)}, counting deals whose amounts are not published too
+for d in deals.values():
+    for cc in d["c"]:
+        cells[d["i"]].add((cc, d["s"]))
+mjac, mco, pairn = [], [], {}
+co_pairs = collections.Counter()
+for a in top:
+    row = []
+    for b in top:
+        if a == b:
+            row.append(100)
+        else:
+            inter, union = len(cells[a] & cells[b]), len(cells[a] | cells[b])
+            row.append(round(100 * inter / union) if union else 0)
+            pairn[f"{a}|{b}"] = [inter, union]
+    mjac.append(row)
+pair_detail = {}
+for ai, a in enumerate(top):
+    for bi, b in enumerate(top):
+        if bi <= ai:
+            continue
+        shared = [(k, cs[a][k], cs[b][k]) for k in cs[a] if k in cs[b] and cs[a][k] > 0 and cs[b][k] > 0]
+        shared.sort(key=lambda x: -min(x[1], x[2]))
+        if shared:
+            pair_detail[f"{a}|{b}"] = [[k[0], k[1], round(x), round(y)] for k, x, y in shared[:25]]
+
+STOP = set("""projet project programme program programa support appui appuis renforcement strengthening financement financing development developpement
+du des les la le de et pour and the for of in au aux en dans sur with par loan pret grant investment investissement phase facility fund fonds
+national nationale regional services service capacite capacity sector secteur public publique additional additionnel contrat convention
+contribution agreement tranche force mise oeuvre urgence budgetaire budget sectoriel sectoriels activity under preparation assistance technique
+technical emergency corona covid jeunesse youth formation professionnelle insertion women femmes gestion management access acces
+objectifs durable sustainable flagship initiative""".split())
+# place names: shared place names say nothing about a shared project
+PLACES = set("""africa afrique ouest west central centrale sahel ghana nigeria guinee guinea mauritanie mauritania gambie gambia liberia sierra leone
+dakar abidjan bamako ouagadougou niamey cotonou porto novo lome bissau yaounde douala bangui ndjamena brazzaville pointe noire libreville malabo kribi
+kayes koulikoro sikasso segou mopti tombouctou timbuktu kidal menaka taoudeni tillaberi tahoua maradi zinder dosso agadez diffa sahel kaya bobo dioulasso
+koudougou boucle mouhoun centre nord sud est ziguinchor casamance thies kaolack saint louis tambacounda matam kolda sedhiou kedougou fatick louga
+diourbel kaffrine yamoussoukro bouake korhogo daloa san pedro man atlantique borgou alibori atacora donga zou collines mono couffo plateau oueme
+kara savanes maritime centrale extreme garoua maroua ngaoundere bertoua ebolowa bamenda buea logone chari ouaddai kanem moyen ogooue franceville
+port gentil oyem""".split())
+def toks(t):
+    t = unicodedata.normalize("NFKD", t or "").encode("ascii", "ignore").decode().lower()
+    return {w for w in re.findall(r"[a-z]{4,}", t) if w not in STOP and w not in PLACES}
+country_words = {w for c in COUNTRIES.values() for w in toks(c["name"])}
+df = collections.Counter(w for d in deals.values() for w in toks(d["t"]))
+by_cc = collections.defaultdict(list)
+for d in deals.values():
+    if d["v"] > 0:
+        for cc in d["c"]:
+            by_cc[cc].append(d)
+# a pair of deals from different institutions is a candidate when, in the same country and within three years,
+# their titles share one very distinctive word (a dam, railway or company name) or two distinctive words.
+groups = collections.defaultdict(dict)   # (country, key word) -> {deal id: deal}
+evidence = collections.defaultdict(set)
+for cc, ds in by_cc.items():
+    for x in range(len(ds)):
+        for y in range(x + 1, len(ds)):
+            p, q = ds[x], ds[y]
+            if p["i"] == q["i"]:
+                continue
+            if p["y"] and q["y"] and abs(int(p["y"]) - int(q["y"])) > 3:
+                continue
+            shared = (toks(p["t"]) & toks(q["t"])) - country_words
+            rare = sorted((w for w in shared if df[w] <= 5 and len(w) >= 6), key=lambda w: df[w])
+            fairly = [w for w in shared if df[w] <= 15]
+            if not rare and len(fairly) < 2:
+                continue
+            key = (cc, rare[0] if rare else " ".join(sorted(fairly)[:2]))
+            groups[key][p["id"]] = p; groups[key][q["id"]] = q
+            evidence[key].update(rare or fairly)
+cofin = []
+for key, members in groups.items():
+    ms = sorted(members.values(), key=lambda d: -d["v"])
+    if len({m["i"] for m in ms}) < 2 or len(ms) > 10:
+        continue
+    cofin.append({"w": sorted(evidence[key])[:5], "c": [key[0]],
+                  "m": [[m["i"], m["t"], m["y"], round(m["v"]), m["u"]] for m in ms], "v": round(sum(m["v"] for m in ms))})
+# the same project can surface under two key words: keep one entry per set of deals
+seen_sets, uniq = set(), []
+for c in sorted(cofin, key=lambda x: -x["v"]):
+    sig = frozenset(m[1] + m[0] for m in c["m"])
+    if sig in seen_sets:
+        continue
+    seen_sets.add(sig); uniq.append(c)
+cofin = uniq
+co_count = collections.Counter()
+for c in cofin:
+    ins = sorted({m[0] for m in c["m"]})
+    for x in range(len(ins)):
+        for y in range(x + 1, len(ins)):
+            co_count[(ins[x], ins[y])] += 1
+mco = [[0 if a == b else co_count.get(tuple(sorted((a, b))), 0) for b in top] for a in top]
+
+# ---------------------------------------------------------------- 5. timeline: yearly commitments by type and by country
+years = list(range(1999, TODAY.year + 1))
+series = collections.defaultdict(lambda: collections.defaultdict(float))
+for d in deals.values():
+    if not d["y"] or not d["y"].isdigit() or int(d["y"]) < 1999:
+        continue
+    t = INST[d["i"]]["type"]
+    share = d["v"] / max(1, len(d["c"]))
+    for cc in d["c"]:
+        series["ALL|" + t][int(d["y"])] += share
+        series[cc + "|" + t][int(d["y"])] += share
+timeline = {k: [round(v.get(y, 0)) for y in years] for k, v in series.items()}
+
+# ---------------------------------------------------------------- 6. events (data/events.csv), with a source check
+events = []
+for r in csv.DictReader(open(DATA / "events.csv", encoding="utf-8-sig")):
+    r = {k.strip(): (v or "").strip() for k, v in r.items() if k}
+    if not r.get("date") or not r.get("title"):
+        continue
+    status = r.get("status") or ("upcoming" if r["date"] > TODAY.isoformat() else "past")
+    if status == "upcoming" and r["date"] < TODAY.isoformat():
+        status = "past"
+    try:
+        code = urllib.request.urlopen(urllib.request.Request(r["source_url"], headers=UA), timeout=40).status if r.get("source_url") else "no source"
+    except Exception as e:
+        code = getattr(e, "code", None) or str(e)[:40]
+    if code != 200:
+        warnings.append(f"Event \u201c{r['title']}\u201d: source did not answer normally ({code}); check it by hand.")
+    events.append({"d": r["date"], "e": r.get("end_date", ""), "st": status, "cat": r.get("category", ""),
+                   "cc": r.get("countries", "ALL").split("|"), "t": r["title"], "x": r.get("description", ""), "u": r.get("source_url", "")})
+events.sort(key=lambda e: e["d"])
 
 TEMPLATE = r'''<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>EU-CFA Public finance tracker</title>
-<meta name="description" content="European public investment in the CFA franc zone (WAEMU and CEMAC) since the 1999 XOF/XAF-euro peg: deals, programmes and analysis.">
-<meta property="og:title" content="EU-CFA Public finance tracker">
-<meta property="og:description" content="European public investment in the CFA franc zone (WAEMU and CEMAC) since the 1999 XOF/XAF-euro peg.">
-<meta property="og:type" content="website">
+<title>EU-CFA Network tracker</title>
+<meta name="description" content="Network, overlap and events of European public financial institutions in the CFA franc zone (WAEMU and CEMAC) since 1999.">
+<meta property="og:title" content="EU-CFA Network tracker">
+<meta property="og:description" content="How European public financial institutions connect, overlap and react to events in the CFA franc zone.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Dark by design: an operations-console look, identical in light and dark system settings */
 :root{
-  --bg:#040a0f; --bg2:#071219; --panel:rgba(7,18,26,.9); --panel-solid:#08151d;
-  --ink:#d9f4ff; --muted:#8db1c0; --dim:#56798a; --line:#163746; --line-hi:#2a6a80;
-  --accent:#40e8ff; --focus:#40e8ff; --chip:#0a1c26;
-  --ocean:#04141c; --land:#12303c; --land-eu:#1b4556; --land-waemu:#5a4317; --land-cemac:#55271c; --border:#5d93a6; --waemu-line:#ffbf5c; --cemac-line:#ff9a7a;
-  --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-mdb:#b77dff; --t-hum:#ff6b6b; --t-fpi:#8fa3ff; --t-wbtf:#e0c8a0;
-  --t-non:#c3ccd1; --k-tei:#4fa8ff; --k-aitf:#9fd86b; --k-gg:#ffb43f; --k-env:#c592ff; --k-part:#3dffaa; --k-nat:#ff5ba0;
-  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --bg:#040a0f; --panel:#08151d; --panel2:#0a1c26; --ink:#d9f4ff; --muted:#8db1c0; --dim:#56798a; --line:#163746; --line-hi:#2a6a80;
+  --accent:#40e8ff; --waemu:#ffbf5c; --cemac:#ff9a7a;
+  --t-dfi:#3aa6ff; --t-bdb:#ff8c42; --t-npb:#2dffc8; --t-eca:#ff3d8e; --t-eu:#ffd84a; --t-wbtf:#e0c8a0; --t-mdb:#b77dff;
+  --k-ms:#ffffff; --k-sec:#7be3c0; --k-ag:#d8b4ff; --k-fw:#9fb4c4; --k-ct:#ff9e6b;
+  --c-mon:#ffd84a; --c-pol:#ff6b6b; --c-eu:#40e8ff; --c-fin:#7be36b; --c-meet:#c592ff;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace; --sans:"IBM Plex Sans","Segoe UI",system-ui,-apple-system,sans-serif;
   color-scheme:dark;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
 :root[data-theme="dark"]{color-scheme:dark}
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 html,body{height:100%;margin:0}
-body{background:radial-gradient(ellipse at 35% 45%,#0a2230 0%,var(--bg) 62%);background-color:var(--bg);color:var(--ink);font:400 15px/1.5 var(--sans)}
-.app{display:grid;grid-template-columns:minmax(0,1fr) 8px var(--pw,440px);height:100%}
-.resizer{cursor:col-resize;background:var(--line);position:relative;touch-action:none}
-.resizer::after{content:"";position:absolute;top:50%;left:2px;width:4px;height:44px;margin-top:-22px;border-left:1px solid var(--line-hi);border-right:1px solid var(--line-hi)}
-.resizer:hover,.resizer:focus-visible{background:var(--line-hi);outline:none}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--sans);display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:20px;padding:12px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header .code{font:500 12px var(--mono);color:var(--muted);letter-spacing:.06em}
+header h1{margin:0;font-size:20px;font-weight:600}
+nav{display:flex;border:1px solid var(--line-hi);margin-left:auto}
+nav button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--sans);padding:9px 18px;cursor:pointer}
+nav button[aria-pressed="true"]{background:rgba(64,232,255,.08);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+nav button:focus-visible,button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{flex:1;min-height:0;position:relative}
+.view{position:absolute;top:0;right:0;bottom:0;left:0;display:grid;grid-template-columns:minmax(0,1fr) 400px}
+.view[hidden]{display:none}
 .stage{position:relative;min-height:0;overflow:hidden}
-#globe{position:absolute;top:0;right:0;bottom:0;left:0}
-/* faint scanlines and vignette over the globe */
-.stage::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.5) 100%)}
-.hud{position:absolute;z-index:2;pointer-events:none}
-.title{left:clamp(16px,3vw,36px);top:clamp(14px,3vh,28px);max-width:40ch}
-.title .code{font:500 12px/1 var(--mono);color:var(--muted);letter-spacing:.08em;margin:0 0 10px}
-.title h1{margin:0;font-weight:600;font-size:clamp(24px,2.8vw,38px);line-height:1.1;letter-spacing:-.005em}
-.title p{margin:.7em 0 0;color:var(--muted);font-size:14px;max-width:46ch}
-.readout{right:clamp(12px,2vw,24px);top:clamp(14px,3vh,28px);font:400 12px/1.7 var(--mono);color:var(--muted);text-align:right;
-  background:rgba(4,12,17,.6);border:1px solid var(--line);padding:8px 12px}
-.readout b{color:var(--ink);font-weight:500}
-.readout .r-total{font:500 14px/1.6 var(--sans);color:var(--muted);margin-top:2px}
-.readout .r-total b{font:600 20px/1.2 var(--sans);color:var(--ink)}
-.readout .r-small{font-size:11px;color:var(--dim)}
-.legend{left:clamp(16px,3vw,36px);bottom:clamp(14px,3vh,28px);display:flex;flex-direction:column;gap:6px;font-size:13px;
-  background:rgba(4,12,17,.72);padding:10px 12px;border:1px solid var(--line)}
-.legend span{display:flex;align-items:center;gap:9px}
-.legend i{width:22px;height:0;border-top:2px dotted;display:inline-block}
-.legend .fz{margin-top:2px}
-.legend i.box{width:14px;height:10px;border:1.5px solid;border-top-width:1.5px}
-.legend small{color:var(--dim);font-family:var(--mono);font-size:11px}
-.bracket::before,.bracket::after{content:"";position:absolute;width:10px;height:10px;border:1px solid var(--accent);pointer-events:none}
-.bracket::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
-.bracket::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
-/* glowing pins */
-.pin{position:relative;width:0;height:0;pointer-events:auto;cursor:pointer;z-index:5}
-.pin b{position:absolute;left:-15px;top:-15px;width:30px;height:30px;border-radius:50%;background:transparent}
-.pin:hover i{transform:scale(1.5)}
-.pin:hover span,.pin:focus-visible span{opacity:1}
-.pin i{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--c);
-  box-shadow:0 0 6px 2px var(--c),0 0 16px 4px var(--c)}
-.pin.dest i{left:-3px;top:-3px;width:6px;height:6px;box-shadow:0 0 6px 1px var(--c)}
-.pin.regional i{left:-5px;top:-5px;width:10px;height:10px;border-radius:2px;transform:rotate(45deg);background:transparent;border:2px solid var(--c)}
-.pin::after{content:"";position:absolute;left:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);opacity:.0;animation:ping 2.4s ease-out infinite}
-.pin.dest::after{animation-duration:3.6s}
-.pin span{position:absolute;left:12px;top:-8px;font:500 12px/1 var(--sans);color:var(--ink);white-space:nowrap;background:rgba(4,12,17,.85);border:1px solid var(--line-hi);padding:3px 6px;opacity:0;pointer-events:none}
-@keyframes ping{0%{transform:scale(.3);opacity:.9}100%{transform:scale(1.6);opacity:0}}
-aside{background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;backdrop-filter:blur(6px)}
-.filters{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:grid;gap:10px}
-.filterbox{border:1px solid #2f9a68}
-.filterbox summary{cursor:pointer;padding:10px 12px;font:600 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;list-style-position:inside;
-  color:#e6fff2;background:linear-gradient(#17573a,#0f4029);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
-.filterbox summary:hover{background:linear-gradient(#1d6a47,#124a30)}
-.filterbox summary span{color:#bff5d8;font-weight:500;text-transform:none;letter-spacing:0}
-.filtergrid{display:grid;gap:12px;padding:4px 10px 12px}
-.searchbox input{width:100%;font:500 14px var(--sans);color:var(--ink);background:var(--chip);border:1px solid var(--line-hi);padding:8px 10px 8px 32px;
-  background-image:linear-gradient(transparent,transparent);outline:none}
-.searchbox{position:relative}
-.searchbox::before{content:"";position:absolute;left:11px;top:50%;width:9px;height:9px;margin-top:-7px;border:1.5px solid var(--muted);border-radius:50%}
-.searchbox::after{content:"";position:absolute;left:20px;top:50%;width:6px;height:1.5px;margin-top:3px;background:var(--muted);transform:rotate(45deg)}
-.searchbox input:focus{border-color:var(--accent)}
-.searchbox input::placeholder{color:var(--dim)}
-.unionhead{display:flex;align-items:center;gap:8px;margin:6px 0 4px;font-size:12.5px;color:var(--muted)}
-.unionhead b{font-weight:600;color:var(--ink)}
-.unionhead .clear{margin-left:auto;font-size:12px}
-.estbox{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted)}
-.reset{appearance:none;width:100%;padding:10px 12px;cursor:pointer;font:600 13px var(--sans);letter-spacing:.08em;text-transform:uppercase;
-  color:#ffe9eb;background:linear-gradient(#7a1622,#5a0f19);border:1px solid #d9455a;outline:1px solid rgba(217,69,90,.35);outline-offset:3px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 0 #2b060b}
-.reset:hover{background:linear-gradient(#8e1a28,#661220);border-color:#ff5f73}
-.reset:active{transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 0 #2b060b}
-.reset:focus-visible{outline:2px solid #ff8a98;outline-offset:3px}
-.views{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-hi)}
-.views button{padding-left:4px!important;padding-right:4px!important}
-.abt{padding:8px 18px 18px;font-size:13.5px}
-.abt p{color:var(--muted)}
-.abt h3{margin:16px 0 4px;font-size:14px}
-.abt ul{list-style:none;padding:0;margin:4px 0 10px}
-.abt li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-bottom:1px solid var(--line);padding:4px 0}
-.abt li .amt{margin-left:auto}
-.srcgrp{margin:14px 0 4px;font:600 12.5px var(--sans);color:var(--muted);text-transform:none}
-.srcrow{border-top:1px solid var(--line);padding:9px 18px;font-size:13px}
-.srcrow b{font-weight:600}
-.srcrow .meta{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-.covtab{border-collapse:collapse;font-size:11.5px;margin:6px 18px 12px}
-.covtab td,.covtab th{border:1px solid var(--line);padding:3px 6px;text-align:left}
-.covtab th{color:var(--muted);font-weight:500}
-.views button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px/1 var(--sans);padding:10px 6px;cursor:pointer}
-.views button[aria-pressed="true"]{background:rgba(64,232,255,.08);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
-[hidden]{display:none!important}
-.group h2{margin:0 0 6px;font:600 12px/1 var(--sans);color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:4px 9px 4px 7px;font:500 13px/1.3 var(--sans);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+aside{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:16px 18px}
+aside h2{margin:0 0 4px;font-size:17px}
+aside h3{margin:16px 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.hint{font-size:13px;color:var(--muted);margin:4px 0 10px}
+.tools{position:absolute;left:14px;top:12px;z-index:2;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 150px)}
+#netstage .tools{max-width:calc(100% - 390px)}
+.chip{appearance:none;border:1px solid var(--line);background:rgba(4,12,17,.85);color:var(--ink);padding:5px 10px;font:500 12.5px var(--sans);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .chip[aria-pressed="false"]{opacity:.4}
-.chip .sw,.sw{width:8px;height:8px;border-radius:50%;display:inline-block}
-select{font:500 14px var(--sans);color:var(--ink);background:var(--chip);border:1px solid var(--line);padding:6px 8px;width:100%}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.summary{padding:10px 18px;border-bottom:1px solid var(--line)}
-.summary .sel{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
-.summary strong{font:600 22px/1.2 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
-.summary p{margin:6px 0 0;color:var(--muted);font-size:13px}
-.clear{appearance:none;background:none;border:0;color:var(--accent);font:500 13px var(--sans);cursor:pointer;padding:0;text-decoration:underline}
-.list{overflow:auto;min-height:0;flex:1;padding:4px 0 16px;scrollbar-color:var(--line-hi) transparent}
-.deal{padding:12px 18px;border-bottom:1px solid var(--line)}
-.deal h3{margin:0;font-size:15px;font-weight:600;line-height:1.3}
-.deal .meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--muted)}
-.flag.deleg{border-style:solid;border-color:#d8b4ff;color:#e9d6ff}
-.deal h3 .cap{font:500 12px var(--sans);color:var(--muted);white-space:nowrap}
-.deal .amt{font:500 13px var(--mono);color:var(--ink)}
-.deal .who{display:flex;align-items:center;gap:6px}
-.deal .note{font-size:12.5px;color:var(--muted);margin-top:4px}
-.deal a{color:var(--accent);font-size:13px}
-.kind{font:600 12px/1 var(--sans);margin-bottom:5px}
-.flag{font:500 11px var(--mono);border:1px dashed var(--line-hi);padding:0 5px;color:var(--muted)}
-.more{display:block;margin:12px auto;appearance:none;border:1px solid var(--line-hi);background:transparent;color:var(--accent);font:500 14px var(--sans);padding:6px 14px;cursor:pointer}
-.ana{padding:12px 18px 20px;display:grid;gap:22px}
-.ana h3{margin:0 0 4px;font:600 15px var(--sans)}
-.ana h4.sub{margin:10px 0 4px;font:600 12.5px var(--sans);color:var(--muted)}
-.ana .hint{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
-.ana .seg{display:inline-flex;border:1px solid var(--line);margin-bottom:10px}
-.ana .seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:500 12.5px var(--sans);padding:5px 10px;cursor:pointer}
-.ana .seg button[aria-pressed="true"]{background:rgba(64,232,255,.1);color:var(--ink)}
-.ana .substack{display:block;margin:-2px 0 10px 18px;padding-left:10px;border-left:2px solid var(--line-hi)}
-.ana .substack .seg{margin-bottom:0}
-.ana .seg button:disabled{opacity:.4;cursor:not-allowed}
-.bar{display:grid;grid-template-columns:minmax(110px,48%) 1fr auto;gap:8px;align-items:center;font-size:13px;margin:3px 0}
-.bar .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.bar .track{height:10px;background:rgba(255,255,255,.04);position:relative}
-.bar .track i{position:absolute;left:0;top:0;bottom:0}
-.bar .val{font:500 12px var(--mono);color:var(--muted);min-width:64px;text-align:right}
-.ov-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.ov-controls .full{grid-column:1/-1}
-.cols{display:grid;grid-template-columns:52px 1fr;gap:6px}
-.yaxis{display:flex;flex-direction:column;justify-content:space-between;height:200px;font:400 11px var(--mono);color:var(--dim);text-align:right}
-.plot{height:200px;display:flex;align-items:flex-end;gap:6px;border-left:1px solid var(--line-hi);border-bottom:1px solid var(--line-hi);padding:0 4px;overflow-x:auto}
-.col{flex:1 0 26px;max-width:56px;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
-.col i{display:block;min-height:2px}
-.xlabels{grid-column:2;display:flex;gap:6px;padding:0 4px;overflow:hidden}
-.xlabels span{flex:1 0 26px;max-width:56px;height:88px;font-size:11px;color:var(--muted);writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-.ylabel{font-size:11px;color:var(--dim);margin-top:4px}
-.col{position:relative}
-.col .cnt{position:absolute;top:-16px;left:0;right:0;text-align:center;font:500 10.5px var(--mono);color:var(--muted)}
-.col i + i{border-top:1px solid rgba(0,0,0,.45)}
-.plot{padding-top:18px}
-.xlabels.sec span{height:205px;font-size:10.5px}
-.stacklegend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:11.5px;color:var(--muted)}
-.stacklegend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
-.foot{padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
-.foot summary{cursor:pointer;font-family:var(--mono);letter-spacing:.06em}
-.tip{font:13px/1.4 var(--sans);background:var(--panel-solid);color:var(--ink);border:1px solid var(--line-hi);padding:8px 10px;max-width:260px;box-shadow:0 0 18px rgba(64,232,255,.15)}
+.sw{width:9px;height:9px;border-radius:50%;display:inline-block}
+.legend{position:absolute;left:14px;bottom:12px;z-index:2;background:rgba(4,12,17,.85);border:1px solid var(--line);padding:8px 10px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;max-width:calc(100% - 28px)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.zoom{position:absolute;right:14px;top:12px;z-index:2;display:flex;gap:4px}
+.zoom button{appearance:none;border:1px solid var(--line-hi);background:rgba(4,12,17,.85);color:var(--ink);width:32px;height:32px;font:600 16px var(--sans);cursor:pointer}
+select,input[type=range]{font:500 13px var(--sans);color:var(--ink);background:var(--panel2);border:1px solid var(--line);padding:5px 7px}
+label.ctl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);background:rgba(4,12,17,.85);border:1px solid var(--line);padding:3px 8px}
+#net{position:absolute;top:0;left:0;width:100%;height:100%;display:block;cursor:grab}
+#net3d{position:absolute;top:0;left:0;width:100%;height:100%;display:none}
+.use3d #net3d{display:block}
+.use3d #net{display:none}
+#v-net:fullscreen{background:var(--bg);width:100vw;height:100vh}
+#v-net:fullscreen .stage{height:100vh}
+.nsearch{position:absolute;right:14px;top:52px;z-index:3;width:min(340px,calc(100% - 28px))}
+.nsearch input{width:100%;font:500 13.5px var(--sans);color:var(--ink);background:rgba(4,12,17,.92);border:1px solid var(--line-hi);padding:8px 10px;outline:none}
+.nsearch input:focus{border-color:var(--accent)}
+.nresults{margin-top:2px;background:var(--panel2);border:1px solid var(--line-hi);max-height:340px;overflow:auto}
+.nresults button{display:block;width:100%;text-align:left;appearance:none;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);padding:7px 10px;font:500 13px var(--sans);cursor:pointer}
+.nresults button:hover,.nresults button:focus{background:rgba(64,232,255,.08);outline:none}
+.nresults .k{display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+.nresults .grp{padding:5px 10px;font:600 11px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.zoom button.fs{width:auto;padding:0 10px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.scene-tooltip:empty{display:none}
+.scene-tooltip{font:500 12.5px var(--sans)!important;color:var(--ink)!important;background:rgba(10,28,38,.92)!important;border:1px solid var(--line-hi);padding:6px 9px!important;border-radius:0!important}
+.modenote{position:absolute;right:14px;bottom:12px;z-index:2;font-size:12px;color:var(--muted);background:rgba(4,12,17,.85);border:1px solid var(--line);padding:5px 9px}
+svg text{font-family:var(--sans)}
+.node{cursor:pointer}
+.node text{fill:var(--ink);font-size:10.5px;pointer-events:none;paint-order:stroke;stroke:#000;stroke-width:3px}
+.link{stroke-opacity:.35}
+.faded{opacity:.08}
+.tip{position:fixed;z-index:20;pointer-events:none;background:var(--panel2);border:1px solid var(--line-hi);padding:7px 9px;font-size:12.5px;max-width:300px;box-shadow:0 0 18px rgba(64,232,255,.12)}
 .tip b{color:var(--accent)}
-.maptools{position:absolute;z-index:3;right:clamp(12px,2vw,24px);bottom:clamp(14px,3vh,28px);display:flex;flex-direction:column;align-items:flex-end;gap:6px;max-width:620px}
-.maptools button{appearance:none;background:rgba(4,12,17,.85);border:1px solid var(--line-hi);color:var(--ink);font:500 13px var(--sans);padding:7px 12px;cursor:pointer}
-.maptools button:hover{border-color:var(--accent)}
-.toolrow{display:flex;align-items:center;gap:10px}
-.sources{font-size:11.5px;color:var(--dim);text-align:right;max-width:360px;line-height:1.35}
-.maptools p{margin:0;font-size:12.5px;color:var(--muted);background:rgba(4,12,17,.85);border:1px solid var(--line);padding:6px 9px;text-align:right}
-.flatmap{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;cursor:grab;touch-action:none;background:var(--ocean)}
-.flatmap:active{cursor:grabbing}
-.flatmap .land{fill:var(--land);stroke:var(--border);stroke-width:.6px;vector-effect:non-scaling-stroke}
-.flatmap .land.eu{fill:var(--land-eu)}
-.flatmap .land.waemu{fill:var(--land-waemu);stroke:var(--waemu-line);stroke-width:1.2px;cursor:pointer}
-.flatmap .land.cemac{fill:var(--land-cemac);stroke:var(--cemac-line);stroke-width:1.2px;cursor:pointer}
-.flatmap .arc{fill:none;stroke-linecap:round;stroke-dasharray:0 7;vector-effect:non-scaling-stroke;opacity:.9;cursor:pointer;animation:flow 14s linear infinite}
-.flatmap .arc.sparse{stroke-dasharray:0 13;animation-duration:26s}
-.flatmap .cname{fill:#ffe2b0;font:600 13px var(--sans);text-anchor:middle;paint-order:stroke;stroke:#000;stroke-width:3px;pointer-events:none}
-@keyframes flow{to{stroke-dashoffset:-70}}
-.flatmap .reveal{fill:none;stroke:#fff;stroke-width:40px;stroke-dasharray:1 1;stroke-dashoffset:1;animation:reveal 14s linear forwards}
-@keyframes reveal{to{stroke-dashoffset:0}}
-.pinlayer{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;overflow:hidden}
-.pinlayer .pin{position:absolute;left:0;top:0}
-@media (prefers-reduced-motion:reduce){.pin::after,.flatmap .arc{animation:none}}
-@media (max-width:860px){
-  .app{grid-template-columns:1fr;grid-template-rows:64vh auto;height:auto}
-  .resizer{display:none}
-  .stage{height:64vh}
+.deal{border-top:1px solid var(--line);padding:8px 0;font-size:13px}
+.deal a{color:var(--accent)}
+.meta{color:var(--muted);font-size:12px}
+.amt{font:500 12px var(--mono);color:var(--ink)}
+.bar{display:grid;grid-template-columns:minmax(100px,46%) 1fr auto;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.bar .track{height:9px;background:rgba(255,255,255,.05);position:relative}
+.bar .track i{position:absolute;left:0;top:0;bottom:0}
+.bar .val{font:500 11.5px var(--mono);color:var(--muted)}
+.big{font:600 24px var(--sans)}
+.matrix{overflow:auto;padding:58px 18px 18px;height:100%}
+.matrix table{border-collapse:collapse;font-size:11px}
+.matrix th{font-weight:500;color:var(--muted);white-space:nowrap;padding:2px 4px}
+.matrix th.col{height:150px;vertical-align:bottom}
+.matrix th.col div{writing-mode:vertical-rl;transform:rotate(180deg)}
+.matrix td{width:28px;height:24px;border:1px solid #0d2430;text-align:center;font:500 9.5px var(--mono);color:#fff;cursor:pointer}
+.matrix td.diag{outline:1px solid var(--line-hi)}
+.events{padding:58px 18px 18px;height:100%;overflow:auto}
+.ev{border-top:1px solid var(--line);padding:9px 0;display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:13px}
+.ev .d{font:500 12px var(--mono);color:var(--muted)}
+.ev .badge{font:600 11px var(--sans);padding:1px 6px;border:1px solid var(--line-hi);margin-right:6px}
+.ev.up .badge{border-color:var(--accent);color:var(--accent)}
+.ev a{color:var(--accent);font-size:12.5px}
+.warn{font-size:12px;color:#ffc9a8;border:1px dashed #6b3a28;padding:6px 8px;margin-top:8px}
+.about{padding:24px 32px;overflow:auto;height:100%}
+.about > p,.about > ul:not(.actors),.about > h2:not(#actors){max-width:860px}
+.actors{list-style:none;padding:0;margin:4px 0 14px;columns:4 300px;column-gap:36px}
+.actors li{break-inside:avoid;padding:3px 0;border-bottom:1px solid var(--line);font-size:13px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.actors li .amt{margin-left:auto}
+.about p,.about li{color:var(--muted)}
+.about h2{margin-top:22px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:900px){
+  .view{grid-template-columns:1fr;grid-template-rows:62vh auto;position:static}
+  main{overflow:auto}
   aside{border-left:0;border-top:1px solid var(--line)}
-  .list{overflow:visible}
-  .readout,.legend{display:none}
-  .title p{display:none}
-  .legend{font-size:12px}
+  nav{margin-left:0}
 }
 </style>
 </head>
 <body>
-<noscript><p style="padding:24px;font-size:16px">This tracker needs JavaScript to show the map and the deal list. Please enable JavaScript in your browser settings and reload the page.</p></noscript>
-<div class="app">
-  <section class="stage" aria-label="Interactive globe">
-    <div id="globe"></div>
-    <div class="hud title" style="position:absolute">
-      <p class="code">Franc Zone tracker</p>
-      <h1>European Public Investment in the Franc Zone</h1>
-      <p>Where EU institutions and member states' development banks, DFIs, promotional banks and export credit agencies invest in the Franc Zone's 14 countries (WAEMU in West Africa, CEMAC in Central Africa), and the Team Europe programmes they run there. Click a line, a country or a capital.</p>
+<noscript><p style="padding:24px">This tracker needs JavaScript to draw the network.</p></noscript>
+<header>
+  <div><div class="code">EU-CFA network tracker</div><h1>European public finance in the CFA franc zone: network, overlap, events</h1></div>
+  <nav aria-label="Views">
+    <button data-v="net" aria-pressed="true">Network</button><button data-v="ovl" aria-pressed="false">Overlap</button>
+    <button data-v="evt" aria-pressed="false">Events</button><button data-v="src" aria-pressed="false">Sources</button><button data-v="abt" aria-pressed="false">About</button>
+  </nav>
+</header>
+<main>
+  <section class="view" id="v-net">
+    <div class="stage" id="netstage">
+      <div class="tools" id="layers"></div>
+      <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zreset" aria-label="Reset view">↺</button>
+        <button id="fs" class="fs" aria-label="Full screen" title="Full screen (Esc to leave)"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Full screen</span></button></div>
+      <div class="nsearch"><input id="nsearch" type="search" placeholder="Search an actor or a deal" autocomplete="off" aria-label="Search an actor, an institution or a deal"><div id="nresults" class="nresults" hidden></div></div>
+      <svg id="net" role="img" aria-label="Network of European public financial institutions, countries, sectors and agencies"></svg>
+      <div id="net3d" aria-label="Three-dimensional network: drag to rotate, scroll to zoom"></div>
+      <div class="modenote" id="modenote" hidden></div>
+      <div class="legend" id="netlegend"></div>
     </div>
-    <div class="hud readout bracket" aria-hidden="true">
-      <div>Records: <b id="r-rec"></b></div>
-      <div class="r-total">Total: <b id="r-total"></b> since implementation of XOF/XAF–Euro peg</div>
-      <div class="r-small" id="r-und"></div>
-      <div class="r-small" id="r-oth"></div>
-      <div class="r-small" id="r-reg"></div>
-      <div class="r-small">Data sync <span id="r-sync"></span></div>
-    </div>
-    <div class="hud legend bracket" id="legend" aria-label="Legend"></div>
-    <div class="maptools"><div class="toolrow"><span class="sources" id="sources"></span><button type="button" id="modebtn">Switch to 2D map</button></div><p id="mapnotice" hidden></p></div>
+    <aside id="netpanel"></aside>
   </section>
-  <div class="resizer" id="resizer" role="separator" aria-orientation="vertical" aria-label="Drag to resize the side panel" tabindex="0"></div>
-  <aside>
-    <div class="filters">
-      <div class="views" role="group" aria-label="What to show">
-        <button type="button" data-view="inv" aria-pressed="true">Investments</button>
-        <button type="button" data-view="prog" aria-pressed="false">Programmes</button>
-        <button type="button" data-view="ana" aria-pressed="false">Analysis</button>
-        <button type="button" data-view="src" aria-pressed="false">Sources</button>
-        <button type="button" data-view="abt" aria-pressed="false">About</button>
-      </div>
-      <details class="filterbox" id="filterbox"><summary>Filters <span id="fcount"></span></summary><div class="filtergrid">
-      <div id="inv-filters">
-        <div class="group"><h2>Institution type</h2><div class="chips" id="f-type"></div></div>
-        <div class="row2" style="margin-top:12px">
-          <div class="group"><h2><label for="f-ms">Member state</label></h2><select id="f-ms"></select></div>
-          <div class="group"><h2><label for="f-inst">Institution</label></h2><select id="f-inst"></select></div>
-        </div>
-      </div>
-      <div id="prog-filters" hidden>
-        <div class="group"><h2>Programme kind</h2><div class="chips" id="f-kind"></div></div>
-        <div class="group" style="margin-top:12px"><h2><label for="f-part">Participant</label></h2><select id="f-part"></select></div>
-      </div>
-      <div class="group"><h2>Recipient country</h2><div id="f-cc"></div></div>
-      <div class="group"><h2><label for="f-cap">Jump to a capital</label></h2><select id="f-cap"></select></div>
-      <div class="row2" id="inv-filters-2">
-        <div class="group"><h2><label for="f-ins">Instrument</label></h2><select id="f-ins"></select></div>
-        <div class="group"><h2><label for="f-yr">Signed or started since</label></h2><select id="f-yr"></select></div>
-      </div>
-      <label class="estbox" id="est-wrap" hidden><input type="checkbox" id="f-est" checked> Include estimated amounts (equal splits of multi-country deals, published amount bands)</label>
-      </div></details>
-      <button type="button" class="reset" id="reset">Reset all filters</button>
-      <div class="searchbox"><input type="search" id="q" placeholder="Search deals by name, client or institution" aria-label="Search deals" autocomplete="off"></div>
-    </div>
-    <div class="summary" aria-live="polite">
-      <div class="sel"><strong id="s-total">–</strong></div>
-      <p id="s-text"></p>
-    </div>
-    <div class="list" id="list"></div>
-    <div class="foot">
-      <details><summary>About the data</summary>
-        <p>Coverage: the 14 Franc Zone countries of the WAEMU (Benin, Burkina Faso, Côte d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo) and the CEMAC (Cameroon, Central African Republic, Chad, Republic of the Congo, Equatorial Guinea, Gabon). The Comoros are not included. "Congo" always means the Republic of the Congo (Brazzaville), never the Democratic Republic of the Congo. Both CFA francs (XOF and XAF) have been pegged to the euro since 1 January 1999, and the tracker covers operations from that date. Operations through the unions' own institutions (BOAD, BCEAO, the WAEMU Commission; BDEAC, BEAC, the CEMAC Commission) are counted "WAEMU-wide" or "CEMAC-wide". Wider regional programmes (West Africa, Central Africa, Sub-Saharan Africa, Africa-wide) are shown separately in Analysis and never added to Franc Zone totals. The Council of Europe Development Bank is not included: it lends only to its European member states. Data updated <span id="gen"></span>. If the globe does not appear on your device, use the "Switch to 2D map" button. Data refreshes on the 1st of every month at the same address. Amounts are commitments in euros. Multi-country deals without published country shares are split equally and marked as estimates. Regional deals that only mention a WAEMU country are listed but not counted in totals. Arcs end at each country's capital.</p>
-        <p>The header total counts investment and development finance, including World Bank-managed trust funds financed only by European donors. EU humanitarian aid (DG ECHO) and EU foreign-policy instruments are shown on the map and in the lists, but kept out of that total; World Bank trust funds with non-European co-donors are listed without an amount, since the European share is not published. EU money that AFD implements on the EU's behalf is counted once, under the European Commission.</p>
-        <p id="gaps"></p>
-      </details>
-    </div>
-  </aside>
-</div>
-<script>/*__LIB_TOPOJSON__*/</script>
-<script>/*__LIB_GLOBE__*/</script>
-<script>
-const DATA = /*__DATA__*/null;
-const WORLD = /*__WORLD__*/null;
-</script>
+  <section class="view" id="v-ovl" hidden>
+    <div class="stage"><div class="tools"><label class="ctl">Measure <select id="ovm"><option value="jac" selected>Overlap %</option><option value="co">Co-financed projects</option></select></label><label class="ctl">Institutions shown <select id="ovn"><option>12</option><option selected>18</option><option>24</option></select></label>
+      </div><div class="matrix" id="matrix"></div></div>
+    <aside id="ovlpanel"></aside>
+  </section>
+  <section class="view" id="v-evt" hidden>
+    <div class="stage"><div class="tools" id="evtools"></div><div class="events" id="evmain"></div></div>
+    <aside id="evpanel"></aside>
+  </section>
+  <section class="view" id="v-src" hidden><div class="about" id="sources" style="grid-column:1/-1;max-width:1000px"></div></section>
+  <section class="view" id="v-abt" hidden><div class="about" id="about" style="grid-column:1/-1"></div></section>
+</main>
+<div class="tip" id="tip" hidden></div>
+<script>/*__D3__*/</script>
+<script>/*__THREE__*/</script>
+<script>/*__FG3D__*/</script>
+<script>const DATA = /*__DATA__*/null;</script>
 <script>
 (() => {
-const TYPES = [
-  ["DFI","DFI","--t-dfi"], ["Bilateral development bank","Development bank","--t-bdb"],
-  ["NPB","Promotional bank","--t-npb"], ["ECA","Export credit agency","--t-eca"],
-  ["EU institution","EU institution","--t-eu"], ["Multilateral","Multilateral (EBRD)","--t-mdb"],
-  ["Humanitarian aid","EU humanitarian aid","--t-hum"], ["Foreign policy instrument","EU foreign policy","--t-fpi"],
-  ["World Bank trust fund","World Bank trust funds (EU-financed)","--t-wbtf"]];
-const NON_INVESTMENT = new Set(["Humanitarian aid", "Foreign policy instrument"]);  // World Bank trust funds (EU-financed) are shown and counted
-const KINDS = [["Team Europe Initiative","Team Europe Initiative","--k-tei"],
-  ["EU-Africa Infrastructure Trust Fund","EU-Africa Infrastructure Trust Fund","--k-aitf"], ["Global Gateway flagship","Global Gateway flagship","--k-gg"],
-  ["EU country envelope","EU country envelope","--k-env"], ["Energy transition partnership","Energy transition partnership","--k-part"],
-  ["National programme","National programme","--k-nat"]];
-const MS = {FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",FI:"Finland",DK:"Denmark",SE:"Sweden",
-  AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",PL:"Poland",EU:"EU institution",INT:"International (EBRD)",NONEU:"Non-EU",
-  CZ:"Czechia",SK:"Slovakia",HR:"Croatia",GR:"Greece",SI:"Slovenia",HU:"Hungary",RO:"Romania",BG:"Bulgaria",EE:"Estonia",LV:"Latvia",
-  LT:"Lithuania",IE:"Ireland",LU:"Luxembourg",WBTF:"World Bank trust funds (European donors)"};
-const SHORT = {"eu-intpa":"European Commission",afd:"AFD",proparco:"Proparco","kfw-db":"KfW",deg:"DEG",fmo:"FMO","invest-intl":"Invest International",
-  dggf:"DGGF",bio:"BIO",finnfund:"Finnfund",ifu:"IFU","atradius-dsb":"Atradius DSB",eib:"EIB",ebrd:"EBRD",bgk:"BGK",kuke:"KUKE","eu-eutf":"EU Trust Fund for Africa","edfi-mc":"ElectriFI / AgriFI","eu-echo":"EU humanitarian aid (ECHO)",
-  "eu-fpi":"EU Foreign Policy Instruments","wbtf":"World Bank trust funds","eu-blending":"EU blending grants","eu-aitf":"EU-AITF",cofides:"COFIDES",swedfund:"Swedfund",
-  sace:"SACE",cdp:"CDP",eifo:"EIFO",credendo:"Credendo","bpifrance-ae":"Bpifrance Assurance Export",worldbank:"World Bank",ifc:"IFC",
-  afdb:"AfDB Group",aiib:"AIIB"};
-// Official capitals: arcs end here
-const CAPITALS = {BJ:["Porto-Novo",6.497,2.605],BF:["Ouagadougou",12.371,-1.520],CI:["Yamoussoukro",6.827,-5.289],GW:["Bissau",11.864,-15.598],
-  ML:["Bamako",12.639,-8.003],NE:["Niamey",13.512,2.112],SN:["Dakar",14.716,-17.467],TG:["Lomé",6.131,1.222],
-  CM:["Yaoundé",3.848,11.502],CF:["Bangui",4.394,18.558],TD:["N'Djamena",12.134,15.056],CG:["Brazzaville",-4.263,15.242],
-  GQ:["Malabo",3.755,8.774],GA:["Libreville",0.416,9.467],
-  XW:["WAEMU-wide",14.2,-3.6],XC:["CEMAC-wide",2.4,15.6]};  // union-wide operations (BOAD, BCEAO, BDEAC, BEAC, union commissions)
-// Franc Zone countries by numeric ISO code (shapes on the map); the union decides the colour
-const WAEMU_NUM = {"204":"BJ","854":"BF","384":"CI","624":"GW","466":"ML","562":"NE","686":"SN","768":"TG",
-  "120":"CM","140":"CF","148":"TD","178":"CG","226":"GQ","266":"GA"};
-const unionOf = cc => (DATA.countries[cc] && DATA.countries[cc].union) || "WAEMU";
-const fzVar = (cc, kind) => unionOf(cc) === "CEMAC" ? (kind === "line" ? "--cemac-line" : "--land-cemac") : (kind === "line" ? "--waemu-line" : "--land-waemu");
-const EU_NUM = new Set(["040","056","100","191","196","203","208","233","246","250","276","300","348","372","380","428","440","442","470","528","616","620","642","703","705","724","752"]);
+const D = DATA, $ = s => document.querySelector(s);
+const HAS_WEBGL = (() => { try { const c = document.createElement("canvas"); return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"))); } catch (e) { return false; } })();
+const USE3D = HAS_WEBGL && typeof ForceGraph3D === "function" && typeof THREE !== "undefined";
+
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const typeVar = Object.fromEntries(TYPES.map(t => [t[0], t[2]]));
-const kindVar = Object.fromEntries(KINDS.map(k => [k[0], k[2]]));
-const INST = Object.fromEntries(DATA.institutions.map(i => [i.institution_id, i]));
-const INV = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i]));
-const PROG = DATA.programmes || [], PLACES = DATA.places || {};
-const withData = new Set(DATA.investments.map(i => i.institution_id));
-const fmt = v => v >= 1e9 ? "€" + (v/1e9).toFixed(1) + " bn" : v >= 1e6 ? "€" + (v/1e6).toFixed(v >= 1e8 ? 0 : 1) + " m" : v >= 1e3 ? "€" + Math.round(v/1e3) + " k" : "€" + Math.round(v);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const plain = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");  // the globe's 3D font has no accents
-const rgba = (hex, a) => { const h = hex.replace("#",""); const n = parseInt(h.length === 3 ? h.split("").map(x => x+x).join("") : h, 16);
-  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; };
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const partName = p => (PLACES[p] && PLACES[p].name) || p;
-const ccName = cc => DATA.countries[cc].name;
+const fmt = v => v >= 1e9 ? "€" + (v/1e9).toFixed(1) + " bn" : v >= 1e6 ? "€" + (v/1e6).toFixed(v >= 1e8 ? 0 : 1) + " m" : v >= 1e3 ? "€" + Math.round(v/1e3) + " k" : "€" + Math.round(v || 0);
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const TYPEVAR = {"DFI":"--t-dfi","Bilateral development bank":"--t-bdb","NPB":"--t-npb","ECA":"--t-eca","EU institution":"--t-eu","World Bank trust fund":"--t-wbtf","Multilateral":"--t-mdb"};
+const TYPELABEL = {"DFI":"DFI","Bilateral development bank":"Development bank","NPB":"Promotional bank","ECA":"Export credit agency","EU institution":"EU institution","World Bank trust fund":"World Bank trust fund (EU-financed)","Multilateral":"EBRD (EU-majority multilateral)"};
+const instName = id => (D.inst[id] || {}).n || id;
+const tip = $("#tip");
+function showTip(e, html) { tip.innerHTML = html; tip.hidden = false; tip.style.left = Math.min(e.clientX + 14, innerWidth - 320) + "px"; tip.style.top = (e.clientY + 14) + "px"; }
+function hideTip() { tip.hidden = true; }
 
-const defaultTypes = () => new Set(TYPES.map(t => t[0]).filter(k => !NON_INVESTMENT.has(k)));
-const state = {view:"inv", types:defaultTypes(), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
-  cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, shown:40,
-  est:true, donorBy:"inst", ovMode:"sector", ovCC:"", ovSector:"", q:"", ovStack:"inst"};
-const norm = s => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-let qTimer = null;
-document.getElementById("q").addEventListener("input", e => {
-  clearTimeout(qTimer);
-  qTimer = setTimeout(() => { state.q = norm(e.target.value.trim()); state.focus = null; update(); }, 200);
+// ---------- views
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  ["net","ovl","evt","src","abt"].forEach(v => $("#v-" + v).hidden = v !== b.dataset.v);
+  if (b.dataset.v === "ovl") drawMatrix(); if (b.dataset.v === "evt") drawEvents();
 });
 
-// ---------- controls
-function chipGroup(el, list, set) {
-  list.forEach(([k,label,v]) => {
-    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(set.has(k)));
-    b.innerHTML = `<span class="sw" style="background:var(${v});color:var(${v})"></span>${label}`;
-    b.onclick = () => { set.has(k) ? set.delete(k) : set.add(k); b.setAttribute("aria-pressed", set.has(k)); state.focus = null; update(); };
-    el.append(b);
-  });
+// ---------- NETWORK
+const KIND = {institution:{c:t => css(TYPEVAR[t] || "--t-dfi"), label:"Institution"}, country:{c:(t,u) => css(u === "CEMAC" ? "--cemac" : "--waemu"), label:"Country"},
+  memberstate:{c:() => css("--k-ms"), label:"Member state"}, sector:{c:() => css("--k-sec"), label:"Sector"}, agency:{c:() => css("--k-ag"), label:"Implementing agency (EU funds)"},
+  framework:{c:() => css("--k-fw"), label:"Framework (no amounts)"}, contractor:{c:() => css("--k-ct"), label:"Contractor (European firm, AFD-financed contract)"}};
+const layers = {memberstate:true, sector:false, agency:false, framework:false, contractor:false};
+const typeOn = Object.fromEntries(Object.keys(TYPEVAR).map(t => [t, true]));
+const lay = $("#layers");
+function chip(label, color, on, fn, key) { const b = document.createElement("button"); b.className = "chip"; if (key) b.dataset.key = key; b.setAttribute("aria-pressed", on);
+  b.innerHTML = `<span class="sw" style="background:${color}"></span>${label}`; b.onclick = () => { fn(); b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"); }; lay.append(b); }
+Object.keys(TYPEVAR).forEach(t => chip(TYPELABEL[t], css(TYPEVAR[t]), true, () => { typeOn[t] = !typeOn[t]; buildGraph(); }, "t:" + t));
+[["memberstate","Member states"],["agency","Implementing agencies"],["contractor","Contractors"],["sector","Sectors"],["framework","Frameworks"]].forEach(([k,l]) =>
+  chip(l, KIND[k].c(), layers[k], () => { layers[k] = !layers[k]; buildGraph(); }, "l:" + k));
+const minWrap = document.createElement("label"); minWrap.className = "ctl";
+minWrap.innerHTML = `Since <select id="since"><option value="0" selected>All years (1999 onward)</option>${Array.from({length: new Date().getFullYear() - 1998}, (_, i) => 1999 + i).map(y => `<option value="${y}">${y}</option>`).join("")}</select>`;
+lay.append(minWrap); $("#since").onchange = e => { SINCE = +e.target.value; buildGraph(); if (!selected) netIntro(); };
+$("#netlegend").innerHTML = Object.entries(KIND).map(([k,v]) => `<span><i class="sw" style="background:${k === "country" ? css("--waemu") : v.c()}"></i>${v.label}</span>`).join("") +
+  (USE3D ? `<span>Drag to rotate, scroll to zoom, hover to light up an actor, click for details. Grey lines: amount not published.</span>` : `<span>Size and line width follow euros. Drag a dot to pin it, double-click to release.</span>`);
+
+const svg = d3.select("#net"), g = svg.append("g"), gl = g.append("g"), gn = g.append("g");
+const zoom = d3.zoom().scaleExtent([0.2, 6]).on("zoom", e => g.attr("transform", e.transform));
+svg.call(zoom).on("dblclick.zoom", null);
+const cam = f => { const p = G3.cameraPosition(); G3.cameraPosition({x: p.x * f, y: p.y * f, z: p.z * f}, undefined, reduce ? 0 : 400); };
+$("#zin").onclick = () => USE3D && G3 ? cam(0.72) : svg.transition().duration(reduce ? 0 : 250).call(zoom.scaleBy, 1.4);
+$("#zout").onclick = () => USE3D && G3 ? cam(1.38) : svg.transition().duration(reduce ? 0 : 250).call(zoom.scaleBy, 1 / 1.4);
+$("#zreset").onclick = () => USE3D && G3 ? G3.zoomToFit(reduce ? 0 : 800, 30) : svg.transition().duration(reduce ? 0 : 250).call(zoom.transform, d3.zoomIdentity);
+let sim = null, selected = null, focusCountry = null;
+// ---------- 3D nebula (falls back to the 2D network when the computer cannot draw 3D)
+if (USE3D) $("#netstage").classList.add("use3d");
+else { $("#modenote").hidden = false; $("#modenote").textContent = "This computer cannot draw the 3D view, so the 2D network is shown."; }
+let G3 = null, hovered = null, nbrs = new Set(), hotLinks = new Set();
+// left to right: (1) member states and EU institutions, (2) national public financial institutions, (3) countries, (4) a clicked country's sectors;
+// implementing agencies float above, frameworks below
+const GROUP_POS = {owners: [-520, 0, 0], pfi: [0, 0, 0], country: [520, 0, 0], sector: [900, 0, 0], agency: [-260, 480, 0], framework: [0, -480, 0], contractor: [260, -500, 0]};
+const GROUP_COL = {owners: "#e8d27a", pfi: "#3a8cff", country: "#ffb648", sector: "#3fd9b0", agency: "#b77dff", framework: "#7f98aa", contractor: "#ff8a52"};
+function groupOf(d) {
+  if (d.k === "memberstate" || (d.k === "institution" && d.t === "EU institution")) return "owners";
+  if (d.k === "institution") return "pfi";
+  return d.k;
 }
-chipGroup(document.getElementById("f-type"), TYPES, state.types);
-chipGroup(document.getElementById("f-kind"), KINDS, state.kinds);
-const fCC = document.getElementById("f-cc");
-for (const un of ["WAEMU", "CEMAC"]) {
-  const members = Object.entries(DATA.countries).filter(([cc]) => unionOf(cc) === un);
-  if (!members.length) continue;
-  const head = document.createElement("div"); head.className = "unionhead";
-  head.innerHTML = `<span class="sw" style="background:var(${un === "CEMAC" ? "--cemac-line" : "--waemu-line"})"></span><b>${un}</b>`;
-  const tog = document.createElement("button"); tog.type = "button"; tog.className = "clear"; tog.textContent = "All / none";
-  tog.onclick = () => {
-    const allOn = members.every(([cc]) => state.cc.has(cc));
-    members.forEach(([cc]) => allOn ? state.cc.delete(cc) : state.cc.add(cc));
-    fCC.querySelectorAll(`.chip[data-union="${un}"]`).forEach(c => c.setAttribute("aria-pressed", state.cc.has(c.dataset.cc)));
-    state.focus = null; update();
-  };
-  head.append(tog); fCC.append(head);
-  const row = document.createElement("div"); row.className = "chips"; fCC.append(row);
-  members.forEach(([cc, c]) => {
-    const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.dataset.cc = cc; b.dataset.union = un;
-    b.setAttribute("aria-pressed", "true"); b.textContent = c.name;
-    b.onclick = () => { state.cc.has(cc) ? state.cc.delete(cc) : state.cc.add(cc); b.setAttribute("aria-pressed", state.cc.has(cc)); state.focus = null; update(); };
-    row.append(b);
-  });
+function glowTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.18, "rgba(255,255,255,.7)"); gr.addColorStop(0.45, "rgba(255,255,255,.18)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
 }
-function opts(el, list, all) { el.innerHTML = `<option value="">${all}</option>` + list.map(([v,l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(""); }
-const covered = DATA.institutions.filter(i => withData.has(i.institution_id));
-opts(document.getElementById("f-ms"), [...new Set(covered.map(i => i.member_state))].map(m => [m, MS[m] || m]), "All");
-opts(document.getElementById("f-inst"), covered.map(i => [i.institution_id, SHORT[i.institution_id] || i.name]), "All");
-opts(document.getElementById("f-ins"), [...new Set(DATA.investments.map(i => i.instrument))].sort().map(x => [x,x]), "All");
-const years = [...new Set(DATA.investments.map(i => i.year).filter(Boolean))].sort();
-opts(document.getElementById("f-yr"), Array.from({length: new Date().getFullYear() - 1998}, (_, i) => 1999 + i).map(y => [y, String(y)]), "Any year (since 1999)");
-const parts = [...new Set(PROG.flatMap(p => p.participants))].filter(p => PLACES[p]).sort((a,b) => partName(a).localeCompare(partName(b)));
-opts(document.getElementById("f-part"), parts.map(p => [p, partName(p)]), "All");
-opts(document.getElementById("f-cap"), Object.entries(CAPITALS).map(([cc,[city]]) => [cc, `${city}, ${DATA.countries[cc].name}`]), "Choose a capital");
-document.getElementById("f-cap").onchange = e => {
-  const cc = e.target.value; if (!cc) return;
-  const [, lat, lng] = CAPITALS[cc];
-  R.focusOn(lat, lng);
-  state.focus = {cc}; update(); e.target.value = "";
-};
-for (const [id,key] of [["f-ms","ms"],["f-inst","inst"],["f-ins","ins"],["f-yr","yr"],["f-part","part"]])
-  document.getElementById(id).onchange = e => { state[key] = e.target.value; state.focus = null; update(); };
-document.querySelectorAll(".views button").forEach(b => b.onclick = () => {
-  state.view = b.dataset.view; state.focus = null;
-  document.querySelectorAll(".views button").forEach(x => x.setAttribute("aria-pressed", x === b));
-  document.getElementById("inv-filters").hidden = state.view === "prog" || state.view === "src" || state.view === "abt";
-  document.getElementById("inv-filters-2").hidden = state.view === "prog" || state.view === "src" || state.view === "abt";
-  document.getElementById("prog-filters").hidden = state.view !== "prog";
-  document.getElementById("est-wrap").hidden = state.view !== "ana";
-  document.getElementById("q").placeholder = state.view === "prog" ? "Search programmes by name, goal or participant" : "Search deals by name, client or institution";
-  drawLegend(); update();
+let GLOW = null;
+function textSprite(text, color) {
+  const c = document.createElement("canvas"), g = c.getContext("2d"), fs = 44;
+  g.font = `600 ${fs}px IBM Plex Sans, Segoe UI, sans-serif`; const w = Math.ceil(g.measureText(text).width) + 24;
+  c.width = w; c.height = fs + 22; g.font = `600 ${fs}px IBM Plex Sans, Segoe UI, sans-serif`;
+  g.lineWidth = 8; g.strokeStyle = "rgba(0,0,0,.85)"; g.strokeText(text, 12, fs); g.fillStyle = color; g.fillText(text, 12, fs);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false}));
+  s.scale.set(c.width / 3.6, c.height / 3.6, 1); return s;
+}
+function shellForce(alpha) {  // pulls each actor towards the centre of its group's cloud
+  for (const n of shellForce.nodes || []) {
+    const [tx, ty, tz] = GROUP_POS[groupOf(n)] || [0, 0, 0];
+    n.vx += (tx - (n.x || 0)) * alpha * 0.22;
+    n.vy += (ty - (n.y || 0)) * alpha * 0.018;
+    n.vz += (tz - (n.z || 0)) * alpha * 0.018;
+  }
+}
+shellForce.initialize = ns => { shellForce.nodes = ns; };
+const CLOUDS = {};
+function nodeColor(d) { return d.k === "framework" ? css("--k-fw") : KIND[d.k].c(d.t, d.u); }
+function render3D(nodes, ls, rn, labelled) {
+  if (!GLOW) GLOW = glowTexture();
+  const el = $("#net3d"), stage = $("#netstage");
+  const prev = G3 ? Object.fromEntries(G3.graphData().nodes.map(n => [n.id, n])) : {};
+  nodes.forEach(n => { const p = prev[n.id]; if (p && p.x !== undefined) { n.x = n.fx = p.x; n.y = n.fy = p.y; n.z = n.fz = p.z; } });
+  const hub = nodes.filter(n => groupOf(n) === "pfi").sort((a, b) => b.v - a.v)[0];   // the largest national institution (AFD) sits at the centre
+  if (hub) { const [cx, cy, cz] = GROUP_POS.pfi; hub.x = hub.fx = cx; hub.y = hub.fy = cy; hub.z = hub.fz = cz; }
+  ls.forEach(l => { const s = nodeById[l.source], t = nodeById[l.target]; l.col = l.co ? "#f2e6ff" : (!l.v && !l.cs && !(t && t.k === "framework") && !(s && s.k === "memberstate" && t && t.k === "agency")) ? "#7f8c96" : l.cs ? css("--k-sec") : s && s.k === "institution" ? KIND.institution.c(s.t) : (s && s.k === "memberstate" && t && t.k === "agency") ? css("--k-ag") : "#6f8f9c"; });
+  if (!G3) {
+    G3 = ForceGraph3D({controlType: "orbit"})(el)
+      .backgroundColor("#02060b").showNavInfo(false)
+      .nodeThreeObject(d => {
+        const col = nodeColor(d), size = Math.max(2.2, rn(d) * 1.3), grp = new THREE.Group();
+        const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: GLOW, color: col, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false}));
+        glow.scale.set(size * 4, size * 4, 1);
+        const core = new THREE.Mesh(new THREE.SphereGeometry(size * 0.42, 18, 14), new THREE.MeshBasicMaterial({color: col, transparent: true, opacity: 0.95}));
+        grp.add(glow); grp.add(core);
+        if (labelled(d)) { const s = textSprite(d.k === "institution" ? shortName(d.l) : d.l.length > 30 ? d.l.slice(0, 28) + "…" : d.l, "#e9f8ff"); s.position.set(0, size * 1.1 + 4, 0); grp.add(s); d.__label = s; }
+        d.__glow = glow; d.__core = core; d.__size = size; return grp;
+      })
+      .nodeLabel(d => `<b>${esc(d.l)}</b><br>${esc(KIND[d.k].label)}${d.v ? "<br>" + fmt(d.v) + " in the Franc Zone" : ""}`)
+      .linkColor(l => l.col).linkOpacity(0.2).linkWidth(l => hotLinks.has(l) ? 0.9 : 0)
+      .linkVisibility(l => !hovered || hotLinks.has(l))
+      .linkDirectionalParticles(l => (!reduce && hotLinks.has(l)) ? 3 : 0).linkDirectionalParticleWidth(1.8).linkDirectionalParticleSpeed(0.007)
+      .onNodeHover(n => { el.style.cursor = n ? "pointer" : "grab"; setHover(n); })
+      .onNodeClick(n => clickNode(n))
+      .onBackgroundClick(() => { selected = null; const had = focusCountry; focusCountry = null; setHover(null); if (had) buildGraph(); netIntro(); })
+      .d3Force("shell", shellForce).d3VelocityDecay(0.35).cooldownTicks(reduce ? 0 : 300);
+    G3.d3Force("charge").strength(-260).distanceMax(300);
+    G3.d3Force("link").distance(120).strength(0.004);
+    // a faint star field for the nebula look
+    const pts = [], N = 2200;
+    for (let i = 0; i < N; i++) { const r = 900 + Math.random() * 1500, a = Math.random() * Math.PI * 2, b = Math.acos(2 * Math.random() - 1); pts.push(r * Math.sin(b) * Math.cos(a), r * Math.sin(b) * Math.sin(a), r * Math.cos(b)); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+    G3.scene().add(new THREE.Points(geo, new THREE.PointsMaterial({color: 0x7fb8d8, size: 1.6, transparent: true, opacity: 0.55, depthWrite: false})));
+    // coloured clouds of light: the nebula
+    for (const [g, [x, y, z]] of Object.entries(GROUP_POS)) {
+      const grp = new THREE.Group();
+      for (let i = 0; i < 4; i++) {
+        const m = new THREE.Sprite(new THREE.SpriteMaterial({map: GLOW, color: GROUP_COL[g], transparent: true, opacity: 0.09 + i * 0.015, blending: THREE.AdditiveBlending, depthWrite: false}));
+        const sc = 620 - i * 100;
+        m.position.set(x + (Math.random() - 0.5) * 60, y + (Math.random() - 0.5) * 60, z + (Math.random() - 0.5) * 60); m.scale.set(sc, sc, 1); m.renderOrder = -1;
+        grp.add(m);
+      }
+      CLOUDS[g] = grp; G3.scene().add(grp);
+    }
+    if (!reduce) (function pulse(t) { if (hovered && hovered.__glow) { const s = hovered.__size * (7.5 + Math.sin(t / 260) * 1.4); hovered.__glow.scale.set(s, s, 1); } requestAnimationFrame(pulse); })(0);
+    G3.cameraPosition({x: 60, y: 40, z: 1150}, {x: 60, y: 0, z: 0}, 0);
+    setTimeout(() => G3.zoomToFit(reduce ? 0 : 900, 10), 2600);
+  }
+  const biggest = {};
+  nodes.forEach(n => { const g = groupOf(n); if (!biggest[g] || (n.v || 0) > (biggest[g].v || 0)) biggest[g] = n; });
+  Object.entries(biggest).forEach(([g, n]) => { const [x, y, z] = GROUP_POS[g] || [0, 0, 0]; if (!prev[n.id]) { n.x = n.fx = x; n.y = n.fy = y; n.z = n.fz = z; } });
+  nodes.forEach(n => { if (n.k === "sector" && !prev[n.id]) { n.fx = n.fy = n.fz = undefined; } });   // sectors are not pinned: they settle together with the rest
+  const present = new Set(nodes.map(groupOf));
+  Object.entries(CLOUDS).forEach(([g, c]) => { c.visible = present.has(g); });
+  G3.width(stage.clientWidth).height(stage.clientHeight).graphData({nodes, links: ls});
+  if (selected) { const n = G3.graphData().nodes.find(x => x.id === selected); if (n) setTimeout(() => setHover(n, true), 50); }
+}
+function setHover(n, sticky) {
+  if (!G3) return;
+  hovered = n || (selected ? G3.graphData().nodes.find(x => x.id === selected) : null);
+  nbrs = new Set(); hotLinks = new Set();
+  if (hovered) { nbrs.add(hovered.id); G3.graphData().links.forEach(l => { const s = l.source.id || l.source, t = l.target.id || l.target; if (s === hovered.id || t === hovered.id) { nbrs.add(s); nbrs.add(t); hotLinks.add(l); } }); }
+  G3.graphData().nodes.forEach(d => {
+    if (!d.__core) return;
+    const on = !hovered || nbrs.has(d.id), me = hovered && d.id === hovered.id;
+    d.__core.material.opacity = on ? 0.95 : 0.12;
+    d.__glow.material.opacity = me ? 1 : on ? (hovered ? 0.85 : 0.7) : 0.05;
+    const s = d.__size * (me ? 7.5 : 4); d.__glow.scale.set(s, s, 1);
+    if (d.__label) d.__label.material.opacity = on ? 1 : 0.15;
+  });
+  G3.linkWidth(G3.linkWidth()).linkVisibility(G3.linkVisibility()).linkDirectionalParticles(G3.linkDirectionalParticles());
+}
+function clickNode(n) {
+  selected = n.id;
+  if (n.k === "country") { const was = focusCountry; focusCountry = n.id.slice(2); if (was !== focusCountry) buildGraph(); }
+  panel(nodeById[n.id] || n); setHover(n, true);   // highlight and details only: the camera stays where it is
+}
+// full screen: the network and its panel together
+$("#fs").onclick = () => { const v = $("#v-net"); if (!document.fullscreenElement) (v.requestFullscreen ? v.requestFullscreen() : v.webkitRequestFullscreen && v.webkitRequestFullscreen()); else document.exitFullscreen(); };
+document.addEventListener("fullscreenchange", () => {
+  $("#fs span").textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
+  setTimeout(() => { if (USE3D && G3) G3.width($("#netstage").clientWidth).height($("#netstage").clientHeight); else buildGraph(); }, 120);
 });
-document.getElementById("reset").onclick = () => {
-  Object.assign(state, {types:defaultTypes(), kinds:new Set(KINDS.map(k => k[0])), part:"", ms:"", inst:"",
-    cc:new Set(Object.keys(DATA.countries)), ins:"", yr:"", focus:null, est:true, q:""});
-  document.getElementById("q").value = "";
-  document.getElementById("f-est").checked = true;
-  document.querySelectorAll("#f-cc .chip").forEach(c => c.setAttribute("aria-pressed","true"));
-  ["f-ms","f-inst","f-ins","f-yr","f-part"].forEach(id => document.getElementById(id).value = "");
-  // chip groups hold their own Set references, so rebuild them
-  ["f-type","f-kind"].forEach(id => document.getElementById(id).innerHTML = "");
-  chipGroup(document.getElementById("f-type"), TYPES, state.types);
-  chipGroup(document.getElementById("f-kind"), KINDS, state.kinds);
-  update();
-};
-document.getElementById("gen").textContent = DATA.generated;
-document.getElementById("r-sync").textContent = DATA.generated;
-document.getElementById("r-rec").textContent = DATA.investments.length.toLocaleString("en") + " deals, " + PROG.length + " programmes";
+const nodeById = Object.fromEntries(D.nodes.map(n => [n.id, n]));
+const COL = {country: 0.86, memberstate: 0.06, institution: 0.34, agency: 0.6, sector: 0.6, framework: 0.97, contractor: 0.7};
+function visibleNode(n) {
+  if (n.k === "institution") return typeOn[n.t];
+  if (n.k === "country") return true;
+  if (n.k === "sector" && focusCountry) return true;  // a clicked country shows its sectors
+  return layers[n.k];
+}
+// ---------- "Since": the network recalculated from the deals and contracts of the chosen period
+let SINCE = 0;
+const ALL_LINKS = D.links.slice(), ORIG_V = Object.fromEntries(D.nodes.map(n => [n.id, n.v]));
+const xkey = g => "x:" + g.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+const dealOk = d => !SINCE || (d.y && +d.y >= SINCE);
+function derive() {
+  if (!SINCE) return {links: ALL_LINKS, v: ORIG_V, inst: null};
+  const L = new Map(), V = {}, inst = new Set();
+  const add = (s, t, v) => { const k = s + "|" + t, o = L.get(k) || {s, t, v: 0, n: 0}; o.v += v; o.n++; L.set(k, o); };
+  const addV = (id, v) => { V[id] = (V[id] || 0) + v; };
+  for (const d of D.deals) {
+    if (!dealOk(d)) continue;
+    const iid = "i:" + d.i, sh = d.v / Math.max(1, d.c.length); inst.add(d.i); addV(iid, d.v);
+    d.c.forEach(c => { add(iid, "c:" + c, sh); addV("c:" + c, sh); });
+    if (d.s) { add(iid, "s:" + d.s, d.v); addV("s:" + d.s, d.v); }
+    if (d.g && (D.inst[d.i] || {}).t === "EU institution") { add(iid, "a:" + d.g, d.v); addV("a:" + d.g, d.v); }
+  }
+  inst.forEach(i => { const ms = (D.inst[i] || {}).ms, owner = (ms === "WBTF" || ms === "INT") ? "EU" : ms, f = ms === "INT" ? D.ebrd.share : 1, v = (V["i:" + i] || 0) * f;
+    add("m:" + owner, "i:" + i, v); addV("m:" + owner, v); });
+  for (const c of (D.contracts || [])) {
+    const yr = +String(c.d || "").slice(0, 4); if (!yr || yr < SINCE) continue;
+    for (const [g, m] of (c.g || [])) { const x = xkey(g), val = c.v / (c.parts || 1); addV(x, val); add("i:afd", x, val); add(x, "c:" + c.c, val); if (!L.has("m:" + m + "|" + x)) L.set("m:" + m + "|" + x, {s: "m:" + m, t: x, v: 0, n: 1}); }
+  }
+  // links without amounts stay: frameworks, agencies' member states, EBRD co-financing (if the EBRD has deals in the period)
+  ALL_LINKS.filter(l => l.s.startsWith("f:") || l.t.startsWith("f:") || (l.s.startsWith("m:") && l.t.startsWith("a:")) || (l.co && inst.has("ebrd")))
+    .forEach(l => { if (!L.has(l.s + "|" + l.t)) L.set(l.s + "|" + l.t, Object.assign({}, l)); });
+  return {links: [...L.values()], v: V, inst};
+}
+function csecNow(cc) {
+  if (!SINCE) return D.csec[cc] || {};
+  const m = {}; D.deals.filter(d => dealOk(d) && d.s && d.c.includes(cc)).forEach(d => { m[d.s] = (m[d.s] || 0) + d.v / Math.max(1, d.c.length); }); return m;
+}
+function buildGraph() {
+  const der = derive();
+  D.links = der.links; D.nodes.forEach(n => { n.v = der.v[n.id] || 0; });   // panels read the current period
+  const ns = D.nodes.filter(visibleNode).filter(n => !(der.inst && n.k === "institution" && !der.inst.has(n.id.slice(2)))).map(n => Object.assign({}, n));
+  const ok = new Set(ns.map(n => n.id));
+  let ls = D.links.filter(l => ok.has(l.s) && ok.has(l.t))
+    .filter(l => !(focusCountry && !layers.sector && l.t.startsWith("s:")))   // in country focus, sectors connect to that country only
+    .map(l => ({source:l.s, target:l.t, v:l.v, n:l.n, co:l.co, own:l.own}));
+  if (focusCountry) Object.entries(csecNow(focusCountry)).forEach(([sec, v]) => { if (ok.has("s:" + sec)) ls.push({source:"c:" + focusCountry, target:"s:" + sec, v, n:0, cs:true}); });
+  const used = new Set(ls.flatMap(l => [l.source, l.target]));
+  const nodes = ns.filter(n => used.has(n.id) || n.k === "country" || n.k === "memberstate" || n.k === "institution");
+  const W = $("#netstage").clientWidth, H = $("#netstage").clientHeight;
+  const r0 = d3.scaleSqrt().domain([0, d3.max(nodes, n => n.v) || 1]).range([1.6, 30]);   // area proportional to euros
+  const r = v => r0(v); const rn = d => r0(d.v || 0);
+  if (USE3D) {
+    const instV = nodes.filter(n => n.k === "institution").map(n => n.v).sort((a, b) => b - a), cut = instV[Math.min(14, instV.length - 1)] || 0;
+    render3D(nodes, ls, rn, d => d.k === "country" || d.k === "memberstate" || d.k === "institution" || d.k === "agency" || d.k === "contractor" || (d.k === "sector" && focusCountry));
+    return;
+  }
+  const w = d3.scaleSqrt().domain([0, d3.max(ls, l => l.v) || 1]).range([0.4, 6]);
+  gl.selectAll("*").remove(); gn.selectAll("*").remove();
+  const link = gl.selectAll("line").data(ls).join("line").attr("class", "link")
+    .attr("stroke", l => { if (l.cs) return css("--k-sec"); const s = nodeById[l.source]; return s && s.k === "institution" ? KIND.institution.c(s.t) : "#5f7f8c"; })
+    .attr("stroke-width", l => l.v ? w(l.v) : 0.6).attr("stroke-dasharray", l => l.v ? null : "3 3");
+  const node = gn.selectAll("g").data(nodes, n => n.id).join("g").attr("class", "node")
+    .call(d3.drag().on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.2).restart(); d.fx = d.x; d.fy = d.y; })
+      .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; }).on("end", (e) => { if (!e.active) sim.alphaTarget(0); }))
+    .on("dblclick", (e, d) => { d.fx = null; d.fy = null; sim.alpha(0.3).restart(); })
+    .on("mousemove", (e, d) => showTip(e, `<b>${esc(d.l)}</b><br>${esc(KIND[d.k].label)}${d.v ? "<br>" + fmt(d.v) + " in the Franc Zone" : ""}`))
+    .on("mouseleave", hideTip).on("click", (e, d) => {
+      selected = d.id;
+      if (d.k === "country") { const was = focusCountry; focusCountry = d.id.slice(2); if (was !== focusCountry) { buildGraph(); } }
+      highlight(); panel(nodeById[d.id] || d);
+    });
+  const csz = focusCountry ? d3.scaleSqrt().domain([0, d3.max(Object.values(csecNow(focusCountry))) || 1]).range([4, 16]) : null;
+  if (csz) nodes.forEach(d => { if (d.k === "sector" && !layers.sector) d.fv = csecNow(focusCountry)[d.id.slice(2)] || 0; });
+  node.append("circle").attr("r", d => d.k === "framework" ? 5 : (csz && d.k === "sector" && !layers.sector) ? csz(d.fv) : rn(d))
+    .attr("fill", d => d.k === "framework" ? "none" : KIND[d.k].c(d.t, d.u)).attr("stroke", d => d.k === "framework" ? css("--k-fw") : "#000")
+    .attr("stroke-width", d => d.k === "framework" ? 1.5 : 0.8);
+  node.filter(d => d.k !== "framework" && (d.k !== "sector" || d.v > 0)).append("text")
+    .attr("text-anchor", d => d.k === "sector" ? "end" : "start").attr("dx", d => d.k === "sector" ? -(rn(d) + 3) : rn(d) + 3).attr("dy", 3.5)
+    .text(d => d.k === "institution" ? shortName(d.l) : d.l.length > 28 ? d.l.slice(0, 26) + "…" : d.l);
+  if (sim) sim.stop();
+  sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(ls).id(d => d.id).distance(110).strength(0.06))
+    .force("charge", d3.forceManyBody().strength(d => -90 - rn(d) * 9))
+    .force("x", d3.forceX(d => W * (d.k === "sector" && focusCountry && !layers.sector ? 0.93 : groupOf(d) === "owners" ? 0.08 : (COL[d.k] ?? 0.5))).strength(0.55))
+    .force("y", d3.forceY(H / 2).strength(0.04))
+    .force("collide", d3.forceCollide(d => rn(d) + 9).strength(0.9))
+    .on("tick", () => {
+      link.attr("x1", l => l.source.x).attr("y1", l => l.source.y).attr("x2", l => l.target.x).attr("y2", l => l.target.y);
+      node.attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+  if (reduce) { sim.stop(); for (let i = 0; i < 300; i++) sim.tick(); link.attr("x1", l => l.source.x).attr("y1", l => l.source.y).attr("x2", l => l.target.x).attr("y2", l => l.target.y); node.attr("transform", d => `translate(${d.x},${d.y})`); }
+  window._net = {node, link, ls};
+  highlight();
+}
+const SHORT_ID = {"eu-intpa":"European Commission","eu-eutf":"EU Trust Fund for Africa","edfi-mc":"ElectriFI / AgriFI","eu-blending":"EU blending grants",
+  "eu-aitf":"EU-AITF","wbtf":"World Bank trust funds","eib":"EIB","afd":"AFD","kfw-db":"KfW","proparco":"Proparco","deg":"DEG","fmo":"FMO","bio":"BIO",
+  "invest-intl":"Invest International","dggf":"DGGF","finnfund":"Finnfund","ifu":"Impact Fund Denmark","atradius-dsb":"Atradius DSB","bgk":"BGK","kuke":"KUKE",
+  "cofides":"COFIDES","swedfund":"Swedfund","sace":"SACE","cdp":"CDP","eifo":"EIFO","credendo":"Credendo","bpifrance-ae":"Bpifrance Assurance Export","oeeb":"OeEB"};
+const SHORTS = Object.fromEntries(Object.entries(SHORT_ID).filter(([id]) => D.inst[id]).map(([id, s]) => [D.inst[id].n, s]));
+function shortName(n) { if (SHORTS[n]) return SHORTS[n]; const m = n.match(/\(([^)]+)\)\s*$/); return m && m[1].length < 26 ? m[1] : n.split(" – ")[0].slice(0, 26); }
+function highlight() {
+  if (!window._net) return; const {node, link, ls} = window._net;
+  if (!selected) { node.classed("faded", false); link.classed("faded", false); return; }
+  const nb = new Set([selected]); ls.forEach(l => { const s = l.source.id || l.source, t = l.target.id || l.target; if (s === selected) nb.add(t); if (t === selected) nb.add(s); });
+  node.classed("faded", d => !nb.has(d.id)); link.classed("faded", l => (l.source.id || l.source) !== selected && (l.target.id || l.target) !== selected);
+}
+svg.on("click", e => { if (e.target === svg.node()) { selected = null; const had = focusCountry; focusCountry = null; if (had) buildGraph(); highlight(); netIntro(); } });
+function bars(items, color) { const max = Math.max(1, ...items.map(x => x[1]));
+  return items.map(([l, v]) => `<div class="bar"><span>${esc(l)}</span><span class="track"><i style="width:${(100 * v / max).toFixed(1)}%;background:${color}"></i></span><span class="val">${fmt(v)}</span></div>`).join(""); }
+function dealList(ds, n = 12) { return ds.filter(dealOk).sort((a, b) => b.v - a.v).slice(0, n).map(d => `<div class="deal">${esc(d.t)}<div class="meta">${esc(shortName(instName(d.i)))}, ${d.c.map(c => esc((D.countries[c] || {}).n || c)).join(", ")}${d.y ? ", " + esc(d.y) : ""}, ${esc(d.n)} · <span class="amt">${fmt(d.v)}</span>${d.e ? " (estimated share)" : ""} <a href="${esc(d.u)}" target="_blank" rel="noopener">source</a></div></div>`).join(""); }
+function panel(n) {
+  const id = n.id.slice(2), p = $("#netpanel");
+  const nb = D.links.filter(l => l.s === n.id || l.t === n.id).map(l => [nodeById[l.s === n.id ? l.t : l.s], l]).filter(x => x[0]);
+  let html = `<h2>${esc(n.l)}</h2><div class="meta">${esc(KIND[n.k].label)}${n.t ? " · " + esc(TYPELABEL[n.t]) : ""}</div>`;
+  if (n.v) html += `<div class="big">${fmt(n.v)}</div><div class="hint">attributed to Franc Zone countries since 1999</div>`;
+  const grp = k => nb.filter(([m, l]) => m.k === k && l.v).sort((a, b) => b[1].v - a[1].v).slice(0, 10).map(([m, l]) => [m.l.length > 40 ? m.l.slice(0, 38) + "…" : m.l, l.v]);
+  if (n.k === "institution" && id === "ebrd") {
+    const ds = D.deals.filter(d => d.i === "ebrd"), withEU = ds.filter(d => d.eu && Object.keys(d.eu).length), noEU = ds.filter(d => !(d.eu && Object.keys(d.eu).length));
+    html += `<h3>EU capital in the EBRD</h3><p class="hint">The EU (3.03%), the EIB (3.03%) and the 27 member states (about 48.4%) together hold ${(D.ebrd.share * 100).toFixed(1)}% of the EBRD's capital, which backs all its lending. The link to the European Union is weighted by that share: ${fmt(n.v * D.ebrd.share)} of ${fmt(n.v)}, an estimate based on shareholding. <a href="${esc(D.ebrd.src)}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a></p>
+      <h3>Projects naming EU or member-state money (${withEU.length})</h3>` + (withEU.length ? withEU.map(d => `<div class="deal"><b>${esc(d.t)}</b> <span class="amt">${fmt(d.v)}</span><div class="meta">EU side named: ${Object.keys(d.eu).map(k => esc(shortName(instName(k)))).join(", ")}</div>` +
+        [...new Set(Object.values(d.eu))].slice(0, 2).map(q => `<div class="meta">“${esc(q)}”</div>`).join("") + `<div class="meta"><a href="${esc(d.psd)}" target="_blank" rel="noopener">EBRD project page</a></div></div>`).join("") : `<p class="hint">None.</p>`) +
+      `<h3>Projects with no EU money named (${noEU.length})</h3><p class="hint">Financed from the EBRD's own resources; EU capital is involved only through the shareholding above.</p>` + dealList(noEU, 20);
+  } else if (n.k === "institution") {
+    const ds = D.deals.filter(d => d.i === id);
+    html += `<h3>Countries</h3>${bars(grp("country"), css("--waemu"))}<h3>Sectors</h3>${bars(grp("sector"), css("--k-sec"))}`;
+    if (grp("agency").length) html += `<h3>EU funds entrusted to implementing agencies</h3>${bars(grp("agency"), css("--k-ag"))}`;
+    const co = D.cofin.filter(c => c.m.some(m => m[0] === id)).slice(0, 6);
+    if (co.length) html += `<h3>Co-financed projects</h3>` + co.map(c => `<div class="deal">${c.m.map(m => esc(shortName(instName(m[0])))).filter((v,i,a) => a.indexOf(v) === i).join(" + ")} <span class="meta">(shared words: ${esc(c.w.join(", "))})</span></div>`).join("");
+    html += `<h3>Largest deals (${ds.length})</h3>${dealList(ds)}`;
+  } else if (n.k === "country") {
+    const secs = Object.entries(csecNow(id)).sort((a, b) => b[1] - a[1]);
+    html += `<h3>Sectors it receives money in</h3>` + (secs.length ? bars(secs.slice(0, 11).map(([s, v]) => [s, v]), css("--k-sec")) : `<p class="hint">No sector recorded.</p>`) +
+      `<p class="hint">Shown as green links on the graph. Click empty space to hide them.</p>` +
+      `<h3>Institutions</h3>${bars(grp("institution"), css("--t-dfi"))}<h3>Largest deals</h3>${dealList(D.deals.filter(d => d.c.includes(id)))}`;
+  } else if (n.k === "memberstate") {
+    html += `<h3>Institutions</h3>${bars(grp("institution"), css("--t-dfi"))}`;
+    const ags = nb.filter(([m]) => m.k === "agency").map(([m]) => m);
+    if (ags.length) html += `<h3>Its agencies implementing EU funds</h3>` + ags.map(m => `<div class="deal">${esc(m.l)} <span class="meta">implements ${fmt(m.v)} of EU money in the Franc Zone, counted under the EU, not under ${esc(n.l)}</span></div>`).join("");
+  } else if (n.k === "sector") {
+    html += `<h3>Institutions</h3>${bars(grp("institution"), css("--t-dfi"))}<h3>Largest deals</h3>${dealList(D.deals.filter(d => d.s === id))}`;
+  } else if (n.k === "agency") {
+    const msn = nb.find(([m]) => m.k === "memberstate");
+    html += `<p class="hint">${msn ? `A public agency of ${esc(msn[0].l)}. ` : ""}EU money (Commission, EU Trust Fund for Africa, blending, EU-AITF) entrusted to this agency to implement; counted under the EU, not under ${msn ? esc(msn[0].l) : "the member state"}. Its own national budget is not in this network.</p><h3>From</h3>${bars(grp("institution"), css("--t-eu"))}<h3>Largest EU-funded deals it implements</h3>${dealList(D.deals.filter(d => d.g === id))}`;
+  } else if (n.k === "contractor") {
+    const key = g => "x:" + g.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+    const cs = (D.contracts || []).filter(c => (c.g || []).some(([g]) => key(g) === n.id));
+    const ctry = [...new Set(cs.map(c => (D.countries[c.c] || {}).n || c.c))];
+    html += `<p class="hint">${esc(n.l)} won ${cs.length} contract${cs.length === 1 ? "" : "s"} financed by AFD (with EU financial participation) in ${ctry.map(esc).join(", ")}, alone or in consortia; subsidiaries are grouped under their parent company.</p><h3>Contracts</h3>` +
+      cs.sort((a, b) => b.v - a.v).map(c => `<div class="deal">${esc(c.o || c.p)}<div class="meta">${esc((D.countries[c.c] || {}).n || c.c)}${c.d ? ", signed " + esc(c.d) : ""} · project ${esc(c.p)} (${esc(c.proj)})</div>
+        <div class="meta">Contract holder: ${esc(c.f)} · <span class="amt">${fmt(c.v)}</span>${c.parts > 1 ? ` · ${c.parts} partners: share credited here ${fmt(c.v / c.parts)} (estimate)` : ""}${c.flag ? " · amount read as euros (entered in the thousand-euro column)" : ""}</div></div>`).join("") +
+      `<p class="hint">Source: AFD open data, contracts financed by AFD with EU financial participation. This dataset does not cover contracts financed by other lenders (for example the AfDB).</p>`;
+  } else if (n.k === "framework") {
+    html += `<p class="hint">${esc(n.fk)}. Frameworks carry no amounts in this network: the money appears in the deals of the institutions involved.</p><h3>Linked to</h3>` +
+      nb.map(([m]) => `<div class="deal">${esc(m.l)} <span class="meta">${esc(KIND[m.k].label)}</span></div>`).join("") + (n.src ? `<p><a href="${esc(n.src)}" target="_blank" rel="noopener">Source</a></p>` : "");
+  }
+  p.innerHTML = html;
+}
+function netIntro() {
+  const inPeriod = D.deals.filter(dealOk), tot = inPeriod.reduce((s, d) => s + d.v, 0);
+  $("#netpanel").innerHTML = `<h2>The network</h2><p class="hint">European public financial institutions (development banks, DFIs, promotional banks, export credit agencies, EU institutions) and World Bank trust funds financed by European donors, linked to the 14 CFA franc countries they finance since 1999, to their member states, and to the agencies that implement EU funds.</p>
+    <div class="big">${fmt(tot)}</div><div class="hint">${inPeriod.length.toLocaleString("en")} deals from ${new Set(inPeriod.map(d => d.i)).size} institutions in scope${SINCE ? ", signed or started since " + SINCE + " (undated deals left out)" : ""}</div>
+    <div class="hint">Same total and rules as the tracker's header (investment and development finance since 1999; EU humanitarian aid and foreign-policy grants excluded). ${D.data_status === "live"
+      ? `Tracker data of ${esc(D.generated)}, read at this build.`
+      : `<span style="color:#ffc9a8">Using a saved copy of the tracker data of ${esc(D.generated)}: this site is not connected to the tracker, so its total may differ. Set TRACKER_SITE_URL in network.py.</span>`}</div>
+    <h3>How to read it</h3><p class="hint">Click any dot for its details and sources. Click a country to see the sectors it receives money in. Click empty space to clear. Use the buttons to add sectors or frameworks, "Since" to look at a period, and the search box to find an actor or a deal.</p>
+    ${D.site ? `<p><a href="${esc(D.site)}" target="_blank" rel="noopener" style="color:var(--accent)">Open the EU-CFA Public finance tracker</a></p>` : ""}`;
+}
+netIntro();
+
+// ---------- SEARCH
+const NS = $("#nsearch"), NR = $("#nresults");
+const fold = s => String(s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const KLAB = {institution: "Institution", memberstate: "Member state", country: "Country", sector: "Sector", agency: "Implementing agency", contractor: "Contractor", framework: "Framework"};
+const setChip = (key, on) => { const c = document.querySelector(`#layers .chip[data-key="${key}"]`); if (c) c.setAttribute("aria-pressed", String(on)); };
+function revealNode(id, keepPanel) {
+  const n = D.nodes.find(x => x.id === id); if (!n) return;
+  let changed = false;
+  if (n.k === "institution" && !typeOn[n.t]) { typeOn[n.t] = true; setChip("t:" + n.t, true); changed = true; }
+  if (["agency", "contractor", "sector", "framework"].includes(n.k) && !layers[n.k]) { layers[n.k] = true; setChip("l:" + n.k, true); changed = true; }
+  if (SINCE && !n.v && n.k !== "memberstate") { SINCE = 0; $("#since").value = "0"; changed = true; }   // not active in the chosen period: show all years
+  if (changed) buildGraph();
+  selected = id;
+  if (!keepPanel) panel(nodeById[id] || n);
+  if (USE3D && G3) { const g = G3.graphData().nodes.find(x => x.id === id); if (g) setHover(g, true); } else highlight();
+}
+function dealPanel(d) {
+  $("#netpanel").innerHTML = `<h2>${esc(d.t)}</h2><div class="meta">Deal · ${esc(instName(d.i))}</div><div class="big">${fmt(d.v)}</div>
+    <div class="hint">${d.c.map(c => esc((D.countries[c] || {}).n || c)).join(", ")} · ${d.y ? esc(d.y) : "no date"} · ${esc(d.n)}${d.s ? " · " + esc(d.s) : ""}${d.e ? " · estimated share" : ""}</div>
+    ${d.eu && Object.keys(d.eu).length ? `<h3>EU or member-state money named</h3>` + [...new Set(Object.values(d.eu))].slice(0, 2).map(q => `<div class="meta">“${esc(q)}”</div>`).join("") : ""}
+    <p><a href="${esc(d.u)}" target="_blank" rel="noopener" style="color:var(--accent)">Source record</a></p>
+    <p class="hint">On the network, the institution behind this deal is lit up with its links.</p>`;
+  revealNode("i:" + d.i, true);
+}
+let stimer;
+NS.addEventListener("input", () => { clearTimeout(stimer); stimer = setTimeout(runSearch, 120); });
+NS.addEventListener("keydown", e => { if (e.key === "Escape") { NR.hidden = true; NS.blur(); } if (e.key === "Enter") { const b = NR.querySelector("button"); if (b) b.click(); } });
+document.addEventListener("click", e => { if (!e.target.closest(".nsearch")) NR.hidden = true; });
+function runSearch() {
+  const q = fold(NS.value.trim()); if (q.length < 2) { NR.hidden = true; return; }
+  const rank = (a, b, la, lb, va, vb) => (fold(la).startsWith(q) ? 0 : 1) - (fold(lb).startsWith(q) ? 0 : 1) || vb - va;
+  const actors = D.nodes.filter(n => fold(n.l).includes(q)).sort((a, b) => rank(a, b, a.l, b.l, ORIG_V[a.id] || 0, ORIG_V[b.id] || 0)).slice(0, 8);
+  const deals = D.deals.filter(d => fold(d.t).includes(q)).sort((a, b) => b.v - a.v).slice(0, 8);
+  NR.innerHTML = (!actors.length && !deals.length) ? `<div class="grp">No match</div>` :
+    (actors.length ? `<div class="grp">Actors</div>` + actors.map(n => `<button data-a="${esc(n.id)}">${esc(n.l)}<span class="k">${esc(KLAB[n.k] || n.k)}${n.t ? " · " + esc(TYPELABEL[n.t] || n.t) : ""}</span></button>`).join("") : "") +
+    (deals.length ? `<div class="grp">Deals</div>` + deals.map(d => `<button data-d="${esc(d.id)}">${esc(d.t.slice(0, 90))}<span class="k">${esc(shortName(instName(d.i)))} · ${d.c.map(c => esc((D.countries[c] || {}).n || c)).join(", ")}${d.y ? " · " + esc(d.y) : ""} · ${fmt(d.v)}</span></button>`).join("") : "");
+  NR.hidden = false;
+  NR.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { NR.hidden = true; revealNode(b.dataset.a); });
+  NR.querySelectorAll("button[data-d]").forEach(b => b.onclick = () => { NR.hidden = true; const d = D.deals.find(x => x.id === b.dataset.d); if (d) dealPanel(d); });
+}
+
+// ---------- OVERLAP
+function drawMatrix() {
+  const n = +$("#ovn").value, ids = D.top.slice(0, n), jac = $("#ovm").value === "jac", M = jac ? D.mjac : D.mco;
+  const max = Math.max(1, ...ids.flatMap((a, i) => ids.map((b, j) => i === j ? 0 : M[i][j])));
+  const col = v => `rgba(64,232,255,${(0.1 + 0.9 * (v / max)).toFixed(3)})`;
+  let h = `<p class="hint" style="max-width:760px;margin:0 0 10px">${jac
+    ? "Overlap %: of all the country–sector combinations where at least one of the two institutions is active, the share where both are. 0% = never in the same place on the same topic; 100% = always."
+    : "Co-financed projects: the number of projects both institutions finance, found by matching their deal titles in the same country (evidence in the panel)."}</p>`;
+  h += `<table><tr><th></th>${ids.map(b => `<th class="col"><div>${esc(shortName(instName(b)))}</div></th>`).join("")}</tr>`;
+  ids.forEach((a, i) => { h += `<tr><th style="text-align:right">${esc(shortName(instName(a)))}</th>` + ids.map((b, j) => {
+      const v = M[i][j];
+      if (i === j) return `<td class="diag" style="background:${css(TYPEVAR[(D.inst[a] || {}).t] || "--t-dfi")};color:#000" title="${esc(instName(a))}">●</td>`;
+      const pn = D.pairn[a + "|" + b] || [0, 0];
+      const tip = jac ? `${shortName(instName(a))} and ${shortName(instName(b))}: ${v}% overlap (both active in ${pn[0]} of the ${pn[1]} country–sector combinations where either is active)`
+                      : `${shortName(instName(a))} and ${shortName(instName(b))}: ${v} co-financed project${v === 1 ? "" : "s"}`;
+      return `<td data-a="${a}" data-b="${b}" style="background:${v ? col(v) : "transparent"}" title="${esc(tip)}">${v ? v : ""}</td>`; }).join("") + "</tr>"; });
+  $("#matrix").innerHTML = h + "</table>";
+  $("#matrix").querySelectorAll("td[data-a]").forEach(td => td.onclick = () => pairPanel(td.dataset.a, td.dataset.b));
+}
+$("#ovm").onchange = drawMatrix;
+$("#ovn").onchange = drawMatrix;
+function pairPanel(a, b) {
+  const key = D.pairs[a + "|" + b] ? a + "|" + b : b + "|" + a, rows = D.pairs[key] || [], flip = key !== a + "|" + b;
+  const co = D.cofin.filter(c => c.m.some(m => m[0] === a) && c.m.some(m => m[0] === b));
+  $("#ovlpanel").innerHTML = `<h2>${esc(shortName(instName(a)))} and ${esc(shortName(instName(b)))}</h2>
+    <div class="big">${(D.pairn[a + "|" + b] || [0, 0])[1] ? Math.round(100 * D.pairn[a + "|" + b][0] / D.pairn[a + "|" + b][1]) : 0}% overlap</div>
+    <p class="hint">Both are active in ${(D.pairn[a + "|" + b] || [0])[0]} of the ${(D.pairn[a + "|" + b] || [0, 0])[1]} country–sector combinations where at least one of them works. They co-finance ${co.length} project${co.length === 1 ? "" : "s"} (listed below).</p>
+    <h3>Shared countries and sectors</h3>` + (rows.length ? rows.map(r => `<div class="deal">${esc((D.countries[r[0]] || {}).n || r[0])}, ${esc(r[1])}<div class="meta">${esc(shortName(instName(flip ? b : a)))} <span class="amt">${fmt(r[2])}</span>, ${esc(shortName(instName(flip ? a : b)))} <span class="amt">${fmt(r[3])}</span></div></div>`).join("") : `<p class="hint">None.</p>`) +
+    `<h3>Co-financed projects</h3>` + (co.length ? co.map(cofinHtml).join("") : `<p class="hint">No project found in both records.</p>`);
+}
+function cofinHtml(c) { return `<div class="deal"><b>${c.m.map(m => esc(shortName(instName(m[0])))).filter((v,i,a) => a.indexOf(v) === i).join(" + ")}</b>, ${c.c.map(x => esc((D.countries[x] || {}).n || x)).join(", ")}
+  <div class="meta">Evidence: both records name ${esc(c.w.join(", "))}</div>` + c.m.map(m => `<div class="meta">· ${esc(shortName(instName(m[0])))}: ${esc(m[1])}${m[2] ? " (" + esc(m[2]) + ")" : ""} <span class="amt">${fmt(m[3])}</span> <a href="${esc(m[4])}" target="_blank" rel="noopener">source</a></div>`).join("") + `</div>`; }
+function ovlIntro() {
+  $("#ovlpanel").innerHTML = `<h2>Overlap</h2><p class="hint">Two measures, chosen with "Measure": the overlap %, the share of the country–sector combinations where at least one of two institutions is active in which both are; and the number of projects both co-finance. The diagonal marks each institution. Click a cell for the shared countries and sectors and the projects both finance.</p>
+    <h3>Co-financed projects (${D.cofin.length})</h3><p class="hint">Deals from different institutions in the same country, within three years, whose titles share distinctive words (for example a dam or company name). The evidence is shown with each match; check the sources before citing.</p>` + D.cofin.slice(0, 25).map(cofinHtml).join("");
+}
+ovlIntro();
+
+// ---------- EVENTS
+const CATVAR = {"Monetary":"--c-mon","Politics & security":"--c-pol","EU–Africa policy":"--c-eu","Financing instrument":"--c-fin","Summit / meeting":"--c-meet"};
+const catOn = Object.fromEntries(Object.keys(CATVAR).map(c => [c, true]));
+let evCountry = "ALL";
+const evt = $("#evtools");
+evt.innerHTML = `<label class="ctl">Country <select id="evc"><option value="ALL">All 14 countries</option>${Object.entries(D.countries).filter(([k]) => k.length === 2 && k !== "XW" && k !== "XC").map(([k, c]) => `<option value="${k}">${esc(c.n)}</option>`).join("")}</select></label>`;
+Object.keys(CATVAR).forEach(c => { const b = document.createElement("button"); b.className = "chip"; b.setAttribute("aria-pressed", "true");
+  b.innerHTML = `<span class="sw" style="background:${css(CATVAR[c])}"></span>${c}`; b.onclick = () => { catOn[c] = !catOn[c]; b.setAttribute("aria-pressed", catOn[c]); drawEvents(); }; evt.append(b); });
+$("#evc").onchange = e => { evCountry = e.target.value; drawEvents(); };
+function drawEvents() {
+  const evs = D.events.filter(e => catOn[e.cat] !== false && (evCountry === "ALL" || e.cc.includes("ALL") || e.cc.includes(evCountry)));
+  const types = Object.keys(TYPEVAR), key = evCountry === "ALL" ? "ALL" : evCountry;
+  const ys = D.years, stack = ys.map((y, i) => types.map(t => ((D.timeline[key + "|" + t] || [])[i]) || 0));
+  const W = Math.max(600, $("#evmain").clientWidth - 40), H = 260, pad = {l: 56, r: 10, t: 14, b: 26};
+  const x = d3.scaleBand().domain(ys).range([pad.l, W - pad.r]).padding(0.15), ymax = d3.max(stack, s => d3.sum(s)) || 1;
+  const y = d3.scaleLinear().domain([0, ymax]).nice().range([H - pad.b, pad.t]);
+  let svgs = `<svg width="${W}" height="${H}" role="img" aria-label="European commitments per year with events">`;
+  y.ticks(4).forEach(t => svgs += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(t)}" y2="${y(t)}" stroke="#163746"/><text x="${pad.l - 6}" y="${y(t) + 4}" text-anchor="end" fill="#8db1c0" font-size="11">${fmt(t)}</text>`);
+  ys.forEach((yr, i) => { let acc = 0; types.forEach((t, j) => { const v = stack[i][j]; if (!v) return;
+    svgs += `<rect x="${x(yr)}" width="${x.bandwidth()}" y="${y(acc + v)}" height="${y(acc) - y(acc + v)}" fill="${css(TYPEVAR[t])}"><title>${yr}, ${TYPELABEL[t]}: ${fmt(v)}</title></rect>`; acc += v; });
+    if (i % 3 === 0) svgs += `<text x="${x(yr) + x.bandwidth() / 2}" y="${H - 8}" text-anchor="middle" fill="#8db1c0" font-size="11">${yr}</text>`; });
+  evs.forEach(e => { const yr = +e.d.slice(0, 4); if (!ys.includes(yr)) return; const cx = x(yr) + x.bandwidth() * ((+e.d.slice(5, 7) || 6) / 12);
+    svgs += `<line x1="${cx}" x2="${cx}" y1="${pad.t}" y2="${H - pad.b}" stroke="${css(CATVAR[e.cat] || "--accent")}" stroke-dasharray="2 3"><title>${esc(e.d)}: ${esc(e.t)}</title></line><circle cx="${cx}" cy="${pad.t + 2}" r="4" fill="${css(CATVAR[e.cat] || "--accent")}"><title>${esc(e.d)}: ${esc(e.t)}</title></circle>`; });
+  svgs += `</svg>`;
+  const up = evs.filter(e => e.st !== "past"), past = evs.filter(e => e.st === "past").reverse();
+  const row = e => `<div class="ev ${e.st !== "past" ? "up" : ""}"><div class="d">${esc(e.d)}${e.e ? "<br>to " + esc(e.e) : ""}</div><div><span class="badge" style="border-color:${css(CATVAR[e.cat] || "--line-hi")}">${esc(e.cat)}</span>${e.st !== "past" ? `<span class="badge">${esc(e.st)}</span>` : ""}<b>${esc(e.t)}</b><div class="meta">${esc(e.x)}</div><div class="meta">${e.cc.includes("ALL") ? "All countries" : e.cc.map(c => esc((D.countries[c] || {}).n || c)).join(", ")} · <a href="${esc(e.u)}" target="_blank" rel="noopener">source</a></div></div></div>`;
+  $("#evmain").innerHTML = `<h2 style="margin:0 0 4px">European commitments per year${evCountry === "ALL" ? "" : " in " + esc(D.countries[evCountry].n)}, with events</h2>
+    <p class="hint">Bars: euros committed by the institutions in scope, by year of signature or start (undated deals left out). Dashed lines: events, coloured by category; hover for details.</p>${svgs}
+    <h2>Coming up (${up.length})</h2>${up.map(row).join("") || `<p class="hint">No upcoming event in this selection.</p>`}<h2>Past events (${past.length})</h2>${past.map(row).join("")}`;
+  const tot = ys.map((yr, i) => [yr, d3.sum(stack[i])]);
+  const before = (y0, y1) => d3.sum(tot.filter(([yr]) => yr >= y0 && yr <= y1), t => t[1]);
+  $("#evpanel").innerHTML = `<h2>Events</h2><p class="hint">Summits, monetary reforms, coups and sanctions, and new financing instruments since the 1999 euro peg, plus scheduled meetings. Every event links its source; the list lives in data/events.csv and can be edited on GitHub.</p>
+    <h3>Commitments by period${evCountry === "ALL" ? "" : " (" + esc(D.countries[evCountry].n) + ")"}</h3>` +
+    bars([["1999–2009", before(1999, 2009)], ["2010–2019", before(2010, 2019)], ["2020–2022", before(2020, 2022)], ["2023 onward", before(2023, 2100)]], css("--accent")) +
+    (D.warnings.length ? `<h3>Build warnings</h3>` + D.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join("") : "");
+}
+
+// ---------- SOURCES
 (() => {
-  const INVY = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i.year]));
-  const INVT = Object.fromEntries(DATA.investments.map(i => [i.investment_id, (INST[i.institution_id] || {}).type]));
-  let peg = 0, und = 0, other = 0;
-  for (const a of DATA.allocations) {
-    const y = INVY[a.investment_id], v = a.amount_attributed_eur || 0;
-    if (NON_INVESTMENT.has(INVT[a.investment_id])) { other += v; continue; }
-    if (!y) und += v; else if (+y >= (DATA.peg_year || 1999)) peg += v;
-  }
-  document.getElementById("r-total").textContent = fmt(peg + und);
-  document.getElementById("r-und").textContent = und ? `includes ${fmt(und)} in deals with no recorded date` : "";
-  document.getElementById("r-oth").textContent = other ? `Plus ${fmt(other)} in EU humanitarian aid and foreign-policy grants (not in total)` : "";
-  const regTot = (DATA.regional || []).reduce((s, r) => s + (r.amount_eur || 0), 0);
-  document.getElementById("r-reg").textContent = regTot ? `Wider African regional programmes: ${fmt(regTot)} (not in total, see Analysis)` : "";
-})();
-document.getElementById("sources").textContent = "(Data: IATI via d-portal, EIB, Proparco, BIO, DEG, Finnfund, IFU, COFIDES, World Bank, AIIB, ECB exchange rates, curated public sources)";
-document.getElementById("f-est").onchange = e => { state.est = e.target.checked; update(false); };
-(() => {
-  const eu = DATA.institutions.filter(i => i.type !== "Non-EU");
-  const grp = c => eu.filter(i => i.coverage === c && !withData.has(i.institution_id)).map(i => SHORT[i.institution_id] || i.name).join(", ");
-  const parts = [["Programme level only (no deal-level data published)", grp("programme level")],
-                 ["Checked, no Franc Zone deals found in public sources", grp("checked: no Franc Zone deals found")],
-                 ["Not yet found in public sources", grp("manual")]].filter(x => x[1]);
-  document.getElementById("gaps").textContent = parts.map(([l, v]) => `${l}: ${v}.`).join(" ") +
-    " Non-EU actors (World Bank, IFC, African Development Bank Group including the African Development Fund, AIIB) appear only in the overlap analysis and are never added to European totals.";
-})();
-function drawLegend() {
-  const list = state.view === "prog" ? KINDS : TYPES;
-  document.getElementById("legend").innerHTML = list.map(([,l,v]) => `<span><i style="color:var(${v})"></i>${l}</span>`).join("") +
-    `<span class="fz"><i class="box" style="background:var(--land-waemu);border-color:var(--waemu-line)"></i>WAEMU <i class="box" style="background:var(--land-cemac);border-color:var(--cemac-line);margin-left:10px"></i>CEMAC</span>` +
-    `<small>${state.view !== "prog" ? "Line weight grows with the amount invested" : "Lines link participants to the countries a programme covers"}</small>`;
-}
-drawLegend();
-
-// ---------- resizable side panel
-(() => {
-  const app = document.querySelector(".app"), rz = document.getElementById("resizer");
-  const clampW = w => Math.max(340, Math.min(w, window.innerWidth * 0.65, window.innerWidth - 320));
-  const setW = w => { app.style.setProperty("--pw", clampW(w) + "px"); };
-  try { const s = +localStorage.getItem("waemu-panel-w"); if (s) setW(s); } catch (e) {}
-  const save = () => { try { localStorage.setItem("waemu-panel-w", parseInt(getComputedStyle(app).getPropertyValue("--pw")) || 440); } catch (e) {} };
-  let drag = false;
-  rz.addEventListener("pointerdown", e => { drag = true; rz.setPointerCapture(e.pointerId); });
-  rz.addEventListener("pointermove", e => { if (drag) setW(window.innerWidth - e.clientX - 4); });
-  rz.addEventListener("pointerup", () => { drag = false; save(); });
-  rz.addEventListener("keydown", e => {
-    const w = parseInt(getComputedStyle(app).getPropertyValue("--pw")) || 440;
-    if (e.key === "ArrowLeft") { setW(w + 30); save(); } if (e.key === "ArrowRight") { setW(w - 30); save(); }
-  });
+  const row = s => `<div class="deal"><b>${esc(s.name)}</b><div class="meta">${esc(s.provider)} · ${esc(s.method)}${s.records ? " · " + s.records.toLocaleString("en") + " deals" : ""}</div>
+    <div class="meta">${esc(s.provides)}</div><div class="meta">Licence: ${esc(s.licence)}${s.url ? ` · <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url.replace(/^https?:\/\//, "").slice(0, 70))}</a>` : ""}</div></div>`;
+  const TS = D.tracker_sources || [], roles = ["Figures", "Regional layer", "Programmes", "Reference", "Recommended next"];
+  const evBad = D.warnings.filter(w => w.startsWith("Event"));
+  const LC = D.tracker_checks || {};
+  $("#sources").innerHTML = `<h2>Sources</h2>
+    <p>Every deal in this network comes from the EU-CFA Public finance tracker and links to the record it came from: click any dot, then "source". Events link their own sources. Below: this site's own sources, then the tracker's full source register.</p>
+    <h2>This site</h2>${D.own_sources.map(row).join("")}
+    <h3>Event sources checked at this build: ${D.events.length - evBad.length} of ${D.events.length} answered normally</h3>${evBad.map(w => `<div class="warn">${esc(w)}</div>`).join("")}
+    <h2>The tracker's sources</h2>` + (TS.length ? roles.map(r => { const rs = TS.filter(s => s.role === r); return rs.length ? `<h3>${esc(r)}</h3>` + rs.map(row).join("") : ""; }).join("") +
+    (LC.checked ? `<h3>Tracker link check: ${LC.ok} of ${LC.checked} cited links answered normally</h3>` + (LC.problems || []).map(([u, c, used]) => `<div class="warn">${esc(c)}: <a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(u.slice(0, 80))}</a> (${esc(used.join("; "))})</div>`).join("") +
+      `<p class="hint">Some sites refuse automated checks (403) but open in a browser; Capacity4dev pages need a login.</p>` : "")
+    : `<p class="hint">The tracker's source register appears here once the tracker has run with its new Sources feature.</p>`);
 })();
 
-// ---------- map renderers: a 3D globe where the device can draw it, a flat 2D map otherwise
-const el = document.getElementById("globe");
-const features = (() => {
-  // The base map (Natural Earth via world-atlas) draws Crimea inside Russia. Crimea is Ukrainian territory:
-  // remove it from Russia's shape and merge it into Ukraine's, so it shows within Ukraine's internationally recognised borders.
-  let ukraine = null;
-  try {
-    const g = WORLD.objects.countries.geometries, ru = g.find(x => x.id === "643"), ua = g.find(x => x.id === "804");
-    if (ru && ua && ru.type === "MultiPolygon") {
-      const ring = p => topojson.feature(WORLD, {type: "Polygon", arcs: p}).geometry.coordinates[0];
-      const i = ru.arcs.findIndex(p => ring(p).every(q => q[0] > 32 && q[0] < 37 && q[1] > 44 && q[1] < 46.5));
-      if (i >= 0) {
-        const crimea = ru.arcs[i];
-        ru.arcs = ru.arcs.filter((_, k) => k !== i);
-        ukraine = topojson.merge(WORLD, [ua, {type: "Polygon", arcs: crimea}]);
-      }
-    }
-  } catch (e) { ukraine = null; }
-  const fs = topojson.feature(WORLD, WORLD.objects.countries).features.filter(f => f.id !== "010");
-  if (ukraine) fs.forEach(f => { if (f.id === "804") f.geometry = ukraine; });
-  return fs;
-})();
-let pinHover = false;
-const seedOf = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) % 997; return h / 997; };
-const cur = {textContent: ""};  // cursor readout removed
-const fmtCoord = c => c ? `${Math.abs(c.lat).toFixed(2)}°${c.lat >= 0 ? "N" : "S"} ${Math.abs(c.lng).toFixed(2)}°${c.lng >= 0 ? "E" : "W"}` : "off map";
-function pinElement(d) {
-  const p = document.createElement("div");
-  p.className = "pin" + (d.dest ? " dest" : "") + (d.regional ? " regional" : ""); p.style.setProperty("--c", d.color);
-  p.innerHTML = `<b></b><i></i><span>${esc(d.title)}</span>`;
-  p.setAttribute("role", "button"); p.tabIndex = 0; p.setAttribute("aria-label", d.title);
-  p.onclick = e => { e.stopPropagation(); d.onclick(); };
-  // the globe also listens for pointer events: keep a pin click from reaching the country shape underneath
-  ["pointerdown", "pointerup", "mousedown", "mouseup", "touchstart", "touchend"].forEach(ev => p.addEventListener(ev, e => e.stopPropagation()));
-  p.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); d.onclick(); } };
-  p.onpointerenter = () => (pinHover = true);
-  p.onpointerleave = () => (pinHover = false);
-  return p;
+// ---------- ALL ACTORS, by category and in alphabetical order
+function noAmount(n) {   // why an actor shows no euro amount
+  const out = D.links.filter(l => l.s === n.id).map(l => (D.nodes.find(x => x.id === l.t) || {}).k).filter(k => k !== "framework");
+  if (n.k === "memberstate" && out.length && out.every(k => k === "agency")) return "linked through its implementing agency only (it implements EU money)";
+  if (n.k === "memberstate" || n.k === "institution") return "deals recorded, amounts not published";
+  return "no amount published";
 }
-function webgl2Available() {
-  try { const c = document.createElement("canvas"); return !!(window.WebGL2RenderingContext && c.getContext("webgl2")); } catch (e) { return false; }
-}
-
-function makeGlobe() {
-  if (typeof Globe === "undefined") throw new Error("globe library not loaded");
-  if (!webgl2Available()) throw new Error("WebGL 2 not available");
-  const host = document.createElement("div"); host.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0"; el.append(host);
-  const globe = Globe()(host)
-    .backgroundColor("rgba(0,0,0,0)")
-    .showGraticules(false)
-    .showAtmosphere(true).atmosphereAltitude(0.12)
-    .polygonsData(features)
-    .polygonAltitude(f => WAEMU_NUM[f.id] ? 0.009 : 0.005).polygonSideColor(() => "rgba(0,0,0,0)").polygonsTransitionDuration(0)
-    .polygonLabel(f => WAEMU_NUM[f.id] ? `<div class="tip"><b>${esc(ccName(WAEMU_NUM[f.id]))}</b><br>Click to see what reaches this country</div>`
-      : `<div class="tip">${esc(f.properties.name)}</div>`)
-    .onPolygonClick(f => { if (pinHover) return; if (WAEMU_NUM[f.id]) { state.focus = {cc: WAEMU_NUM[f.id]}; update(); } })
-    .arcStartLat(d => d.sLat).arcStartLng(d => d.sLng).arcEndLat(d => d.eLat).arcEndLng(d => d.eLng)
-    .arcAltitudeAutoScale(0.38)
-    .arcLabel(arcTip)
-    .onArcClick(d => { if (!pinHover) arcClick(d); })
-    .ringLat("lat").ringLng("lng").ringMaxRadius(d => d.r).ringPropagationSpeed(reduceMotion ? 0 : 0.9).ringRepeatPeriod(d => d.period)
-    .ringColor(d => t => rgba(d.color, Math.max(0, 0.75 * (1 - t))))
-    .htmlLat("lat").htmlLng("lng").htmlAltitude(0.012).htmlElement(pinElement)
-    .htmlElementVisibilityModifier((elm, visible) => { elm.style.opacity = visible ? 1 : 0; elm.style.pointerEvents = visible ? "auto" : "none"; })
-    .labelLat("lat").labelLng("lng").labelText("name").labelSize(1.15).labelDotRadius(0).labelAltitude(0.014).labelResolution(2);
-  globe.pointOfView(el.clientWidth < 600 ? {lat: 20, lng: 4, altitude: 2.6} : {lat: 22, lng: 3, altitude: 1.9}, 0);
-  const ctl = globe.controls(); ctl.autoRotate = false; ctl.enableDamping = true;
-  const ro = new ResizeObserver(() => globe.width(el.clientWidth).height(el.clientHeight)); ro.observe(el);
-  let growing = !reduceMotion && !grownOnce, lastArcs = null;
-  if (growing) setTimeout(() => { growing = false; grownOnce = true; if (lastArcs && R && R.mode === "3d") R.arcs(lastArcs[0], lastArcs[1]); }, 14000);
-  const canvas = host.querySelector("canvas");
-  if (canvas) canvas.addEventListener("webglcontextlost", () => fallBack("The 3D view stopped (graphics memory). Showing the 2D map."));
-  const move = e => { const r = el.getBoundingClientRect(); cur.textContent = fmtCoord(globe.toGlobeCoords(e.clientX - r.left, e.clientY - r.top)); };
-  el.addEventListener("pointermove", move);
-  return {
-    mode: "3d",
-    arcs(arcs, sparse) {
-      lastArcs = [arcs, sparse];
-      globe.arcsTransitionDuration(0).arcsData(arcs).arcColor(d => [rgba(d.color, 0.18), rgba(d.color, 0.95)]).arcStroke("stroke");
-      if (growing) {  // one long dash slides in from the European end: the line grows to Africa in 14 s
-        globe.arcDashLength(1).arcDashGap(1).arcDashInitialGap(1).arcDashAnimateTime(14000);
-      } else {
-        globe.arcDashLength(sparse ? 0.008 : 0.014).arcDashGap(sparse ? 0.03 : 0.02).arcDashInitialGap(d => d.seed)
-          .arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 26000 : 14000));
-        globe.arcDashLength(sparse ? 0.14 : 0.22).arcDashGap(sparse ? 0.2 : 0.12).arcDashAnimateTime(reduceMotion ? 0 : (sparse ? 70000 : 45000));  // calmer: long slow strands
-      }
-    },
-    pins(origins, dests) {
-      globe.htmlElementsData(origins.concat(dests));
-      globe.ringsData(origins.map(o => ({lat:o.lat, lng:o.lng, color:o.color, r:2.6, period:1800 + (o.seed || 0) * 900}))
-        .concat(dests.map(d => ({lat:d.lat, lng:d.lng, color:d.color, r:1.4, period:3200}))));
-    },
-    labels(list) { globe.labelsData(list.map(l => ({...l, name: plain(l.name), lat: l.lat + 1.6}))); },
-    paint() {
-      const mat = globe.globeMaterial(); mat.color.set(css("--ocean"));
-      if (mat.emissive) { mat.emissive.set("#031820"); mat.emissiveIntensity = 0.3; }
-      globe.atmosphereColor(css("--accent"));
-      globe.polygonCapColor(f => WAEMU_NUM[f.id] ? css(fzVar(WAEMU_NUM[f.id], "fill")) : EU_NUM.has(f.id) ? css("--land-eu") : css("--land"))
-        .polygonStrokeColor(f => WAEMU_NUM[f.id] ? css(fzVar(WAEMU_NUM[f.id], "line")) : css("--border"));
-      globe.labelColor(() => "#ffe2b0");
-    },
-    focusOn(lat, lng) { globe.pointOfView({lat, lng, altitude: 0.9}, reduceMotion ? 0 : 1200); },
-    // returns true if the globe really drew something in the middle of the screen
-    selfTest() {
-      try {
-        const r = globe.renderer(); r.render(globe.scene(), globe.camera());
-        const gl = r.getContext(); const px = new Uint8Array(4);
-        gl.readPixels(Math.floor(gl.drawingBufferWidth / 2), Math.floor(gl.drawingBufferHeight / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
-        return px[3] > 0 || px[0] + px[1] + px[2] > 0;
-      } catch (e) { return false; }
-    },
-    destroy() {
-      ro.disconnect(); el.removeEventListener("pointermove", move);
-      try { globe.pauseAnimation(); const r = globe.renderer(); r.dispose(); r.forceContextLoss && r.forceContextLoss(); } catch (e) {}
-      host.remove();
-    }
-  };
-}
-
-function makeFlat() {
-  const NS = "http://www.w3.org/2000/svg";
-  const K = 10, LAT_STRETCH = 1.25;                     // simple projection, stretched vertically to limit distortion
-  const P = (lng, lat) => [lng * K, -lat * K * LAT_STRETCH];
-  const inv = (x, y) => ({lng: x / K, lat: -y / (K * LAT_STRETCH)});
-  const svg = document.createElementNS(NS, "svg"); svg.setAttribute("class", "flatmap"); svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Flat map of Europe and West Africa"); el.append(svg);
-  const pinLayer = document.createElement("div"); pinLayer.className = "pinlayer"; el.append(pinLayer);
-  let vb = {x: P(-40, 0)[0], y: P(0, 68)[1], w: (48 + 40) * K, h: (68 + 16) * K * LAT_STRETCH};
-  const home = {...vb};
-  function fit() {
-    const ar = el.clientWidth / Math.max(1, el.clientHeight), cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
-    if (vb.w / vb.h > ar) vb.h = vb.w / ar; else vb.w = vb.h * ar;
-    vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
-    svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); placePins();
-  }
-  const ring = r => r.map(([lng, lat], i) => (i ? "L" : "M") + P(lng, lat).map(v => v.toFixed(1)).join(",")).join("") + "Z";
-  const gLand = document.createElementNS(NS, "g"), gLabels = document.createElementNS(NS, "g"), gArcs = document.createElementNS(NS, "g");
-  svg.append(gLand, gArcs, gLabels);
-  for (const f of features) {
-    const g = f.geometry; if (!g) continue;
-    const polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates;
-    const path = document.createElementNS(NS, "path");
-    path.setAttribute("d", polys.map(p => p.map(ring).join("")).join(""));
-    path.setAttribute("class", WAEMU_NUM[f.id] ? "land " + unionOf(WAEMU_NUM[f.id]).toLowerCase() : EU_NUM.has(f.id) ? "land eu" : "land");
-    const t = document.createElementNS(NS, "title"); t.textContent = WAEMU_NUM[f.id] ? ccName(WAEMU_NUM[f.id]) : f.properties.name; path.append(t);
-    if (WAEMU_NUM[f.id]) path.addEventListener("click", () => { state.focus = {cc: WAEMU_NUM[f.id]}; update(); });
-    gLand.append(path);
-  }
-  let pins = [];
-  function placePins() {
-    const r = el.getBoundingClientRect(), s = r.width / vb.w;
-    for (const {d, node} of pins) {
-      const [x, y] = P(d.lng, d.lat);
-      node.style.transform = `translate(${(x - vb.x) * s}px, ${(y - vb.y) * s}px)`;
-    }
-  }
-  // pan and zoom
-  let drag = null;
-  svg.addEventListener("pointerdown", e => { drag = {x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y}; svg.setPointerCapture(e.pointerId); });
-  svg.addEventListener("pointerup", () => (drag = null));
-  const move = e => {
-    const r = el.getBoundingClientRect(), s = vb.w / r.width;
-    if (drag) { vb.x = drag.vx - (e.clientX - drag.x) * s; vb.y = drag.vy - (e.clientY - drag.y) * s; fit(); }
-    cur.textContent = fmtCoord(inv(vb.x + (e.clientX - r.left) * s, vb.y + (e.clientY - r.top) * s));
-  };
-  svg.addEventListener("pointermove", move);
-  svg.addEventListener("wheel", e => {
-    e.preventDefault();
-    const r = el.getBoundingClientRect(), f = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-    const mx = vb.x + (e.clientX - r.left) / r.width * vb.w, my = vb.y + (e.clientY - r.top) / r.height * vb.h;
-    const w = Math.min(home.w * 2, Math.max(home.w / 12, vb.w * f)), k = w / vb.w;
-    vb = {x: mx - (mx - vb.x) * k, y: my - (my - vb.y) * k, w, h: vb.h * k}; fit();
-  }, {passive: false});
-  const ro = new ResizeObserver(fit); ro.observe(el);
-  if (!grownOnce && !reduceMotion) setTimeout(() => { grownOnce = true; gArcs.querySelectorAll("[mask]").forEach(n => n.removeAttribute("mask")); gArcs.querySelectorAll("mask").forEach(n => n.remove()); }, 14200);
-  return {
-    mode: "2d",
-    arcs(arcs, sparse) {
-      gArcs.innerHTML = "";
-      for (const d of arcs) {
-        const [x1, y1] = P(d.sLng, d.sLat), [x2, y2] = P(d.eLng, d.eLat);
-        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
-        const bend = 0.18 + d.seed * 0.12, cx = mx - dy / len * len * bend, cy = my + dx / len * len * bend;
-        const p = document.createElementNS(NS, "path");
-        p.setAttribute("d", `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`);
-        p.setAttribute("class", "arc" + (sparse ? " sparse" : ""));
-        p.style.stroke = d.color; p.style.strokeWidth = (1 + d.stroke * 4).toFixed(2) + "px";
-        p.style.animationDelay = `-${(d.seed * 20).toFixed(1)}s`;
-        const t = document.createElementNS(NS, "title");
-        t.textContent = d.part ? `${d.label} in ${ccName(d.cc)}: ${d.n} programme${d.n > 1 ? "s" : ""}`
-          : `${d.label} to ${ccName(d.cc)}: ${d.n} deal${d.n > 1 ? "s" : ""}${d.sum ? ", " + fmt(d.sum) : ""}`;
-        p.append(t); p.addEventListener("click", () => arcClick(d));
-        if (!grownOnce && !reduceMotion) {  // reveal the dotted line from Europe to Africa over 14 s
-          const id = "rv" + Math.random().toString(36).slice(2, 8);
-          const m = document.createElementNS(NS, "mask"); m.setAttribute("id", id); m.setAttribute("maskUnits", "userSpaceOnUse");
-          m.setAttribute("x", "-5000"); m.setAttribute("y", "-5000"); m.setAttribute("width", "10000"); m.setAttribute("height", "10000");
-          const mp = document.createElementNS(NS, "path"); mp.setAttribute("d", p.getAttribute("d")); mp.setAttribute("class", "reveal");
-          mp.setAttribute("pathLength", "1"); m.append(mp); gArcs.append(m); p.setAttribute("mask", `url(#${id})`);
-        }
-        gArcs.append(p);
-      }
-    },
-    pins(origins, dests) {
-      pinLayer.innerHTML = ""; pins = [];
-      for (const d of origins.concat(dests)) { const node = pinElement(d); node.classList.add("flat"); pinLayer.append(node); pins.push({d, node}); }
-      placePins();
-    },
-    labels(list) {
-      gLabels.innerHTML = "";
-      for (const l of list) {
-        const [x, y] = P(l.lng, l.lat); const t = document.createElementNS(NS, "text");
-        t.setAttribute("x", x); t.setAttribute("y", y - 14); t.setAttribute("class", "cname"); t.textContent = l.name; gLabels.append(t);
-      }
-    },
-    paint() {},
-    focusOn(lat, lng) { const [x, y] = P(lng, lat); vb = {x: x - home.w / 6, y: y - home.h / 6, w: home.w / 3, h: home.h / 3}; fit(); },
-    selfTest() { return true; },
-    destroy() { ro.disconnect(); svg.remove(); pinLayer.remove(); }
-  };
-}
-
-const modeBtn = document.getElementById("modebtn"), notice = document.getElementById("mapnotice");
-let R = null, grownOnce = false;
-function savedMode() { try { return localStorage.getItem("waemu-map-mode"); } catch (e) { return null; } }
-function saveMode(m) { try { localStorage.setItem("waemu-map-mode", m); } catch (e) {} }
-function start(mode, why) {
-  if (R) R.destroy();
-  try { R = mode === "3d" ? makeGlobe() : makeFlat(); }
-  catch (e) { R = makeFlat(); why = why || "Your browser cannot draw the 3D globe, so the 2D map is shown."; }
-  modeBtn.textContent = R.mode === "3d" ? "Switch to 2D map" : "Switch to 3D globe";
-  notice.textContent = why || ""; notice.hidden = !why;
-  R.paint(); update(false);
-  if (R.mode === "3d") setTimeout(() => { if (R && R.mode === "3d" && !R.selfTest()) fallBack("The 3D globe did not display on this device, so the 2D map is shown."); }, 2500);
-}
-function fallBack(msg) { start("2d", msg); }
-modeBtn.onclick = () => { const next = R && R.mode === "3d" ? "2d" : "3d"; saveMode(next); start(next); };
-
-function arcTip(d) {
-  return d.part
-    ? `<div class="tip"><b>${esc(d.label)}</b> in ${esc(ccName(d.cc))}<br>${d.n} programme${d.n>1?"s":""}</div>`
-    : `<div class="tip"><b>${esc(d.label)}</b> to ${esc(ccName(d.cc))}<br>${d.n} deal${d.n>1?"s":""}${d.sum ? ", " + fmt(d.sum) : ""}</div>`;
-}
-function arcClick(d) { state.focus = d.part ? {part:d.part, cc:d.cc} : {inst:d.inst, cc:d.cc}; update(); }
-function styleArcs(arcs, sparse) { R.arcs(arcs, sparse); }
-function setPins(origins) {
-  const dests = Object.entries(CAPITALS).filter(([cc]) => state.cc.has(cc)).map(([cc,[city,lat,lng]]) => ({
-    lat, lng, dest:true, regional: cc === "XW" || cc === "XC", color: css(fzVar(cc, "line")), text: "",
-    title: cc === "XW" || cc === "XC" ? ccName(cc) : `${city}, ${ccName(cc)}`,
-    onclick: () => { state.focus = {cc}; update(); }}));
-  R.pins(origins, dests);
-  const MAPNAME = {CF: "Central African Rep.", CG: "Rep. of Congo", GQ: "Eq. Guinea", XW: "WAEMU-wide", XC: "CEMAC-wide"};  // shorter names on the map only
-  const LABELPOS = {GQ: [1.0, 6.4], GA: [-2.6, 11.0], CG: [1.2, 16.6], XW: [15.2, -3.6], XC: [0.6, 17.4]};  // keep small neighbours' labels apart
-  R.labels(Object.entries(DATA.countries).filter(([cc]) => state.cc.has(cc) && cc !== "XW" && cc !== "XC").map(([cc,c]) => ({name: MAPNAME[cc] || c.name, lat: (LABELPOS[cc] || [c.lat])[0], lng: (LABELPOS[cc] || [0, c.lon])[1]})));
-}
-
-// ---------- investments view
-function passInv(inv) {
-  const ins = INST[inv.institution_id];
-  if (!state.types.has(ins.type)) return false;
-  if (state.ms && ins.member_state !== state.ms) return false;
-  if (state.inst && inv.institution_id !== state.inst) return false;
-  if (state.ins && inv.instrument !== state.ins) return false;
-  if (state.yr && !(inv.year && +inv.year >= +state.yr)) return false;
-  if (state.q && !norm(inv.title + " " + inv.client + " " + (SHORT[inv.institution_id] || "") + " " + ins.name).includes(state.q)) return false;
-  return true;
-}
-function filtered() {
-  const rows = [];
-  for (const a of DATA.allocations) {
-    if (!state.cc.has(a.country)) continue;
-    const inv = INV[a.investment_id];
-    if (!passInv(inv)) continue;
-    if (state.focus && ((state.focus.inst && inv.institution_id !== state.focus.inst) || (state.focus.cc && a.country !== state.focus.cc))) continue;
-    rows.push([a, inv]);
-  }
-  return rows;
-}
-function countFilters() {
-  let n = 0;
-  if (state.view === "prog") { n += KINDS.length - state.kinds.size; if (state.part) n++; }
-  else { const def = defaultTypes(); n += TYPES.map(t => t[0]).filter(k => def.has(k) !== state.types.has(k)).length; ["ms","inst","ins","yr"].forEach(k => state[k] && n++); if (state.view === "ana" && !state.est) n++; }
-  n += Object.keys(DATA.countries).length - state.cc.size;
-  document.getElementById("fcount").textContent = n ? `(${n} active)` : "";
-}
-function update(resetList = true) {
-  if (resetList) state.shown = 40;
-  countFilters();
-  if (state.view === "prog") return updateProgrammes();
-  const rows = filtered();
-  const agg = new Map();
-  for (const [a, inv] of rows) {
-    const k = inv.institution_id + "|" + a.country;
-    const g = agg.get(k) || {inst:inv.institution_id, cc:a.country, n:0, sum:0};
-    g.n++; g.sum += a.amount_attributed_eur || 0; agg.set(k, g);
-  }
-  const arcs = [...agg.values()].map(g => {
-    const ins = INST[g.inst], [, lat, lng] = CAPITALS[g.cc];
-    return {...g, label: SHORT[g.inst] || ins.name, sLat:+ins.hq_lat, sLng:+ins.hq_lon, eLat:lat, eLng:lng, seed: seedOf(g.inst + g.cc),
-      color: css(typeVar[ins.type]), stroke: Math.min(0.55, Math.max(0.14, (Math.log10(Math.max(g.sum, 1e5)) - 5) * 0.12))};
-  });
-  styleArcs(arcs, false);
-  const ids = [...new Set(arcs.map(a => a.inst))];
-  setPins(ids.map(id => { const i = INST[id]; return {lat:+i.hq_lat, lng:+i.hq_lon, color: "#ffffff", seed: seedOf(id),
-    text: "", title: `${i.name}, ${i.hq_city}`, onclick: () => { state.focus = {inst:id}; update(); }}; }));
-  if (state.view === "ana") renderAnalysis(rows); else if (state.view === "src") renderSources(); else if (state.view === "abt") renderAbout(); else renderDeals(rows);
-}
-// [instrument: kind of capital] shown next to every deal
-const CAPITAL = {"Loan": "Loan: debt capital, repayable", "Equity": "Equity: ownership capital", "Guarantee": "Guarantee: contingent cover, not disbursed capital",
-  "Grant": "Grant: non-repayable funds", "Export finance": "Export finance: export credit (debt)", "Debt relief": "Debt relief: cancelled debt",
-  "Unknown": "Instrument not stated by the source"};
-function capLabel(inv) {
-  const base = CAPITAL[inv.instrument] || inv.instrument;
-  if (inv.instrument_detail && inv.instrument === "Grant") return `Grant: ${inv.instrument_detail.toLowerCase()}, non-repayable`;
-  if (inv.instrument_detail && /,/.test(inv.instrument_detail)) return `${base}; tools: ${inv.instrument_detail.toLowerCase().replace(/\s*,\s*/g, " + ")}`;
-  return base;
-}
-function renderDeals(rows) {
-  const total = rows.reduce((s,[a]) => s + (a.amount_attributed_eur || 0), 0);
-  const deals = new Set(rows.map(([,inv]) => inv.investment_id));
-  const instN = new Set(rows.map(([,inv]) => inv.institution_id));
-  document.getElementById("s-total").textContent = "Total: " + deals.size.toLocaleString("en") + " deal" + (deals.size === 1 ? "" : "s");
-  let scope = "";
-  if (state.q) scope += ` Matching "${document.getElementById("q").value.trim()}".`;
-  if (state.focus) scope += " Showing " + [state.focus.inst ? (SHORT[state.focus.inst] || INST[state.focus.inst].name) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
-  const unk = rows.filter(([a]) => a.amount_attributed_eur == null).length;
-  const hidden = [...NON_INVESTMENT].some(k => !state.types.has(k));
-  document.getElementById("s-text").textContent = `${fmt(total)} from ${instN.size} institution${instN.size === 1 ? "" : "s"} in this selection.` + scope +
-    (hidden ? " EU humanitarian aid and foreign-policy grants are switched off by default (turn them on under Filters, Institution type)." : "") +
-    (unk ? ` ${unk.toLocaleString("en")} allocations have no disclosed or attributable amount.` : "");
-  const byDeal = new Map();
-  for (const [a, inv] of rows) {
-    const d = byDeal.get(inv.investment_id) || {inv, ccs:[], sum:0, est:false, reg:false, deleg:false};
-    if (a.attribution_method === "eu_delegated") d.deleg = true;
-    d.ccs.push(a.country); d.sum += a.amount_attributed_eur || 0;
-    if (a.attribution_method === "equal_split_estimate") d.est = true;
-    if (a.attribution_method === "regional_unallocated") d.reg = true;
-    byDeal.set(inv.investment_id, d);
-  }
-  const list = [...byDeal.values()].sort((x,y) => (y.sum || y.inv.amount_eur || 0) - (x.sum || x.inv.amount_eur || 0));
-  const box = document.getElementById("list");
-  if (!list.length) { box.innerHTML = `<p class="deal">No deals match these filters${state.q ? " and search" : ""}. Try another search term, widen the year range or turn an institution type back on.</p>`; return; }
-  box.innerHTML = list.slice(0, state.shown).map(({inv, ccs, sum, est, reg, deleg}) => {
-    const ins = INST[inv.institution_id];
-    const who = SHORT[ins.institution_id] || ins.name;
-    const amount = inv.status === "Cancelled" ? "Cancelled, not counted"
-      : deleg ? (inv.amount_eur ? fmt(inv.amount_eur) + " of EU money (counted under the European Commission)" : "EU money (counted under the European Commission)")
-      : sum ? fmt(sum) : inv.amount_eur ? fmt(inv.amount_eur) + " total" : "Amount not disclosed";
-    const MSADJ = {FR:"French",DE:"German",BE:"Belgian",LU:"Luxembourg",ES:"Spanish",IT:"Italian",PT:"Portuguese",AT:"Austrian",NL:"Dutch"};
-    const fromIATI = /d-portal/.test(inv.source_url || "");
-    let partyLine = "";
-    if (inv.client && inv.client !== inv.title) {
-      const party = inv.client.replace(/^Lead financier:\s*/, "");
-      if (inv.impl_agency && inv.impl_ms && inv.impl_ms !== "EU")
-        partyLine = `Implemented by: ${esc(party)} (EU funds entrusted to a ${esc(MSADJ[inv.impl_ms] || inv.impl_ms)} agency)`;
-      else if (inv.impl_agency === "EIB") partyLine = `Implemented by: ${esc(party)} (EU funds entrusted to the EIB)`;
-      else if (/^Lead financier:/.test(inv.client)) partyLine = `Lead financier: ${esc(party)}`;
-      else if (fromIATI || ["eu-eutf"].includes(inv.institution_id)) partyLine = `Implemented by: ${esc(party)}`;
-      else partyLine = `Client: ${esc(party)}${inv.client_domicile ? ", " + esc(inv.client_domicile) : ""}`;
-    }
-    return `<article class="deal">
-      <h3>${esc(inv.title)} <span class="cap">[${esc(capLabel(inv))}]</span></h3>
-      <div class="meta">
-        <span class="who"><span class="sw" style="background:var(${typeVar[ins.type]});color:var(${typeVar[ins.type]})"></span>${esc(SHORT[ins.institution_id] || ins.name)}</span>
-        <span>${ccs.map(c => esc(ccName(c))).join(", ")}</span>
-        ${inv.year ? `<span>${esc(inv.year)}</span>` : ""}
-        <span>${esc(inv.instrument)}</span>
-        <span class="amt">${amount}</span>
-        ${est ? `<span class="flag" title="Multi-country deal split equally across listed countries">estimated share</span>` : ""}
-        ${reg ? `<span class="flag" title="Regional deal, amount not allocated to WAEMU countries">regional</span>` : ""}
-        ${deleg ? `<span class="flag deleg">EU funds implemented by ${esc(who)}, counted under the European Commission</span>` : ""}
-      </div>
-      ${inv.tags ? `<div class="note"><span class="flag">${esc(inv.tags)}</span></div>` : ""}
-      ${partyLine ? `<div class="note">${partyLine}</div>` : ""}
-      <a href="${esc(inv.source_url)}" target="_blank" rel="noopener">View source record</a>
-    </article>`;
-  }).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
-  const m = document.getElementById("more");
-  if (m) m.onclick = () => { state.shown += 40; renderDeals(filtered()); };
-}
-
-// ---------- about view: what the tracker covers, and every actor by category in alphabetical order
-function renderAbout() {
-  document.getElementById("s-total").textContent = "About";
-  document.getElementById("s-text").textContent = "What this tracker covers, and every actor in it.";
-  const byInst = {};
-  for (const a of DATA.allocations) { const id = a.investment_id.split(":")[0]; byInst[id] = (byInst[id] || 0) + (a.amount_attributed_eur || 0); }
-  const nDeals = {}; DATA.investments.forEach(i => nDeals[i.institution_id] = (nDeals[i.institution_id] || 0) + 1);
-  const abc = (a, b) => a.name.localeCompare(b.name, "fr", {sensitivity: "base"});
-  const insts = DATA.institutions.map(i => ({name: i.name, ms: i.member_state, type: i.type, cov: i.coverage || "", v: byInst[i.institution_id] || 0, n: nDeals[i.institution_id] || 0}));
-  const amount = x => x.note ? `<span class="meta">${esc(x.note)}</span>` : x.v ? `<span class="amt">${fmt(x.v)}</span>` : x.n ? `<span class="meta">deals recorded, amounts not published</span>` : "";
-  const msName = c => MS[c] || c;
-  const withDeals = x => x.n > 0;
-  // member states and the EU: totals of their institutions
-  const ms = {};
-  // same rule as the network: EU institutions, EU-financed World Bank trust funds and the EU-held 54.4% of the EBRD; humanitarian and foreign-policy grants excluded
-  insts.filter(i => !["Non-EU", "Humanitarian aid", "Foreign policy instrument"].includes(i.type) && (i.n || /programme|curated|manual/.test(i.cov))).forEach(i => {
-    let k = i.ms, share = 1; if (!k || k === "NONEU") return;
-    if (i.type === "World Bank trust fund") k = "EU";
-    if (i.type === "Multilateral") { k = "EU"; share = 0.544; }
-    ms[k] = ms[k] || {name: k === "EU" ? "European Union" : msName(k), v: 0, n: 0}; ms[k].v += i.v * share; ms[k].n += i.n; });
-  // implementing agencies of EU funds
-  const ag = {};
-  DATA.investments.forEach(inv => { if (!inv.impl_agency || !inv.impl_ms || inv.impl_ms === "EU") return;
-    const k = inv.impl_agency; ag[k] = ag[k] || {name: k, ms: inv.impl_ms, v: 0, n: 0}; ag[k].n++; });
-  const invById = Object.fromEntries(DATA.investments.map(i => [i.investment_id, i]));
-  Object.values(ms).forEach(m => { if (!m.n) m.note = "programmes only, no individual deals published"; });
-  Object.values(ag).forEach(a => { if (!ms[a.ms]) ms[a.ms] = {name: msName(a.ms), v: 0, n: 0, note: "linked through its implementing agency only (it implements EU money)"}; });
-  for (const a of DATA.allocations) { const inv = invById[a.investment_id]; if (inv && ag[inv.impl_agency] && inv.impl_ms !== "EU") ag[inv.impl_agency].v += a.amount_attributed_eur || 0; }
-  // recipient countries
-  const ct = {}; for (const a of DATA.allocations) { const t = (INST[a.investment_id.split(":")[0]] || {}).type; if (t === "Humanitarian aid" || t === "Foreign policy instrument") continue; ct[a.country] = (ct[a.country] || 0) + (a.amount_attributed_eur || 0); }
-  const list = (items, extra) => `<ul>${items.slice().sort(abc).map(x => `<li><b>${esc(x.name)}</b>${extra ? extra(x) : ""} ${amount(x)}</li>`).join("")}</ul>`;
-  const msTag = x => x.ms ? ` <span class="meta">${esc(msName(x.ms))}</span>` : "";
-  const T = t => insts.filter(i => i.type === t && withDeals(i));
+function actorDirectory() {
+  const MSN = {FR:"France",DE:"Germany",NL:"Netherlands",BE:"Belgium",FI:"Finland",DK:"Denmark",SE:"Sweden",AT:"Austria",ES:"Spain",IT:"Italy",PT:"Portugal",
+    PL:"Poland",CZ:"Czechia",SK:"Slovakia",HR:"Croatia",GR:"Greece",SI:"Slovenia",HU:"Hungary",RO:"Romania",BG:"Bulgaria",EE:"Estonia",LV:"Latvia",LT:"Lithuania",
+    IE:"Ireland",LU:"Luxembourg",EU:"European Union",INT:"Multilateral (EU-majority)",WBTF:"World Bank trust funds"};
+  const abc = (a, b) => a.l.localeCompare(b.l, "fr", {sensitivity: "base"});
+  const N = D.nodes;
   const cats = [
-    ["Member states and the European Union", "Totals of their institutions' Franc Zone investment.", Object.values(ms), null],
-    ["EU institutions", "", T("EU institution"), msTag],
-    ["Development banks", "", T("Bilateral development bank"), msTag],
-    ["Development finance institutions (DFIs)", "", T("DFI"), msTag],
-    ["Promotional banks", "", T("NPB"), msTag],
-    ["Export credit agencies", "", T("ECA"), msTag],
-    ["Multilateral bank with an EU majority", "The EU, the EIB and the 27 member states hold 54.4% of the EBRD's capital.", T("Multilateral"), null],
-    ["World Bank trust funds financed by European donors", "", T("World Bank trust fund"), null],
-    ["Other EU public channels (not in the investment total)", "EU humanitarian aid and foreign-policy instruments.", [...T("Humanitarian aid"), ...T("Foreign policy instrument")], null],
-    ["Implementing agencies (EU funds)", "Member-state agencies entrusted with EU money; amounts are EU funds they implement, counted under the EU.", Object.values(ag), msTag],
-    ["Contractors (European firms)", "Firms of EU nationality that won contracts under AFD projects co-financed by the EU (AFD open data); amounts are contract values, not added to any total.",
-      (DATA.contractors || []).map(c => ({name: c.f, ms: c.ms, v: c.v, n: c.n, c: c.c})), x => `${msTag(x)} <span class="meta">${x.c.map(c => esc((DATA.countries[c] || {}).name || c)).join(", ")}</span>`],
-    ["Recipient countries", "", Object.entries(ct).map(([k, v]) => ({name: (DATA.countries[k] || {}).name || k, v, n: 1})), null],
-    ["Institutions checked, no Franc Zone deals found in public sources", "Listed so their absence is not mistaken for an omission.", insts.filter(i => !i.n && /^checked/.test(i.cov)), msTag],
-    ["Non-EU comparison (Analysis only)", "Never included in European totals.", insts.filter(i => i.type === "Non-EU"), null]];
-  document.getElementById("list").innerHTML = `<div class="abt">
-    <p>The EU-CFA Public finance tracker maps European public investment in the 14 CFA franc countries of the WAEMU and CEMAC since the 1999 XOF/XAF–euro peg: European development banks and DFIs, promotional banks, export credit agencies, EU institutions and EU-majority or EU-financed multilateral channels, with the Team Europe and national programmes they run. Every deal links to its source record; the Sources tab lists every source, and "About the data" below explains the methods.</p>
-    <h2 style="margin:14px 0 2px;font-size:16px">All actors</h2><p>By category, in alphabetical order.</p>` +
-    cats.filter(c => c[2].length).map(([t, note, items, extra]) => `<h3>${esc(t)} (${items.length})</h3>${note ? `<p>${esc(note)}</p>` : ""}${list(items, extra)}`).join("") + `</div>`;
+    ["Member states and the European Union", "Owners of the institutions below; amounts are the total of their institutions (for the EBRD, the EU-held 54.4%).", N.filter(n => n.k === "memberstate")],
+    ["EU institutions", "", N.filter(n => n.k === "institution" && n.t === "EU institution")],
+    ["Development banks", "", N.filter(n => n.k === "institution" && n.t === "Bilateral development bank")],
+    ["Development finance institutions (DFIs)", "", N.filter(n => n.k === "institution" && n.t === "DFI")],
+    ["Promotional banks", "", N.filter(n => n.k === "institution" && n.t === "NPB")],
+    ["Export credit agencies", "", N.filter(n => n.k === "institution" && n.t === "ECA")],
+    ["Multilateral bank with an EU majority", "", N.filter(n => n.k === "institution" && n.t === "Multilateral")],
+    ["World Bank trust funds financed by European donors", "", N.filter(n => n.k === "institution" && n.t === "World Bank trust fund")],
+    ["Implementing agencies (EU funds)", "Member-state agencies entrusted with EU money; amounts are EU funds they implement, counted under the EU.", N.filter(n => n.k === "agency")],
+    ["Contractors (European firms)", "Firms of EU nationality that won contracts under AFD projects co-financed by the EU; amounts are contract values, not added to any total.", N.filter(n => n.k === "contractor")],
+    ["Recipient countries", "", N.filter(n => n.k === "country")]];
+  return `<h2 id="actors">All actors</h2><p>Every actor in this network, by category and in alphabetical order.</p>` + cats.filter(c => c[2].length).map(([title, note, list]) =>
+    `<h3>${esc(title)} (${list.length})</h3>${note ? `<p class="hint">${esc(note)}</p>` : ""}<ul class="actors">` +
+    list.slice().sort(abc).map(n => `<li><b>${esc(n.l)}</b>${n.ms && n.k !== "memberstate" ? ` <span class="meta">${esc(MSN[n.ms] || n.ms)}</span>` : ""}${n.v ? ` <span class="amt">${fmt(n.v)}</span>` : ` <span class="meta">${esc(noAmount(n))}</span>`}</li>`).join("") + `</ul>`).join("");
 }
 
-// ---------- sources view
-function renderSources() {
-  const S = DATA.sources || [], LC = DATA.link_checks || {checked: 0, ok: 0, problems: []};
-  document.getElementById("s-total").textContent = "Sources";
-  document.getElementById("s-text").textContent = `${S.filter(s => s.role !== "Recommended next").length} sources in this build, data of ${DATA.generated}. Every deal links to the record it came from ("View source record").`;
-  const roles = ["Figures", "Regional layer", "Programmes", "Non-EU comparison", "Reference", "Map and software", "Recommended next"];
-  const ROLE_NOTE = {"Figures": "Sources of the deals and amounts in every total.", "Regional layer": "Wider regional programmes, kept out of Franc Zone totals.",
-    "Programmes": "Frameworks shown in the Programmes view; amounts never added up.", "Non-EU comparison": "Used only in Analysis, never in European totals.",
-    "Reference": "Conversion and classification.", "Map and software": "Shapes and code that draw the map.",
-    "Recommended next": "Checked and relevant, not yet used in any figure."};
-  let h = `<div class="ana" style="padding-top:6px">`;
-  for (const r of roles) {
-    const rows = S.filter(s => s.role === r); if (!rows.length) continue;
-    h += `<div class="srcgrp" style="padding:0 18px">${esc(r)}: ${esc(ROLE_NOTE[r])}</div>` + rows.map(s => `<div class="srcrow"><b>${esc(s.name)}</b> <span class="meta">${esc(s.provider)} · ${esc(s.method)}${s.records ? ` · <span class="amt">${s.records.toLocaleString("en")} deals</span>` : ""}</span>
-      <span class="meta">${esc(s.provides)}</span><span class="meta">Licence: ${esc(s.licence)}${s.url ? ` · <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url.replace(/^https?:\/\//, "").slice(0, 60))}</a>` : ""}${s.status && s.status !== "200" ? ` · link check: ${esc(s.status)}` : ""}</span></div>`).join("");
-  }
-  // coverage: which source supplies each institution's deals
-  const cov = new Map();
-  for (const inv of DATA.investments) { const k = inv.institution_id; if (!cov.has(k)) cov.set(k, new Map()); const m = cov.get(k); m.set(inv.source_id || "?", (m.get(inv.source_id || "?") || 0) + 1); }
-  const name = Object.fromEntries(S.map(s => [s.id, s.name]));
-  const srcOf = id => ({"iati": "iati", "iati-regional": "iati-regional", "eutf-web": "eutf-web"})[id] || id;
-  h += `<div class="srcgrp" style="padding:0 18px">Coverage: which source supplies each institution's deals</div><table class="covtab"><tr><th>Institution</th><th>Sources (number of deals)</th></tr>` +
-    [...cov.entries()].sort((a, b) => [...b[1].values()].reduce((x, y) => x + y, 0) - [...a[1].values()].reduce((x, y) => x + y, 0))
-      .map(([k, m]) => `<tr><td>${esc(SHORT[k] || (INST[k] || {}).name || k)}</td><td>${[...m.entries()].map(([s, n]) => `${esc(name[srcOf(s)] || s)} (${n})`).join("; ")}</td></tr>`).join("") + `</table>`;
-  h += `<div class="srcgrp" style="padding:0 18px">Link check at build: ${LC.ok} of ${LC.checked} cited links answered normally</div>` +
-    (LC.problems.length ? LC.problems.map(([u, c, used]) => `<div class="srcrow"><span class="meta">${esc(c)} · <a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.slice(0, 70))}</a></span><span class="meta">Used by: ${esc(used.join("; "))}</span></div>`).join("") +
-      `<p class="hint" style="padding:0 18px">Some sites refuse automated checks (403) but open normally in a browser; Capacity4dev pages need a login. Check these by hand.</p>` : "");
-  document.getElementById("list").innerHTML = h + `</div>`;
-}
+// ---------- ABOUT
+$("#about").innerHTML = `<h2>About this tracker</h2>
+  <p>The EU-CFA Network tracker shows how European public financial institutions connect, overlap and respond to events in the 14 countries of the CFA franc zone: the eight WAEMU countries in West Africa and the six CEMAC countries in Central Africa (the Comoros are not covered). It is a companion to the EU-CFA Public finance tracker and reads that tracker's data, so both always show the same deals.</p>
+  <h2>Scope</h2><ul><li>Included: European development banks and DFIs, national promotional banks, export credit agencies, EU institutions (the EIB, the European Commission, the EU Trust Fund for Africa, EU blending grants, the EU-Africa Infrastructure Trust Fund, ElectriFI and AgriFI), and World Bank-managed trust funds financed only by European donors.</li>
+  <li>Not included: the EBRD, EU humanitarian aid and foreign-policy instruments, and non-European financiers.</li></ul>
+  <h2>Method</h2><ul><li>Network: links are weighted by euros attributed to Franc Zone countries since 1999. EU money implemented by a member-state agency (AFD, GIZ, Expertise France, Enabel and others) is linked from the EU institution to that agency and counted under the EU.</li>
+  <li>Overlap %: for two institutions, the share of the country–sector combinations where at least one of them is active in which both are (0% to 100%; deals with unpublished amounts count as activity). Co-financed projects: the number of projects both finance, found by matching their deal titles (see below).</li>
+  <li>Co-financed projects: deals by different institutions in the same country, within three years of each other, whose titles share distinctive words. The shared words are shown as evidence. This is a rule-based match: check the sources before citing a project as co-financed.</li>
+  <li>Events: hand-checked, each with its source; the build tests every source link and lists any that fail under Events.</li></ul>
+  <h2>Data</h2><p>Tracker data dated ${esc(D.generated)}; this page built on ${esc(D.built)}. Every deal links to its source record.</p>` + actorDirectory();
 
-// ---------- analysis view
-function valueOf(a, inv) {
-  if (!state.est && (a.attribution_method === "equal_split_estimate" || inv.amount_basis === "band estimate")) return 0;
-  return a.amount_attributed_eur || 0;
-}
-function bars(items, colorOf) {
-  const max = Math.max(1, ...items.map(x => x[1]));
-  return items.map(([k, v, label]) => `<div class="bar" title="${esc(label || k)}: ${fmt(v)}"><span class="lbl">${esc(label || k)}</span>
-    <span class="track"><i style="width:${(100 * v / max).toFixed(1)}%;background:${colorOf(k)}"></i></span><span class="val">${fmt(v)}</span></div>`).join("");
-}
-function rank(map, top) {
-  const all = [...map.entries()].filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]);
-  if (top && all.length > top) { const rest = all.slice(top).reduce((s, x) => s + x[1], 0); return all.slice(0, top).concat([["Others", rest]]); }
-  return all;
-}
-function columns(items, unit) {
-  if (!items.length) return `<p class="hint">Nothing matches this combination.</p>`;
-  const max = Math.max(1, ...items.map(x => x.v)), f = unit === "count" ? (v => String(Math.round(v))) : fmt;
-  return `<div class="cols"><div class="yaxis"><span>${f(max)}</span><span>${f(max / 2)}</span><span>${unit === "count" ? "0" : "€0"}</span></div>
-    <div class="plot">${items.map(x => `<div class="col" title="${esc(x.label)}: ${f(x.v)}${x.extra ? "\n" + esc(x.extra) : ""}"><i style="height:${(100 * x.v / max).toFixed(1)}%;background:${x.color}"></i></div>`).join("")}</div>
-    <div class="xlabels">${items.map(x => `<span>${esc(x.label)}</span>`).join("")}</div></div>
-    <p class="ylabel">${unit === "count" ? "Y axis: number of programmes (most programmes publish no amount). Hover a column for details." : "Y axis: euros committed. X axis: actors. Hover a column for details."}</p>`;
-}
-const MS_PALETTE = ["#3aa6ff","#ff8c42","#2dffc8","#ffd84a","#b77dff","#ff5ba0","#7be36b","#ffb43f","#5ad1ff","#e07bff","#c3ccd1","#ff7a6b","#9be7c4","#d2b48c"];
-function stackedColumns(cols) {
-  if (!cols.length) return `<p class="hint">Nothing matches this combination.</p>`;
-  const max = Math.max(1, ...cols.map(c => c.total));
-  return `<div class="cols"><div class="yaxis"><span>${fmt(max)}</span><span>${fmt(max / 2)}</span><span>€0</span></div>
-    <div class="plot">${cols.map(c => `<div class="col" title="${esc(c.label)}: ${fmt(c.total)} from ${c.segs.length} actor${c.segs.length === 1 ? "" : "s"}\n${esc(c.segs.slice(0, 8).map(s => s.name + ": " + fmt(s.v)).join("\n"))}">
-      <b class="cnt">${c.segs.length}</b>${c.segs.map(s => `<i style="height:${(100 * s.v / max).toFixed(2)}%;background:${s.color}"></i>`).join("")}</div>`).join("")}</div>
-    <div class="xlabels sec">${cols.map(c => `<span title="${esc(c.label)}">${esc(c.label.startsWith("Other (") ? "Other / multi-sector" : c.label)}</span>`).join("")}</div></div>
-    <p class="ylabel">Y axis: euros committed. X axis: sectors. Coloured blocks are the actors investing in each sector; the number on top counts them. Hover a column for details.</p>`;
-}
-function regFiltered() {
-  return (DATA.regional || []).filter(r => {
-    const ins = INST[r.institution_id]; if (!ins) return false;
-    if (!state.types.has(ins.type)) return false;
-    if (state.ms && ins.member_state !== state.ms) return false;
-    if (state.inst && r.institution_id !== state.inst) return false;
-    if (state.ins && r.instrument !== state.ins) return false;
-    if (state.yr && !(r.year && +r.year >= +state.yr)) return false;
-    if (state.q && !norm(r.title + " " + (SHORT[r.institution_id] || "") + " " + ins.name).includes(state.q)) return false;
-    return true;
-  });
-}
-function renderAnalysis(rows) {
-  const total = rows.reduce((s, [a, inv]) => s + valueOf(a, inv), 0);
-  document.getElementById("s-total").textContent = fmt(total);
-  document.getElementById("s-text").textContent = "Analysis of the investments that match your filters." + (state.est ? "" : " Estimated amounts are excluded.");
-  const donors = new Map(), sectors = new Map(), ctry = new Map();
-  for (const [a, inv] of rows) {
-    const v = valueOf(a, inv); if (!v) continue;
-    const ins = INST[inv.institution_id];
-    const dk = state.donorBy === "inst" ? inv.institution_id : ins.member_state;
-    donors.set(dk, (donors.get(dk) || 0) + v);
-    sectors.set(inv.sector_broad, (sectors.get(inv.sector_broad) || 0) + v);
-    ctry.set(a.country, (ctry.get(a.country) || 0) + v);
-  }
-  const donorItems = rank(donors, 14).map(([k, v]) => [k, v, k === "Others" ? "Others" : state.donorBy === "inst" ? (SHORT[k] || INST[k].name) : (MS[k] || k)]);
-  const sectorList = DATA.sectors || [];
-  if (!state.ovSector) state.ovSector = sectorList[0] || "";
-  // overlap data
-  let ov = [], unit = "eur";
-  if (state.ovMode === "eu") {
-    const m = new Map();
-    for (const [a, inv] of rows) {
-      if (inv.sector_broad !== state.ovSector || (state.ovCC && a.country !== state.ovCC)) continue;
-      const v = valueOf(a, inv); if (!v) continue; m.set(inv.institution_id, (m.get(inv.institution_id) || 0) + v);
-    }
-    ov = [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({label: SHORT[k] || INST[k].name, v, color: css(typeVar[INST[k].type])}));
-  } else if (state.ovMode === "prog") {
-    unit = "count"; const m = new Map(), names = new Map();
-    for (const p of PROG) {
-      if (!p.sectors.includes(state.ovSector) || (state.ovCC && !p.countries.includes(state.ovCC))) continue;
-      for (const part of p.participants) { m.set(part, (m.get(part) || 0) + 1); names.set(part, (names.get(part) || []).concat(p.name)); }
-    }
-    ov = [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({label: partName(k), v, color: css("--k-tei"), extra: names.get(k).join("; ")}));
-  }
-  let sectorCols = [], stackLegend = "";
-  if (state.ovMode === "sector") {
-    const by = new Map(), msIndex = {};
-    for (const [a, inv] of rows) {
-      if (state.ovCC && a.country !== state.ovCC) continue;
-      const v = valueOf(a, inv); if (!v) continue;
-      const ins = INST[inv.institution_id];
-      const key = state.ovStack === "inst" ? inv.institution_id : ins.member_state;
-      const m = by.get(inv.sector_broad) || new Map(); m.set(key, (m.get(key) || 0) + v); by.set(inv.sector_broad, m);
-    }
-    const colorOf = k => {
-      if (state.ovStack === "inst") return css(typeVar[INST[k].type]);
-      if (!(k in msIndex)) msIndex[k] = Object.keys(msIndex).length;
-      return MS_PALETTE[msIndex[k] % MS_PALETTE.length];
-    };
-    sectorCols = [...by.entries()].map(([sec, m]) => {
-      const segs = [...m.entries()].filter(x => x[1] > 0).sort((x, y) => y[1] - x[1])
-        .map(([k, v]) => ({name: state.ovStack === "inst" ? (SHORT[k] || INST[k].name) : (MS[k] || k), v, color: colorOf(k)}));
-      return {label: sec, total: segs.reduce((s, x) => s + x.v, 0), segs};
-    }).sort((x, y) => y.total - x.total);
-    if (state.ovStack === "ms") stackLegend = `<div class="stacklegend">${Object.entries(msIndex).map(([k, i]) => `<span><i style="background:${MS_PALETTE[i % MS_PALETTE.length]}"></i>${esc(MS[k] || k)}</span>`).join("")}</div>`;
-    else stackLegend = `<div class="stacklegend">${TYPES.map(([, l, v]) => `<span><i style="background:var(${v})"></i>${l}</span>`).join("")}</div>`;
-  }
-  const ccOpts = `<option value="">All countries</option>` + Object.entries(DATA.countries).map(([cc, c]) => `<option value="${cc}"${state.ovCC === cc ? " selected" : ""}>${esc(c.name)}</option>`).join("");
-  const secOpts = sectorList.map(s => `<option${s === state.ovSector ? " selected" : ""}>${esc(s)}</option>`).join("");
-  if (state.ovMode === "non") {
-    const m = new Map(), isNon = new Set();
-    for (const [a, inv] of rows) {
-      if (inv.sector_broad !== state.ovSector || (state.ovCC && a.country !== state.ovCC)) continue;
-      const v = valueOf(a, inv); if (!v) continue; m.set(inv.institution_id, (m.get(inv.institution_id) || 0) + v);
-    }
-    for (const c of (DATA.comparators || [])) {
-      if (c.s !== state.ovSector || (state.ovCC && c.c !== state.ovCC) || !state.cc.has(c.c)) continue;
-      if (state.yr && !(c.y && +c.y >= +state.yr)) continue;
-      if (state.ins && c.n !== state.ins) continue;
-      m.set(c.i, (m.get(c.i) || 0) + c.v); isNon.add(c.i);
-    }
-    ov = [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({label: SHORT[k] || INST[k].name, v,
-      color: isNon.has(k) ? css("--t-non") : css(typeVar[INST[k].type]), extra: isNon.has(k) ? "Non-EU actor" : ""}));
-  }
-  const seg = (key, opts) => `<div class="seg">${opts.map(([v, l, dis]) => `<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key] === v}"${dis ? " disabled title=\"Arrives with the next data update\"" : ""}>${l}</button>`).join("")}</div>`;
-  document.getElementById("list").innerHTML = `<div class="ana">
-    <section><h3>Investment overlap</h3><p class="hint">Where several actors put money or programmes into the same sector and country. Several tall columns mean overlapping effort.${state.ovMode === "non" ? " Grey columns are non-EU actors." : ""}</p>
-      ${seg("ovMode", [["sector", "By sector"], ["eu", "EU actors"], ["prog", "Programmes by sector and goal"], ["non", "With non-EU actors"]])}
-      ${state.ovMode === "sector" ? `<div class="substack">${seg("ovStack", [["inst", "Stack by institution"], ["ms", "Stack by member state"]])}</div>` : ""}
-      <div class="ov-controls"><select id="ov-cc" aria-label="Country">${ccOpts}</select>${state.ovMode === "sector" ? "" : `<select id="ov-sec" aria-label="Sector">${secOpts}</select>`}</div>
-      ${state.ovMode === "sector" ? stackedColumns(sectorCols) + stackLegend : columns(ov, unit)}</section>
-    ${(() => {
-      const m = new Map(); let eib = 0;
-      for (const [a, inv] of rows) {
-        if (!inv.impl_agency) continue;
-        const v = valueOf(a, inv); if (!v) continue;
-        if (inv.impl_ms === "EU") { eib += v; continue; }
-        const k = inv.impl_agency + "|" + inv.impl_ms; m.set(k, (m.get(k) || 0) + v);
-      }
-      if (!m.size) return "";
-      const MSN = {FR:"France",DE:"Germany",BE:"Belgium",LU:"Luxembourg",ES:"Spain",IT:"Italy",PT:"Portugal",AT:"Austria",NL:"Netherlands"};
-      const items = rank(m).map(([k, v]) => { const [ag, ms] = k.split("|"); return [k, v, `${ag} (${MSN[ms] || ms})`]; });
-      const tot = items.reduce((s, x) => s + x[1], 0);
-      return `<section><h3>EU funds implemented by member-state agencies</h3>
-        <p class="hint">${fmt(tot)} of EU money (from the Commission, the EU Trust Fund for Africa, blending and the EU-AITF) is entrusted to member-state agencies to implement. It is counted under the EU, not under the member state.${eib ? ` A further ${fmt(eib)} is implemented by the EIB.` : ""}</p>
-        ${bars(items, k => css("--t-eu"))}</section>`;
-    })()}
-    <section><h3>Donors by capital</h3><p class="hint">Euros attributed to the Franc Zone countries in your selection, ranked.</p>
-      ${seg("donorBy", [["inst", "Institutions"], ["ms", "Member states"]])}
-      ${bars(donorItems, k => k === "Others" ? css("--dim") : state.donorBy === "inst" ? css(typeVar[INST[k].type]) : css("--accent"))}</section>
-    <section><h3>Sectors by investment</h3><p class="hint">Ten sectors aligned with the EU's Global Gateway priorities.</p>
-      ${bars(rank(sectors), () => css("--accent"))}</section>
-    <section><h3>Recipient countries by capital</h3>
-      ${bars(rank(ctry).map(([k, v]) => [k, v, DATA.countries[k] ? DATA.countries[k].name : k]), k => css(fzVar(k, "line")))}</section>
-    ${(() => {
-      const reg = regFiltered(); if (!reg.length) return "";
-      const byReg = new Map(), bySec = new Map(), byInst = new Map(); let tot = 0;
-      for (const r of reg) { const v = r.amount_eur || 0; tot += v;
-        byReg.set(r.region, (byReg.get(r.region) || 0) + v); bySec.set(r.sector_broad, (bySec.get(r.sector_broad) || 0) + v);
-        byInst.set(r.institution_id, (byInst.get(r.institution_id) || 0) + v); }
-      return `<section><h3>Wider African regional programmes</h3>
-        <p class="hint">${reg.length.toLocaleString("en")} operations, ${fmt(tot)}, covering West Africa, Central Africa, Sub-Saharan Africa or the whole continent. Part of this money reaches Franc Zone countries, but the share is not published, so it is kept out of every Franc Zone total above.</p>
-        <h4 class="sub">By region</h4>${bars(rank(byReg), () => css("--muted"))}
-        <h4 class="sub">By sector</h4>${bars(rank(bySec), () => css("--muted"))}
-        <h4 class="sub">By institution</h4>${bars(rank(byInst, 10).map(([k, v]) => [k, v, k === "Others" ? "Others" : (SHORT[k] || INST[k].name)]), k => k === "Others" ? css("--dim") : css(typeVar[INST[k].type]))}</section>`;
-    })()}
-
-  </div>`;
-  document.querySelectorAll(".ana .seg button").forEach(b => b.onclick = () => { state[b.dataset.k] = b.dataset.v; renderAnalysis(filtered()); });
-  document.getElementById("ov-cc").onchange = e => { state.ovCC = e.target.value; renderAnalysis(filtered()); };
-  const ovSec = document.getElementById("ov-sec");
-  if (ovSec) ovSec.onchange = e => { state.ovSector = e.target.value; renderAnalysis(filtered()); };
-}
-
-// ---------- programmes view
-function progFiltered() {
-  return PROG.filter(p => state.kinds.has(p.kind)
-    && p.countries.some(c => state.cc.has(c) && (!state.focus || !state.focus.cc || c === state.focus.cc))
-    && (!state.part || p.participants.includes(state.part))
-    && (!state.focus || !state.focus.part || p.participants.includes(state.focus.part))
-    && (!state.q || norm(p.name + " " + p.description + " " + p.participants.map(partName).join(" ")).includes(state.q)));
-}
-function updateProgrammes() {
-  const progs = progFiltered();
-  const agg = new Map();
-  for (const p of progs) for (const part of p.participants) {
-    if (!PLACES[part] || (state.part && part !== state.part)) continue;
-    for (const cc of p.countries) {
-      if (!state.cc.has(cc) || !CAPITALS[cc]) continue;
-      const k = part + "|" + cc + "|" + p.kind;
-      const g = agg.get(k) || {part, cc, kind:p.kind, n:0}; g.n++; agg.set(k, g);
-    }
-  }
-  const arcs = [...agg.values()].map(g => ({...g, label: partName(g.part), sLat:PLACES[g.part].lat, sLng:PLACES[g.part].lon,
-    eLat:CAPITALS[g.cc][1], eLng:CAPITALS[g.cc][2], seed: seedOf(g.part + g.cc + g.kind), color: css(kindVar[g.kind]), stroke: 0.1 + 0.05 * Math.min(g.n, 6)}));
-  styleArcs(arcs, true);
-  const used = [...new Set(arcs.map(a => a.part))];
-  setPins(used.map(p => ({lat:PLACES[p].lat, lng:PLACES[p].lon, color: "#ffffff", seed: seedOf(p), text: "",
-    title: partName(p), onclick: () => { state.focus = {part:p}; update(); }})));
-  const withAmt = progs.filter(p => p.amount_eur);
-  document.getElementById("s-total").textContent = "Total: " + progs.length + " programme" + (progs.length === 1 ? "" : "s");
-  let scope = "";
-  if (state.focus) scope = " Showing " + [state.focus.part ? partName(state.focus.part) : "", state.focus.cc ? "in " + ccName(state.focus.cc) : ""].filter(Boolean).join(" ") + ".";
-  document.getElementById("s-text").textContent = `${withAmt.length} publish an amount. Programme amounts overlap with the investments view and with each other, so they are not added up.` + scope;
-  const box = document.getElementById("list");
-  if (!progs.length) { box.innerHTML = `<p class="deal">No programmes match these filters${state.q ? " and search" : ""}. Try another search term, turn a programme kind back on or select more countries.</p>`; return; }
-  const order = Object.fromEntries(KINDS.map((k,i) => [k[0], i]));
-  const list = progs.slice().sort((a,b) => order[a.kind] - order[b.kind] || (b.amount_eur || 0) - (a.amount_eur || 0));
-  box.innerHTML = list.slice(0, state.shown).map(p => `<article class="deal">
-      <div class="kind" style="color:var(${kindVar[p.kind]})">${esc(p.kind)}</div>
-      <h3>${esc(p.name)}</h3>
-      <div class="meta">
-        <span>${p.countries.filter(c => DATA.countries[c]).map(c => esc(ccName(c))).join(", ")}</span>
-        ${p.period ? `<span>${esc(p.period)}</span>` : ""}
-        ${p.amount_eur ? `<span class="amt">${fmt(p.amount_eur)}</span>` : ""}
-      </div>
-      <div class="note">${esc(p.description)}</div>
-      <div class="note">Participants: ${p.participants.map(x => esc(partName(x))).join(", ")}</div>
-      ${p.note ? `<div class="note"><span class="flag">note</span> ${esc(p.note)}</div>` : ""}
-      ${p.source_url ? `<a href="${esc(p.source_url)}" target="_blank" rel="noopener">View source</a>` : ""}
-    </article>`).join("") + (list.length > state.shown ? `<button class="more" id="more">Show ${Math.min(40, list.length - state.shown)} more of ${list.length - state.shown}</button>` : "");
-  const m = document.getElementById("more");
-  if (m) m.onclick = () => { state.shown += 40; updateProgrammes(); };
-}
-
-start(savedMode() === "2d" ? "2d" : "3d");
+buildGraph();
+addEventListener("resize", () => { clearTimeout(window._rz); window._rz = setTimeout(buildGraph, 300); });
 })();
 </script>
 </body>
 </html>
 '''
 
-if __name__ == "__main__":
-    main(sys.argv[1:] or FETCH_STEPS + ["normalize", "build"])
+try:
+    TEMPLATE
+except NameError:  # during development the page template is a separate file
+    TEMPLATE = (ROOT / "template.html").read_text(encoding="utf-8")
+
+# ---------------------------------------------------------------- 7. write the page
+own_sources = [
+    {"name": "EU-CFA Public finance tracker data", "provider": "Your tracker (data/tracker.json)", "url": TRACKER_DATA_URL or TRACKER_SITE_URL,
+     "method": "Read at every build" if TRACKER_DATA_URL else "Saved copy in data/tracker.json", "licence": "Same as the tracker's sources (see below)",
+     "provides": f"All deals, institutions, countries and programmes, data of {generated}. Each deal links to its original record."},
+    {"name": "Event log", "provider": "data/events.csv", "url": "", "method": "Hand-checked; every link tested at build",
+     "licence": "Per event", "provides": f"{len(events)} events, each with its own source (listed in the Events tab)."},
+    {"name": "Contracts financed by AFD with EU financial participation", "provider": "AFD open data (opendata.afd.fr)",
+     "url": "https://opendata.afd.fr/explore/dataset/liste-des-marches-finances-par-lafd-avec-la-participation-financiere-de-lunion-e/",
+     "method": "Data feed, read at every build", "licence": "Licence Ouverte / Etalab 2.0",
+     "provides": f"Winning firm, its nationality, amount, date and project for each contract; {len(contracts)} contracts won by European firms in Franc Zone countries are shown as the contractors layer."},
+    {"name": "D3.js graphics library", "provider": "Mike Bostock and contributors", "url": "https://d3js.org", "method": "Downloaded once and embedded",
+     "licence": "ISC", "provides": "Draws the network, the matrix and the timeline."}]
+bundle = {"generated": generated, "built": TODAY.isoformat(), "site": TRACKER_SITE_URL, "data_status": data_status,
+          "own_sources": own_sources, "tracker_sources": T.get("sources", []), "tracker_checks": T.get("link_checks", {}),
+          "inst": {k: {"n": v["name"], "t": v["type"], "ms": v["member_state"]} for k, v in INST.items()},
+          "countries": {k: {"n": v["name"], "u": v.get("union", "")} for k, v in COUNTRIES.items()},
+          "nodes": list(nodes.values()), "links": [{"s": a, "t": b, **v} for (a, b), v in links.items()],
+          "deals": list(deals.values()), "csec": csec, "ebrd": {"share": EBRD_EU_SHARE, "src": EBRD_SHARE_SRC}, "contracts": contracts, "mjac": mjac, "mco": mco, "pairn": pairn, "top": top, "matrix": matrix, "pairs": pair_detail, "cofin": cofin[:150],
+          "years": years, "timeline": timeline, "events": events, "warnings": warnings}
+d3 = REF / "d3.min.js"
+if not d3.exists():
+    d3.write_bytes(get("https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"))
+LIBS = {"three.min.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js",
+        "3d-force-graph.min.js": "https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"}
+for name, url in LIBS.items():
+    if not (REF / name).exists():
+        (REF / name).write_bytes(get(url))
+html = (TEMPLATE.replace("/*__DATA__*/null", json.dumps(bundle, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
+                .replace("/*__D3__*/", d3.read_text(encoding="utf-8"))
+                .replace("/*__THREE__*/", (REF / "three.min.js").read_text(encoding="utf-8").replace("console.warn('Scripts", "void('Scripts", 1))
+                .replace("/*__FG3D__*/", (REF / "3d-force-graph.min.js").read_text(encoding="utf-8")))
+(SITE / "index.html").write_text(html, encoding="utf-8")
+print(f"site/index.html {len(html.encode()) / 1e6:.2f} MB | {len(nodes)} nodes, {len(links)} links, {len(deals)} deals, "
+      f"{len(cofin)} co-financed projects, {len(events)} events, {len(warnings)} warnings")
+for w in warnings:
+    print("warning:", w)
