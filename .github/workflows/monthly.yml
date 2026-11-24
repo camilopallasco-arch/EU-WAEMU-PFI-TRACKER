@@ -2,7 +2,7 @@ name: Monthly update
 
 on:
   schedule:
-    - cron: "0 5 1 * *"
+    - cron: "0 5 1 * *"      # 05:00 UTC on the 1st of each month
   workflow_dispatch:
   push:
     branches: [main]
@@ -12,6 +12,11 @@ permissions:
   pages: write
   id-token: write
 
+# one run at a time: a new run waits for the previous one instead of colliding with it
+concurrency:
+  group: tracker-update
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -19,22 +24,33 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install lxml==5.3.0
       - name: Fetch every source, normalise, build the site
         run: python tracker.py
-      - name: Save updated data to the repository
+      - name: Build the network page (published at the tracker's address + network/)
+        continue-on-error: true      # if the network step fails, the tracker is still published
+        run: python network.py
+      - name: Save the updated data
+        continue-on-error: true      # if saving fails, the site is still published; the data is saved at the next run
         run: |
           git config user.name "tracker-bot"
           git config user.email "tracker-bot@users.noreply.github.com"
-          git add data site raw ref
-          git diff --cached --quiet || git commit -m "Data update $(date +%Y-%m-%d)"
-          git push
-      - uses: actions/upload-pages-artifact@v3
+          for d in data site raw ref; do if [ -e "$d" ]; then git add "$d"; fi; done
+          if git diff --cached --quiet; then echo "Nothing new to save."; exit 0; fi
+          git commit -m "Data update $(date +%Y-%m-%d)"
+          # if you committed while this run was going, fetch your changes first, then save (up to 3 tries)
+          for attempt in 1 2 3; do
+            git pull --rebase -X theirs origin main && git push && exit 0
+            echo "Save attempt $attempt failed; retrying in 10 seconds."; sleep 10
+          done
+          echo "Could not save the data this time; the site is published anyway."
+          exit 1
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
