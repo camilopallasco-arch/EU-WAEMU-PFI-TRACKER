@@ -11,6 +11,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: read
 
 # one run at a time: a new run waits for the previous one instead of colliding with it
 concurrency:
@@ -52,5 +53,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      - name: Give GitHub a moment to register the upload
+        run: sleep 20
       - id: deploy
+        continue-on-error: true      # sometimes GitHub has not registered the upload yet: wait and retry once
+        uses: actions/deploy-pages@v5
+      - name: Wait before retrying the publication
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+      - id: deploy_retry
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v5
