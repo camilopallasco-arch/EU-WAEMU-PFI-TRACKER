@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore: ["**.md"]   # editing notes or documentation does not start a run
 
 permissions:
   contents: write
@@ -30,8 +31,15 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install lxml==5.3.0
-      - name: Fetch every source, normalise, build the site
-        run: python tracker.py
+      - name: Update the tracker (full on the 1st of the month or by hand; quick after a commit)
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "Commit: quick rebuild from the data already saved (no downloads)."
+            python tracker.py normalize build
+          else
+            echo "Full update: every source is downloaded again."
+            python tracker.py
+          fi
       - name: Build the network page (published at the tracker's address + network/)
         continue-on-error: true      # if the network step fails, the tracker is still published
         run: python network.py
