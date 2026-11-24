@@ -585,7 +585,9 @@ def step_normalize():
         ("oeeb", "OeEB – Development Bank of Austria", "AT", "DFI", "OeKB Group", "Vienna", 48.208, 16.374, "https://www.oe-eb.at", "not yet covered"),
         ("cofides", "COFIDES", "ES", "DFI", "", "Madrid", 40.417, -3.704, "https://www.cofides.es", "not yet covered"),
         ("simest", "SIMEST", "IT", "DFI", "CDP Group", "Rome", 41.903, 12.496, "https://www.simest.it", "not yet covered"),
-        ("sofid", "SOFID", "PT", "DFI", "", "Lisbon", 38.722, -9.139, "https://www.sofid.pt", "not yet covered"),
+        ("sofid", "SOFID", "PT", "DFI", "", "Lisbon", 38.722, -9.139, "https://www.sofid.pt", "curated"),
+        ("cosec", "COSEC – Companhia de Seguro de Créditos (Portuguese state-backed export credit insurance)", "PT", "ECA", "", "Lisbon", 38.735, -9.150, "https://www.cosec.pt", "not yet checked"),
+        ("dsif", "DSIF – Danida Sustainable Infrastructure Finance (run by Impact Fund Denmark)", "DK", "DFI", "", "Copenhagen", 55.680, 12.575, "https://um.dk", "not yet checked"),
         ("cdp", "Cassa Depositi e Prestiti (CDP)", "IT", "NPB", "CDP Group", "Rome", 41.900, 12.480, "https://www.cdp.it", "manual"),
         ("bpifrance", "Bpifrance", "FR", "NPB", "", "Paris", 48.880, 2.330, "https://www.bpifrance.fr", "manual"),
         ("ico", "Instituto de Crédito Oficial (ICO)", "ES", "NPB", "", "Madrid", 40.410, -3.690, "https://www.ico.es", "manual"),
@@ -1125,13 +1127,18 @@ def step_normalize():
             inst_t = ", ".join(n for tx, n in terms if tx in ("venture_category", "instrument"))
             # IFU's data feed still returns old addresses that its website now answers with "Page not found": link its live portfolio instead
             link = "https://impactfund.dk/investment-portfolio/" if key == "ifu" else p["link"]
+            # amounts IFU's own feed does not publish, taken from public announcements: title keyword -> (amount EUR, instrument, source)
+            IFU_KNOWN = {"nsia": (25e6, "Subordinated debt", "https://www.africaprivateequitynews.com/p/impact-fund-denmark-backs-nsia-bank")}
+            known = next((v for k, v in IFU_KNOWN.items() if key == "ifu" and k in title.lower()), None)
+            if known and not (amt and amt.isdigit()):
+                amt, inst_t, link = str(int(known[0])), known[1], known[2]
             add(inst, f"{key}-wp", str(p["id"]), link, title, client=title,
                 instrument=instrument_from(inst_t + (" fund" if "fund" in inst_t.lower() else "")),
                 sector_broad=broad_sector(sect), sector_detail=sect, status="Signed", date=str(year),
                 amount=float(amt) if amt and amt.isdigit() else None, currency="EUR", basis="band estimate" if (key == "finnfund" and amt and amt.isdigit()) else None,
                 shares={c: None for c in ccs}, method="single_country" if len(ccs) == 1 and not other else "equal_split_estimate",
                 note="Amount is the band published by Finnfund." if key == "finnfund" and amt else
-                     ("Amount not disclosed." if not amt else ""))
+                     ("Amount from IFU's public announcement (not in its data feed)." if known else ("Amount not disclosed." if not amt else "")))
 
     # ---- Editable templates: created once so they can be filled in directly on GitHub
     for _name, _header in [("manual_entries.csv", "institution_id,title,client,countries,year,instrument,sector,amount,currency,source_url,note"),
@@ -1213,6 +1220,10 @@ def step_normalize():
     # ---- More curated deals from public sources (round 2). Amounts as published; None when not published.
     CURATED_DEALS_2 = [
         # inst, id, title, countries, year, instrument, sector, client, amount, currency, source, note
+        ("sofid", "ci-aggregate-2010-2023", "SOFID financing in Côte d'Ivoire, 2010–2023 (aggregate: 27% of the €47.2m SOFID financed)", "CI", "", "Loan",
+         "Private sector", "Ivorian companies (not published)", 0.27 * 47.2e6, "EUR",
+         "https://www.bpfomento.pt/fotos/documentos/press_release_novos_orgaos_sociais_da_sofid_assumem_funcoes_516721565664b0c81895bc.pdf",
+         "Aggregate estimate, not a single deal: Banco Português de Fomento reports that SOFID financed €47.2m across 36 projects in 2010–2023, 27% of it in Côte d'Ivoire. Deal-level data not published."),
         ("swedfund", "cofina-2024", "Loan to COFINA for MSME and women-entrepreneur finance in Côte d'Ivoire and Senegal", "CI SN", "2024", "Loan",
          "Financial inclusion SME", "Compagnie Financière Africaine (COFINA)", 20e6, "EUR",
          "https://www.mynewsdesk.com/swedfund/pressreleases/closing-msme-finance-gap-in-cote-divoire-and-senegal-3354367", "Split equally between the two countries."),
@@ -2812,9 +2823,10 @@ function renderAbout() {
       (DATA.contractors || []).map(c => ({name: c.f, ms: c.ms, v: c.v, n: c.n, c: c.c})), x => `${msTag(x)} <span class="meta">${x.c.map(c => esc((DATA.countries[c] || {}).name || c)).join(", ")}</span>`],
     ["Recipient countries", "", Object.entries(ct).map(([k, v]) => ({name: (DATA.countries[k] || {}).name || k, v, n: 1})), null],
     ["Institutions checked, no Franc Zone deals found in public sources", "Listed so their absence is not mistaken for an omission.", insts.filter(i => !i.n && /^checked/.test(i.cov)), msTag],
+    ["Institutions not yet checked", "Known to be active in Africa; their Franc Zone activity has not been researched yet.", insts.filter(i => !i.n && /not yet/.test(i.cov)), msTag],
     ["Non-EU comparison (Analysis only)", "Never included in European totals.", insts.filter(i => i.type === "Non-EU"), null]];
   document.getElementById("list").innerHTML = `<div class="abt">
-    <p>The EU-CFA Public finance tracker maps European public investment in the 14 CFA franc countries of the WAEMU and CEMAC since the 1999 XOF/XAF–euro peg: European development banks and DFIs, promotional banks, export credit agencies, EU institutions and EU-majority or EU-financed multilateral channels, with the Team Europe and national programmes they run. Every deal links to its source record; the Sources tab lists every source, and "About the data" below explains the methods.</p>
+    <p>The EU-CFA Public finance tracker maps European public investment in the 14 CFA franc countries of the WAEMU and CEMAC since the 1999 XOF/XAF–euro peg: European development banks and DFIs, promotional banks, export credit agencies, EU institutions and EU-majority or EU-financed multilateral channels, with the Team Europe and national programmes they run. Every deal links to its source record; the Sources tab lists every source, and "About the data" below explains the methods. Africa-wide programmes that name no country, such as Denmark's IFU Africa Facility (DKK 350m, 2025–2030), are not shown in the Programmes view.</p>
     <h2 style="margin:14px 0 2px;font-size:16px">All actors</h2><p>By category, in alphabetical order.</p>` +
     cats.filter(c => c[2].length).map(([t, note, items, extra]) => `<h3>${esc(t)} (${items.length})</h3>${note ? `<p>${esc(note)}</p>` : ""}${list(items, extra)}`).join("") + `</div>`;
 }
