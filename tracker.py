@@ -1220,10 +1220,10 @@ def step_normalize():
     # ---- More curated deals from public sources (round 2). Amounts as published; None when not published.
     CURATED_DEALS_2 = [
         # inst, id, title, countries, year, instrument, sector, client, amount, currency, source, note
-        ("sofid", "ci-aggregate-2010-2023", "SOFID financing in Côte d'Ivoire, 2010–2023 (aggregate: 27% of the €47.2m SOFID financed)", "CI", "", "Loan",
-         "Private sector", "Ivorian companies (not published)", 0.27 * 47.2e6, "EUR",
-         "https://www.bpfomento.pt/fotos/documentos/press_release_novos_orgaos_sociais_da_sofid_assumem_funcoes_516721565664b0c81895bc.pdf",
-         "Aggregate estimate, not a single deal: Banco Português de Fomento reports that SOFID financed €47.2m across 36 projects in 2010–2023, 27% of it in Côte d'Ivoire. Deal-level data not published."),
+        ("sofid", "ci-projects-2010-2022", "SOFID-financed projects in Côte d'Ivoire, 2010–2022 (sanitation and waste management; automotive industry)", "CI", "", "Loan",
+         "Water and sanitation", "Ivorian companies (not published)", None, "EUR",
+         "https://www.sofid.pt/wp-content/uploads/2023/04/Relatorio-e-Contas-2022-Sofid-1.pdf",
+         "SOFID's own lending amount is not published. Its 2022 annual report states that the projects it financed in Côte d'Ivoire in 2010–2022 represent €51m of total investment (28% of the €182m of projects it took part in), in sanitation and waste management and the automotive industry; SOFID itself financed about €47m across all countries."),
         ("swedfund", "cofina-2024", "Loan to COFINA for MSME and women-entrepreneur finance in Côte d'Ivoire and Senegal", "CI SN", "2024", "Loan",
          "Financial inclusion SME", "Compagnie Financière Africaine (COFINA)", 20e6, "EUR",
          "https://www.mynewsdesk.com/swedfund/pressreleases/closing-msme-finance-gap-in-cote-divoire-and-senegal-3354367", "Split equally between the two countries."),
