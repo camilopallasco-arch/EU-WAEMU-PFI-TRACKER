@@ -14,6 +14,8 @@ oeeb,OeEB – Development Bank of Austria,AT,DFI,OeKB Group,Vienna,48.208,16.374
 cofides,COFIDES,ES,DFI,,Madrid,40.417,-3.704,https://www.cofides.es,automated
 simest,SIMEST,IT,DFI,CDP Group,Rome,41.903,12.496,https://www.simest.it,programme level
 sofid,SOFID,PT,DFI,,Lisbon,38.722,-9.139,https://www.sofid.pt,programme level
+cosec,COSEC – Companhia de Seguro de Créditos (Portuguese state-backed export credit insurance),PT,ECA,,Lisbon,38.735,-9.15,https://www.cosec.pt,not yet checked
+dsif,DSIF – Danida Sustainable Infrastructure Finance (run by Impact Fund Denmark),DK,DFI,,Copenhagen,55.68,12.575,https://um.dk,not yet checked
 cdp,Cassa Depositi e Prestiti (CDP),IT,NPB,CDP Group,Rome,41.9,12.48,https://www.cdp.it,curated
 bpifrance,Bpifrance,FR,NPB,,Paris,48.88,2.33,https://www.bpifrance.fr,programme level
 ico,Instituto de Crédito Oficial (ICO),ES,NPB,,Madrid,40.41,-3.69,https://www.ico.es,manual
