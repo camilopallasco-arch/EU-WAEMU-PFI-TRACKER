@@ -5989,8 +5989,8 @@ eib:19921155,eib,BF,100.0,14000000,single_country,12.24,-1.56,country_centroid
 eib:20250194,eib,CI,100.0,190000000,single_country,7.54,-5.55,country_centroid
 eib:20250201,eib,CI,100.0,150000000,single_country,7.54,-5.55,country_centroid
 eib:20240202,eib,CI,100.0,50000000,single_country,7.54,-5.55,country_centroid
-eib:20230702,eib,CI,100.0,100000000,single_country,7.54,-5.55,country_centroid
 eib:20190875,eib,CI,100.0,150000000,single_country,7.54,-5.55,country_centroid
+eib:20230702,eib,CI,100.0,100000000,single_country,7.54,-5.55,country_centroid
 eib:20220477,eib,CI,100.0,16100000,single_country,7.54,-5.55,country_centroid
 eib:20190104,eib,CI,100.0,7520053,single_country,7.54,-5.55,country_centroid
 eib:20140649,eib,CI,100.0,35000000,single_country,7.54,-5.55,country_centroid
@@ -6361,11 +6361,6 @@ bio:oragroup-s-a,bio,TG,33.33,1666667,equal_split_estimate,8.62,0.82,country_cen
 bio:gebana-burkina-faso-2,bio,BF,100.0,3000000,single_country,12.24,-1.56,country_centroid
 bio:agroserv-industrie-sa-5,bio,BF,100.0,11190,single_country,12.24,-1.56,country_centroid
 bio:gebana-burkina-faso-4,bio,BF,100.0,15828,single_country,12.24,-1.56,country_centroid
-bio:gebana-burkina-faso-3,bio,BF,100.0,6906,single_country,12.24,-1.56,country_centroid
-bio:gebana-burkina-faso-2,bio,BF,100.0,3000000,single_country,12.24,-1.56,country_centroid
-bio:agroserv-industrie-sa-5,bio,BF,100.0,11190,single_country,12.24,-1.56,country_centroid
-bio:acep-group-5,bio,BF,100.0,73135,single_country,12.24,-1.56,country_centroid
-bio:acep-burkina-faso-2,bio,BF,100.0,4000000,single_country,12.24,-1.56,country_centroid
 bio:fefisol-ii-3,bio,BF,25.0,500000,equal_split_estimate,12.24,-1.56,country_centroid
 bio:fefisol-ii-3,bio,CI,25.0,500000,equal_split_estimate,7.54,-5.55,country_centroid
 bio:fefisol-ii-3,bio,ML,25.0,500000,equal_split_estimate,17.57,-4.0,country_centroid
@@ -6454,7 +6449,7 @@ bio:adenia-capital-iii-1,bio,CI,100.0,5000000,equal_split_estimate,7.54,-5.55,co
 bio:comafruit-sa,bio,ML,100.0,2500000,single_country,17.57,-4.0,country_centroid
 bio:cofina-mali,bio,ML,100.0,3000000,single_country,17.57,-4.0,country_centroid
 bio:société-générale-d-hôtellerie,bio,ML,100.0,4000000,single_country,17.57,-4.0,country_centroid
-bio:acep-group-6,bio,NE,100.0,1500000,single_country,17.61,8.08,country_centroid
+bio:acep-group-4,bio,NE,100.0,4824,single_country,17.61,8.08,country_centroid
 bio:renewable-energy-performance-platform-2,bio,CM,50.0,7157342,equal_split_estimate,6.0,12.35,country_centroid
 bio:renewable-energy-performance-platform-2,bio,NE,50.0,7157342,equal_split_estimate,17.61,8.08,country_centroid
 bio:acep-group-6,bio,NE,100.0,1500000,single_country,17.61,8.08,country_centroid
