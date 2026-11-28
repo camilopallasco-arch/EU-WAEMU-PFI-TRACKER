@@ -541,7 +541,7 @@ def step_normalize():
         t = (text or "").lower()
         rules = [("Energy and climate", r"energ|solar|power|climate|hydro|electric|renewable|forest|environment"),
                  ("Water and sanitation", r"water|sanitation|sewer|wastewater"),
-                 ("Transport and corridors", r"transport|road|rail|port\b|corridor|logist|airport|mobility|brt|\bbus"),
+                 ("Transport and corridors", r"transport|road|rail|\bports?\b|corridor|logist|airport|mobility|brt|\bbus"),
                  ("Digital and telecoms", r"telecom|digital|\bict\b|internet|cable|tech|start-up|startup"),
                  ("Health", r"health|hospital|pharma|medic|vaccine"),
                  ("Education and skills", r"educat|school|training|vocational|skills|universit"),
